@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="CargoProjects">
+    <cargoProject FILE="$PROJECT_DIR$/anasaizi-core/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/anasaizi-editor/Cargo.toml" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Rust File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="8mzvru1b" />
+  </component>
+  <component name="ProjectId" id="1uA7C0nHUOGF0cwPrMPzvwmTjVW" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/anasaizi-editor" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
+    <property name="settings.editor.selected.configurable" value="language.rust" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\programming\Anasazi\anasaizi-editor" />
+      <recent name="E:\programming\Anasazi\anasaizi-editor\src" />
+      <recent name="E:\programming\Anasazi\anasaizi-core\src" />
+      <recent name="E:\programming\Anasazi\anasaizi-core" />
+      <recent name="E:\programming\Anasazi\anasaizi-editor\assets" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="run --package Anasazi --bin Anasazi" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="version" value="2" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="" />
+      <created>1624096408921</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1624096408921</updated>
+      <workItem from="1624096410500" duration="1271000" />
+      <workItem from="1624110789153" duration="1850000" />
+      <workItem from="1624113347176" duration="752000" />
+      <workItem from="1624115316950" duration="5459000" />
+      <workItem from="1624123194105" duration="2449000" />
+      <workItem from="1624125916617" duration="1967000" />
+      <workItem from="1624192502387" duration="8806000" />
+      <workItem from="1624361645896" duration="1828000" />
+      <workItem from="1624368087217" duration="1281000" />
+      <workItem from="1624451356441" duration="1371000" />
+      <workItem from="1624536005229" duration="1487000" />
+      <workItem from="1624626265376" duration="619000" />
+      <workItem from="1624694591943" duration="1199000" />
+      <workItem from="1624992947113" duration="1275000" />
+      <workItem from="1625058378675" duration="677000" />
+      <workItem from="1625149890004" duration="3779000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="1038" y="327" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1624123162767">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="1038" y="327" key="#com.intellij.fileTypes.FileTypeChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1624123162767" />
+    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser" timestamp="1624118387415">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1624118387415" />
+    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1625149945321">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625149945321" />
+    <state x="-1500" y="280" key="FileChooserDialogImpl" timestamp="1624536012235">
+      <screen x="-2560" y="0" width="2560" height="1050" />
+    </state>
+    <state x="-1500" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1624536012235" />
+    <state x="1060" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1624115461638" />
+    <state x="781" y="170" key="SettingsEditor" timestamp="1624115099147">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="781" y="170" key="SettingsEditor/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1624115099147" />
+    <state x="936" y="243" key="run.anything.popup" timestamp="1624115923387">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="936" y="243" key="run.anything.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1624115923387" />
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1625150451512">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625150451512" />
+  </component>
+</project>
