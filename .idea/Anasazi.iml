@@ -5,8 +5,10 @@
       <sourceFolder url="file://$MODULE_DIR$/anasaizi-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/anasaizi-editor/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/anasaizi-editor/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/anasaizi-profile/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/anasaizi-core/target" />
       <excludeFolder url="file://$MODULE_DIR$/anasaizi-editor/target" />
+      <excludeFolder url="file://$MODULE_DIR$/anasaizi-profile/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

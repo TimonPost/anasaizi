@@ -32,7 +32,7 @@ impl FrameBuffer {
         };
 
         let frame_buffer = unsafe {
-            device.logical_device()
+            device
                 .create_framebuffer(&framebuffer_create_info, None)
                 .expect("Failed to create Framebuffer!")
         };

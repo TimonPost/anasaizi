@@ -111,7 +111,7 @@ impl SwapChain {
             image_array_layers: 1,
         };
 
-        let swapchain_loader = ash::extensions::khr::Swapchain::new(instance.deref(), device.logical_device());
+        let swapchain_loader = ash::extensions::khr::Swapchain::new(instance.deref(), device.deref());
         let swapchain = unsafe {
             swapchain_loader
                 .create_swapchain(&swapchain_create_info, None)
@@ -163,7 +163,7 @@ impl SwapChain {
             };
 
             let imageview = unsafe {
-                device.logical_device()
+                device
                     .create_image_view(&imageview_create_info, None)
                     .expect("Failed to create Image View!")
             };

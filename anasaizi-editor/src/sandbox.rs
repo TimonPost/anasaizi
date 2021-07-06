@@ -10,11 +10,13 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+use anasaizi_core::{debug::profile::PROFILER, profile_fn};
+use anasaizi_profile::profile;
 use ash::{
     extensions::{ext::DebugUtils, khr},
     version::DeviceV1_0,
 };
-use std::ptr;
+use std::{ptr, thread, time::Duration};
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
@@ -23,8 +25,8 @@ pub const VALIDATION: ValidationInfo = ValidationInfo {
     required_validation_layers: ["VK_LAYER_KHRONOS_validation"],
 };
 
-pub static FRAGMENT_SHADER: &str = "09-shader-base.frag.spv";
-pub static VERTEX_SHADER: &str = "09-shader-base.vert.spv";
+pub static FRAGMENT_SHADER: &str = "frag.spv";
+pub static VERTEX_SHADER: &str = "vert.spv";
 
 pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     let mut sync_objects = SyncObjects {
@@ -165,6 +167,10 @@ impl VulkanApp {
         println!("{:?}", instance);
         println!("{:?}", device);
 
+        let mut profiler = PROFILER.lock().unwrap();
+        profiler.start_session();
+        drop(profiler);
+
         VulkanApp {
             window,
             application,
@@ -188,74 +194,83 @@ impl VulkanApp {
         }
     }
 
+    #[profile(Sandbox)]
     fn draw_frame(&mut self) {
         let wait_fences = [self.sync_object.inflight_fences[self.current_frame]];
 
         let (image_index, _is_sub_optimal) = unsafe {
-            self.device
-                .wait_for_fences(&wait_fences, true, u64::MAX)
-                .expect("Failed to wait for Fence!");
+            profile_fn!("Acquire Next Image...", {
+                self.device
+                    .wait_for_fences(&wait_fences, true, u64::MAX)
+                    .expect("Failed to wait for Fence!");
 
-            self.swapchain
-                .loader
-                .acquire_next_image(
-                    self.swapchain.swapchain,
-                    u64::MAX,
-                    self.sync_object.image_available_semaphores[self.current_frame],
-                    vk::Fence::null(),
-                )
-                .expect("Failed to acquire next image.")
+                self.swapchain
+                    .loader
+                    .acquire_next_image(
+                        self.swapchain.swapchain,
+                        u64::MAX,
+                        self.sync_object.image_available_semaphores[self.current_frame],
+                        vk::Fence::null(),
+                    )
+                    .expect("Failed to acquire next image.")
+            })
         };
+        profile_fn!("Wrapper Queues...", {
+            let wait_semaphores = [self.sync_object.image_available_semaphores[self.current_frame]];
+            let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+            let signal_semaphores =
+                [self.sync_object.render_finished_semaphores[self.current_frame]];
 
-        let wait_semaphores = [self.sync_object.image_available_semaphores[self.current_frame]];
-        let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-        let signal_semaphores = [self.sync_object.render_finished_semaphores[self.current_frame]];
+            let submit_infos = [vk::SubmitInfo {
+                s_type: vk::StructureType::SUBMIT_INFO,
+                p_next: ptr::null(),
+                wait_semaphore_count: wait_semaphores.len() as u32,
+                p_wait_semaphores: wait_semaphores.as_ptr(),
+                p_wait_dst_stage_mask: wait_stages.as_ptr(),
+                command_buffer_count: 1,
+                p_command_buffers: &self.buffers.get(image_index as usize),
+                signal_semaphore_count: signal_semaphores.len() as u32,
+                p_signal_semaphores: signal_semaphores.as_ptr(),
+            }];
 
-        let submit_infos = [vk::SubmitInfo {
-            s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
-            wait_semaphore_count: wait_semaphores.len() as u32,
-            p_wait_semaphores: wait_semaphores.as_ptr(),
-            p_wait_dst_stage_mask: wait_stages.as_ptr(),
-            command_buffer_count: 1,
-            p_command_buffers: &self.buffers.get(image_index as usize),
-            signal_semaphore_count: signal_semaphores.len() as u32,
-            p_signal_semaphores: signal_semaphores.as_ptr(),
-        }];
+            unsafe {
+                profile_fn!("Submitting Queues...", {
+                    self.device
+                        .reset_fences(&wait_fences)
+                        .expect("Failed to reset Fence!");
 
-        unsafe {
-            self.device
-                .reset_fences(&wait_fences)
-                .expect("Failed to reset Fence!");
+                    self.device
+                        .queue_submit(
+                            *self.graphics_queue,
+                            &submit_infos,
+                            self.sync_object.inflight_fences[self.current_frame],
+                        )
+                        .expect("Failed to execute queue submit.");
+                })
+            }
 
-            self.device
-                .queue_submit(
-                    *self.graphics_queue,
-                    &submit_infos,
-                    self.sync_object.inflight_fences[self.current_frame],
-                )
-                .expect("Failed to execute queue submit.");
-        }
+            let swapchains = [*self.swapchain];
 
-        let swapchains = [*self.swapchain];
+            let present_info = vk::PresentInfoKHR {
+                s_type: vk::StructureType::PRESENT_INFO_KHR,
+                p_next: ptr::null(),
+                wait_semaphore_count: 1,
+                p_wait_semaphores: signal_semaphores.as_ptr(),
+                swapchain_count: 1,
+                p_swapchains: swapchains.as_ptr(),
+                p_image_indices: &image_index,
+                p_results: ptr::null_mut(),
+            };
 
-        let present_info = vk::PresentInfoKHR {
-            s_type: vk::StructureType::PRESENT_INFO_KHR,
-            p_next: ptr::null(),
-            wait_semaphore_count: 1,
-            p_wait_semaphores: signal_semaphores.as_ptr(),
-            swapchain_count: 1,
-            p_swapchains: swapchains.as_ptr(),
-            p_image_indices: &image_index,
-            p_results: ptr::null_mut(),
-        };
-
-        unsafe {
-            self.swapchain
-                .loader
-                .queue_present(*self.present_queue, &present_info)
-                .expect("Failed to execute queue present.");
-        }
+            unsafe {
+                profile_fn!("Present Queue...", {
+                    self.swapchain
+                        .loader
+                        .queue_present(*self.present_queue, &present_info)
+                        .expect("Failed to execute queue present.");
+                });
+            }
+        });
 
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -263,7 +278,13 @@ impl VulkanApp {
     pub fn main_loop(mut self, event_loop: EventLoop<()>) {
         event_loop.run(move |event, _, control_flow| match event {
             Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+
+                    let mut profiler = PROFILER.lock().unwrap();
+                    profiler.end_session();
+                    drop(profiler);
+                }
                 WindowEvent::KeyboardInput { input, .. } => match input {
                     KeyboardInput {
                         virtual_keycode,
@@ -287,7 +308,6 @@ impl VulkanApp {
             Event::LoopDestroyed => {
                 unsafe {
                     self.device
-                        .logical_device()
                         .device_wait_idle()
                         .expect("Failed to wait device idle!")
                 };

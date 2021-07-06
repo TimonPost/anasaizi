@@ -55,7 +55,7 @@ impl RenderPass {
         };
 
         let render_pass = unsafe {
-            device.logical_device()
+            device
                 .create_render_pass(&renderpass_create_info, None)
                 .expect("Failed to create render pass!")
         };

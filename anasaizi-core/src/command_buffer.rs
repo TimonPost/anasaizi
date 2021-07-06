@@ -17,8 +17,6 @@ impl CommandBuffers {
         render_pass: &RenderPass,
         surface_extent: vk::Extent2D,
     ) -> CommandBuffers {
-        let device = device.logical_device();
-
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
             p_next: ptr::null(),
@@ -77,7 +75,7 @@ impl CommandBuffers {
                     vk::PipelineBindPoint::GRAPHICS,
                     **graphics_pipeline,
                 );
-                device.cmd_draw(command_buffer, 3, 1, 0, 0);
+                device.cmd_draw(command_buffer, 6, 1, 0, 0);
 
                 device.cmd_end_render_pass(command_buffer);
 

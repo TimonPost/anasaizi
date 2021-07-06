@@ -1,8 +1,13 @@
 use crate::sandbox::VulkanApp;
+use anasaizi_core::{debug::profile::PROFILER, profile_fn};
+use anasaizi_profile::profile;
+use std::time::Duration;
 use winit::event_loop::EventLoop;
 
+#[macro_use]
 mod sandbox;
 
+#[profile]
 fn main() {
     let event_loop = EventLoop::new();
 

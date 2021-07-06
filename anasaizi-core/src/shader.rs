@@ -52,7 +52,6 @@ impl Shader {
 
         unsafe {
             device
-                .logical_device()
                 .create_shader_module(&shader_module_create_info, None)
                 .expect("Failed to create Shader Module!")
         }

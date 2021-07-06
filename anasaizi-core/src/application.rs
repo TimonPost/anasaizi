@@ -14,6 +14,8 @@ pub struct Application {
 }
 
 impl Application {
+
+
     pub fn new(
         app_name: &'static str,
         engine_name: &'static str,

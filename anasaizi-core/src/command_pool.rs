@@ -23,7 +23,6 @@ impl CommandPool {
 
         let command_pool = unsafe {
             device
-                .logical_device()
                 .create_command_pool(&command_pool_create_info, None)
                 .expect("Failed to create Command Pool!")
         };

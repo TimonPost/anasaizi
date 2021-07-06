@@ -1,4 +1,8 @@
 #![feature(array_map)]
+#![feature(drain_filter)]
+
+#[macro_use]
+pub mod debug;
 
 mod application;
 mod device;
@@ -17,6 +21,7 @@ mod pipeline;
 mod framebuffer;
 mod command_pool;
 mod command_buffer;
+
 
 pub use application::Application;
 pub use command_pool::{CommandPool};
@@ -38,6 +43,8 @@ pub use window::Window;
 
 use std::ffi::{CString, IntoStringError, CStr};
 use std::os::raw::c_char;
+use std::time::{Instant, SystemTime};
+use lazy_static::lazy_static;
 
 pub const WINDOW_WIDTH: u32 = 800;
 pub const WINDOW_HEIGHT: u32 = 600;
@@ -57,3 +64,6 @@ pub fn vk_to_string(raw_string_array: &[c_char]) -> Result<String, IntoStringErr
 
     string
 }
+
+
+
