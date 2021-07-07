@@ -8,7 +8,13 @@ use ::syn::{self,
 };
 use syn::{Stmt, Expr};
 
+#[cfg(not(feature = "profile"))]
+#[proc_macro_attribute]
+pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item.into()
+}
 
+#[cfg(feature = "profile")]
 #[proc_macro_attribute]
 pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
     println!("{}", item.to_string());

@@ -64,9 +64,6 @@ impl Batch {
 
         while let Some(record) = self.records.pop_back() {
            if let Some(start_of_record) =  record.start_time.checked_duration_since(self.start_profile_time) {
-               println!("since start: {:?} duration: {:?}", start_of_record, record.duration);
-
-
                write!(result, "\n{},{},{}", record.profile_fn, record.duration.as_micros(), start_of_record.as_micros());
            }
         }
@@ -175,6 +172,7 @@ impl Profiler {
                 .sort_by(|a, b| a.ts.partial_cmp(&b.ts).unwrap());
 
             self.remove_file();
+
             Batch::write_to_file(self.output_path, "{\"traceEvents\":");
             Batch::write_to_file(self.output_path,  &serde_json::ser::to_string(&sorted_vec).unwrap());
             Batch::write_to_file(self.output_path, "}");
