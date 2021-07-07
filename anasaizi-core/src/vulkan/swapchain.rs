@@ -4,7 +4,7 @@ use crate::{
     vulkan::{Instance, LogicalDevice, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
-use ash::version::DeviceV1_0;
+use ash::{version::DeviceV1_0, vk::ImageView};
 use std::{ops::Deref, ptr};
 
 /// A Vulkan Swapchain.
@@ -19,8 +19,8 @@ pub struct SwapChain {
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
     pub image_views: Vec<vk::ImageView>,
-    pub depth_image: Image,
-    pub depth_image_view: ImageView
+    pub depth_image: vk::Image,
+    pub depth_image_view: vk::ImageView,
 }
 
 impl SwapChain {
@@ -142,7 +142,7 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-        let depth_image = Self::create_depth_buffer(&device, extend);
+        let depth_image = Self::create_depth_buffer(&device, extent);
 
         let image_views =
             Self::create_image_views(&device, &swapchain_images, &surface_format.format);
@@ -155,7 +155,7 @@ impl SwapChain {
             image_views,
             images: swapchain_images,
             depth_image: depth_image.0,
-            depth_image_view: depth_image.1
+            depth_image_view: depth_image.1,
         }
     }
 
@@ -201,32 +201,40 @@ impl SwapChain {
         swapchain_imageviews
     }
 
-    fn create_depth_buffer(device: &LogicalDevice, extent: Extend2D) -> (vk::Image, vk::ImageView) {
+    fn create_depth_buffer(
+        device: &LogicalDevice,
+        extent: vk::Extent2D,
+    ) -> (vk::Image, vk::ImageView) {
         let image_create_info = vk::ImageCreateInfo {
             s_type: vk::StructureType::IMAGE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::ImageCreateFlags::empty(),
             image_type: vk::ImageType::TYPE_2D,
             format: vk::Format::D16_UNORM,
-            extent,
+            extent: vk::Extent3D {
+                width: extent.width,
+                height: extent.height,
+                depth: 1,
+            }, // TODO validate depth size
             mip_levels: 1,
             array_layers: 1,
             samples: vk::SampleCountFlags::TYPE_2,
-            tiling: vk::ImageTiling::Optimal ,
+            tiling: vk::ImageTiling::OPTIMAL,
             usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
             sharing_mode: vk::SharingMode::EXCLUSIVE,
             queue_family_index_count: 0,
             p_queue_family_indices: ptr::null(),
-            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         };
 
         let depth_buffer_image = unsafe {
-             device.create_image(&image_create_info, None).expect("Could not create depth buffer image.")
+            device
+                .create_image(&image_create_info, None)
+                .expect("Could not create depth buffer image.")
         };
 
-        let memory_requirements = unsafe {
-            device.get_image_memory_requirements(image)
-        };
+        let memory_requirements =
+            unsafe { device.get_image_memory_requirements(depth_buffer_image) };
 
         let allocate_info = vk::MemoryAllocateInfo {
             s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
@@ -236,7 +244,9 @@ impl SwapChain {
         };
 
         let allocation = unsafe {
-            device.allocate_memory(&allocate_info, None).expect("Could not allocate memory for depth buffer image.")
+            device
+                .allocate_memory(&allocate_info, None)
+                .expect("Could not allocate memory for depth buffer image.")
         };
 
         unsafe {
@@ -271,7 +281,7 @@ impl SwapChain {
                 .expect("Failed to create Image View!")
         };
 
-        (image, imageview)
+        (depth_buffer_image, imageview)
     }
 
     /// Pick a format to use for the swapchain.
