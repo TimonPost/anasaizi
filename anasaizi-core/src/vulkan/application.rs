@@ -1,7 +1,7 @@
-use crate::Version;
-
 use std::fmt;
+use crate::vulkan::Version;
 
+/// Vulkan application instance.
 pub struct Application {
     pub app_name: &'static str,
     pub engine_name: &'static str,
@@ -13,6 +13,7 @@ pub struct Application {
 }
 
 impl Application {
+    /// Creates a new vulkan application instance.
     pub fn new(
         app_name: &'static str,
         engine_name: &'static str,

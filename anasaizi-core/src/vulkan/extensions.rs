@@ -38,8 +38,7 @@ impl Extensions {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::Extensions;
+    use crate::vulkan::Extensions;
 
     #[test]
     fn has_extensions() {

@@ -53,7 +53,7 @@ impl fmt::Debug for Version {
 
 #[cfg(test)]
 mod tests {
-    use crate::Version;
+    use crate::vulkan::Version;
 
     #[test]
     fn encode_decode_version_test() {

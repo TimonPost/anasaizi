@@ -1,8 +1,8 @@
 use ash::{version::DeviceV1_0, vk};
 use std::ptr;
 
-use crate::LogicalDevice;
 use std::ops::Deref;
+use crate::vulkan::LogicalDevice;
 
 pub struct CommandPool {
     pool: vk::CommandPool,

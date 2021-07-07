@@ -1,6 +1,6 @@
-use crate::vk_to_string;
 use ash::version::EntryV1_0;
 use std::fmt;
+use crate::utils::vk_to_string;
 
 pub struct ValidationLayerProperties {
     pub name: String,

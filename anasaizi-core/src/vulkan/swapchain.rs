@@ -1,8 +1,9 @@
-use crate::{surface::SurfaceData, Instance, LogicalDevice, WINDOW_HEIGHT, WINDOW_WIDTH};
 use ash::vk;
 
 use ash::version::DeviceV1_0;
 use std::{ops::Deref, ptr};
+use crate::vulkan::{Instance, LogicalDevice, SurfaceData};
+use crate::{WINDOW_HEIGHT, WINDOW_WIDTH};
 
 /// The swap chain is essentially a queue of images that are waiting to be presented to the screen.
 /// Our application will acquire such an image to draw to it, and then return it to the queue.
