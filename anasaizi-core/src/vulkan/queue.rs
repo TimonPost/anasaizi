@@ -1,6 +1,6 @@
+use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{fmt, ops::Deref};
-use crate::vulkan::LogicalDevice;
 
 pub struct Queue {
     queue: vk::Queue,

@@ -1,6 +1,6 @@
+use crate::vulkan::{LogicalDevice, RenderPass};
 use ash::{version::DeviceV1_0, vk, vk::ImageView};
 use std::{ops::Deref, ptr};
-use crate::vulkan::{RenderPass, LogicalDevice};
 
 pub struct FrameBuffer {
     frame_buffer: vk::Framebuffer,

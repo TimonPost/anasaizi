@@ -1,6 +1,6 @@
+use crate::vulkan::{Instance, SurfaceData};
 use std::ops::Deref;
 use winit::event_loop::EventLoop;
-use crate::vulkan::{SurfaceData, Instance};
 
 pub struct Window {
     surface: SurfaceData,

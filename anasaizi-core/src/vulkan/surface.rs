@@ -1,8 +1,8 @@
 use ash::extensions::khr::Win32Surface;
 
+use crate::vulkan::Instance;
 use ash::vk;
 use std::ops::Deref;
-use crate::vulkan::Instance;
 
 pub struct SurfaceData {
     pub surface_loader: ash::extensions::khr::Surface,

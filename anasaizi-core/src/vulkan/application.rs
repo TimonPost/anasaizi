@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::vulkan::Version;
+use std::fmt;
 
 /// Vulkan application instance.
 pub struct Application {

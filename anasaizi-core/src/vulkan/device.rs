@@ -2,9 +2,13 @@ use ash::{version::InstanceV1_0, vk, vk::PhysicalDeviceFeatures};
 
 use std::fmt::Formatter;
 
+use crate::{
+    utils::vk_to_string,
+    vulkan::{
+        Extensions, Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
+    },
+};
 use std::{fmt, ops::Deref, ptr};
-use crate::vulkan::{Version, QueueFamilyIndices, SurfaceData, Extensions, Instance, QueueFamilyProperties};
-use crate::utils::vk_to_string;
 
 pub struct LogicalDevice {
     physical_device: vk::PhysicalDevice,

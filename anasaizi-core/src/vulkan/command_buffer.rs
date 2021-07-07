@@ -1,6 +1,6 @@
+use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass};
 use ash::{version::DeviceV1_0, vk};
 use std::ptr;
-use crate::vulkan::{LogicalDevice, FrameBuffers, CommandPool, Pipeline, RenderPass};
 
 /// A Vulkan command buffer.
 pub struct CommandBuffers {

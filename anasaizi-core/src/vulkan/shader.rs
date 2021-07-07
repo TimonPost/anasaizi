@@ -1,6 +1,6 @@
+use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{collections::HashMap, ops::Deref, path::Path, ptr};
-use crate::vulkan::LogicalDevice;
 
 pub struct Shaders {
     shaders: HashMap<&'static str, Shader>,

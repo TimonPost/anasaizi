@@ -1,6 +1,6 @@
+use crate::vulkan::{LogicalDevice, RenderPass, Shader};
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, ops::Deref, ptr};
-use crate::vulkan::{LogicalDevice, RenderPass, Shader};
 
 pub struct Pipeline {
     pipeline: vk::Pipeline,
