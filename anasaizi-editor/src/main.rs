@@ -1,7 +1,7 @@
 use crate::sandbox::VulkanApp;
-use anasaizi_core::{debug::PROFILER, profile_fn};
+
 use anasaizi_profile::profile;
-use std::time::Duration;
+
 use winit::event_loop::EventLoop;
 
 #[macro_use]

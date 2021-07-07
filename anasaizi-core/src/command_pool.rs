@@ -1,19 +1,15 @@
-use crate::structures::QueueFamilyIndices;
-use ash::vk;
-use ash::version::DeviceV1_0;
+use ash::{version::DeviceV1_0, vk};
 use std::ptr;
-use std::process::Command;
-use std::ops::Deref;
+
 use crate::LogicalDevice;
+use std::ops::Deref;
 
 pub struct CommandPool {
-    pool: vk::CommandPool
+    pool: vk::CommandPool,
 }
 
 impl CommandPool {
-    pub fn create(
-        device: &LogicalDevice
-    ) -> CommandPool {
+    pub fn create(device: &LogicalDevice) -> CommandPool {
         let command_pool_create_info = vk::CommandPoolCreateInfo {
             s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
             p_next: ptr::null(),
@@ -27,9 +23,7 @@ impl CommandPool {
                 .expect("Failed to create Command Pool!")
         };
 
-        CommandPool {
-            pool: command_pool
-        }
+        CommandPool { pool: command_pool }
     }
 }
 

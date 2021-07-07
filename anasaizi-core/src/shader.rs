@@ -1,18 +1,16 @@
-use std::path::Path;
-use ash::vk;
-use std::ptr;
-use ash::version::DeviceV1_0;
 use crate::LogicalDevice;
-use std::collections::HashMap;
-use std::ops::Deref;
+use ash::{version::DeviceV1_0, vk};
+use std::{collections::HashMap, ops::Deref, path::Path, ptr};
 
 pub struct Shaders {
-    shaders: HashMap<&'static str, Shader>
+    shaders: HashMap<&'static str, Shader>,
 }
 
 impl Shaders {
     pub fn new() -> Shaders {
-        Shaders { shaders: HashMap::new() }
+        Shaders {
+            shaders: HashMap::new(),
+        }
     }
 
     pub fn add_shader(&mut self, label: &'static str, shader: Shader) {
@@ -20,24 +18,26 @@ impl Shaders {
     }
 
     pub fn shader(&self, label: &'static str) -> &Shader {
-        self.shaders.get(label).expect(format!("Could not find shader with label: {}", label).as_str())
+        self.shaders
+            .get(label)
+            .expect(format!("Could not find shader with label: {}", label).as_str())
     }
 }
 
 pub struct Shader {
-    shader_path: & 'static str,
-    shader_module: vk::ShaderModule
+    shader_path: &'static str,
+    shader_module: vk::ShaderModule,
 }
 
 impl Shader {
-    pub fn new(device: &LogicalDevice, shader_path: & 'static str) -> Shader {
+    pub fn new(device: &LogicalDevice, shader_path: &'static str) -> Shader {
         let shader_code = Self::read_shader_code(Path::new(shader_path));
 
         let shader_module = Self::create_shader_module(device, shader_code);
 
         Shader {
             shader_path,
-            shader_module
+            shader_module,
         }
     }
 
@@ -58,16 +58,14 @@ impl Shader {
     }
 
     pub fn read_shader_code(shader_path: &Path) -> Vec<u8> {
-        use std::fs::File;
-        use std::io::Read;
+        use std::{fs::File, io::Read};
 
-        let spv_file =
-            File::open(shader_path).expect(&format!("Failed to find spv file at {:?}", shader_path));
+        let spv_file = File::open(shader_path)
+            .expect(&format!("Failed to find spv file at {:?}", shader_path));
         let bytes_code: Vec<u8> = spv_file.bytes().filter_map(|byte| byte.ok()).collect();
 
         bytes_code
     }
-
 }
 
 impl Deref for Shader {

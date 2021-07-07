@@ -1,15 +1,10 @@
-use ash::vk;
-use crate::LogicalDevice;
-use crate::render_pass::RenderPass;
-use std::ffi::CString;
-use std::ptr;
-use crate::shader::Shader;
-use std::ops::Deref;
-use ash::version::DeviceV1_0;
+use crate::{render_pass::RenderPass, shader::Shader, LogicalDevice};
+use ash::{version::DeviceV1_0, vk};
+use std::{ffi::CString, ops::Deref, ptr};
 
 pub struct Pipeline {
     pipeline: vk::Pipeline,
-    layout: vk::PipelineLayout
+    layout: vk::PipelineLayout,
 }
 
 impl Pipeline {
@@ -19,7 +14,7 @@ impl Pipeline {
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
         vertex_shader: &Shader,
-        fragment_shader: &Shader
+        fragment_shader: &Shader,
     ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -174,7 +169,8 @@ impl Pipeline {
         };
 
         let pipeline_layout = unsafe {
-            device.logical_device()
+            device
+                .logical_device()
                 .create_pipeline_layout(&pipeline_layout_create_info, None)
                 .expect("Failed to create pipeline layout!")
         };
@@ -214,7 +210,7 @@ impl Pipeline {
 
         Pipeline {
             layout: pipeline_layout,
-            pipeline: graphics_pipelines[0]
+            pipeline: graphics_pipelines[0],
         }
     }
 }

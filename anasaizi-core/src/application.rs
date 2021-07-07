@@ -1,7 +1,6 @@
-use crate::{Instance, Version};
-use ash::vk;
-use std::ffi::CString;
-use std::{fmt, ptr};
+use crate::Version;
+
+use std::fmt;
 
 pub struct Application {
     pub app_name: &'static str,
@@ -14,8 +13,6 @@ pub struct Application {
 }
 
 impl Application {
-
-
     pub fn new(
         app_name: &'static str,
         engine_name: &'static str,

@@ -1,17 +1,13 @@
-use crate::structures::{QueueFamilyIndices, ValidationInfo};
-use crate::surface::SurfaceData;
-use crate::{Extensions, Instance, Version, QueueFamilyProperties};
-use crate::{vk_to_cstr, vk_to_string};
+use crate::{
+    structures::QueueFamilyIndices, surface::SurfaceData, vk_to_string, Extensions, Instance,
+    QueueFamilyProperties, Version,
+};
 
-use ash::version::InstanceV1_0;
-use ash::vk;
-use ash::vk::{ExtensionProperties, PhysicalDeviceFeatures};
-use std::collections::HashSet;
-use std::ffi::{CStr, CString};
+use ash::{version::InstanceV1_0, vk, vk::PhysicalDeviceFeatures};
+
 use std::fmt::Formatter;
-use std::os::raw::c_char;
-use std::{fmt, ptr};
-use std::ops::Deref;
+
+use std::{fmt, ops::Deref, ptr};
 
 pub struct LogicalDevice {
     physical_device: vk::PhysicalDevice,
@@ -27,7 +23,8 @@ impl LogicalDevice {
         required_extensions: Extensions,
         surface_data: &SurfaceData,
     ) -> LogicalDevice {
-        let (queue_family_indices, physical_device) = Self::pick_physical_device(instance, surface_data);
+        let (queue_family_indices, physical_device) =
+            Self::pick_physical_device(instance, surface_data);
 
         if !Self::check_device_extension_support(instance, physical_device, &required_extensions) {
             panic!(
@@ -84,7 +81,6 @@ impl LogicalDevice {
         extensions: &Extensions,
         features: PhysicalDeviceFeatures,
     ) -> ash::Device {
-
         // Setup the queues to use
         let indices = Self::find_queue_family(instance, physical_device, surface_data);
 
@@ -280,7 +276,6 @@ impl From<vk::PhysicalDeviceType> for DeviceType {
         }
     }
 }
-
 
 struct DeviceProperties {
     api_version: Version,

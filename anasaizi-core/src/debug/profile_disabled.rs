@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 macro_rules! profile_fn {
     ($profile:expr, $to_profile:expr) => {{
         $to_profile
-    }}
+    }};
 }
 
 lazy_static! {
@@ -13,9 +13,6 @@ lazy_static! {
     pub static ref PROFILER: i32 = 0;
 }
 
+pub fn start_profiler() {}
 
-pub fn start_profiler() {
-}
-
-pub fn stop_profiler() {
-}
+pub fn stop_profiler() {}

@@ -1,6 +1,4 @@
-use std::collections::HashSet;
-use std::ffi::{CStr, CString};
-use std::iter::FromIterator;
+use std::{collections::HashSet, ffi::CString, iter::FromIterator};
 
 #[derive(Debug)]
 pub struct Extensions {
@@ -17,8 +15,8 @@ impl Extensions {
     }
 
     pub fn has(&self, extensions: &Extensions) -> bool {
-        let mut set1: HashSet<String> = HashSet::from_iter(extensions.extensions());
-        let mut set2: HashSet<String> = HashSet::from_iter(self.extensions());
+        let set1: HashSet<String> = HashSet::from_iter(extensions.extensions());
+        let set2: HashSet<String> = HashSet::from_iter(self.extensions());
 
         let difference = set1.difference(&set2).count();
 
@@ -40,14 +38,13 @@ impl Extensions {
 
 #[cfg(test)]
 mod tests {
-    use crate::ash_implementation::Extensions;
-    use std::ffi::CString;
+
+    use crate::Extensions;
 
     #[test]
     fn has_extensions() {
-        let required =
-            Extensions::new(vec![String::from("1").unwrap(), String::from("2").unwrap()]);
-        let available = Extensions::new(vec![String::from("1").unwrap()]);
+        let required = Extensions::new(vec![String::from("1"), String::from("2")]);
+        let available = Extensions::new(vec![String::from("1")]);
 
         let difference = available.has(&required);
 
@@ -56,9 +53,8 @@ mod tests {
 
     #[test]
     fn has_not_extensions() {
-        let required = Extensions::new(vec![String::from("1").unwrap()]);
-        let available =
-            Extensions::new(vec![String::from("1").unwrap(), String::from("2").unwrap()]);
+        let required = Extensions::new(vec![String::from("1")]);
+        let available = Extensions::new(vec![String::from("1"), String::from("2")]);
 
         let difference = available.has(&required);
 

@@ -1,13 +1,9 @@
-use ash::vk;
-use std::ptr;
-use ash::version::DeviceV1_0;
-use crate::LogicalDevice;
-use crate::RenderPass;
-use ash::vk::ImageView;
-use std::ops::Deref;
+use crate::{LogicalDevice, RenderPass};
+use ash::{version::DeviceV1_0, vk, vk::ImageView};
+use std::{ops::Deref, ptr};
 
 pub struct FrameBuffer {
-    frame_buffer: vk::Framebuffer
+    frame_buffer: vk::Framebuffer,
 }
 
 impl FrameBuffer {
@@ -37,9 +33,7 @@ impl FrameBuffer {
                 .expect("Failed to create Framebuffer!")
         };
 
-        FrameBuffer {
-            frame_buffer
-        }
+        FrameBuffer { frame_buffer }
     }
 }
 
@@ -52,7 +46,7 @@ impl Deref for FrameBuffer {
 }
 
 pub struct FrameBuffers {
-    frame_buffers: Vec<FrameBuffer>
+    frame_buffers: Vec<FrameBuffer>,
 }
 
 impl FrameBuffers {
@@ -60,18 +54,20 @@ impl FrameBuffers {
         device: &LogicalDevice,
         render_pass: &RenderPass,
         image_views: &Vec<vk::ImageView>,
-        swapchain_extent: &vk::Extent2D
-    ) -> FrameBuffers
-    {
+        swapchain_extent: &vk::Extent2D,
+    ) -> FrameBuffers {
         let mut frame_buffers = vec![];
 
         for &image_view in image_views.iter() {
-            frame_buffers.push(FrameBuffer::create(device, render_pass, image_view, swapchain_extent));
+            frame_buffers.push(FrameBuffer::create(
+                device,
+                render_pass,
+                image_view,
+                swapchain_extent,
+            ));
         }
 
-        FrameBuffers {
-            frame_buffers
-        }
+        FrameBuffers { frame_buffers }
     }
 
     pub fn len(&self) -> usize {

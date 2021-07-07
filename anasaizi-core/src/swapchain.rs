@@ -1,10 +1,8 @@
-use ash::{vk, Device};
-use crate::surface::SurfaceData;
-use crate::{LogicalDevice, Instance, WINDOW_WIDTH, WINDOW_HEIGHT};
-use crate::QueueFamilyIndices;
-use std::ptr;
-use std::ops::Deref;
+use crate::{surface::SurfaceData, Instance, LogicalDevice, WINDOW_HEIGHT, WINDOW_WIDTH};
+use ash::vk;
+
 use ash::version::DeviceV1_0;
+use std::{ops::Deref, ptr};
 
 /// The swap chain is essentially a queue of images that are waiting to be presented to the screen.
 /// Our application will acquire such an image to draw to it, and then return it to the queue.
@@ -16,11 +14,15 @@ pub struct SwapChain {
     pub images: Vec<vk::Image>,
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
-    pub image_views: Vec<vk::ImageView>
+    pub image_views: Vec<vk::ImageView>,
 }
 
 impl SwapChain {
-    pub fn new(instance: &Instance, device: &LogicalDevice, surface_data: &SurfaceData) -> SwapChain{
+    pub fn new(
+        instance: &Instance,
+        device: &LogicalDevice,
+        surface_data: &SurfaceData,
+    ) -> SwapChain {
         let swap_chain_support = Self::query_swapchain_support(device, surface_data);
 
         if swap_chain_support.formats.is_empty() && swap_chain_support.present_modes.is_empty() {
@@ -37,15 +39,24 @@ impl SwapChain {
         unsafe {
             let capabilities = surface_data
                 .surface_loader
-                .get_physical_device_surface_capabilities(*device.physical_device(), surface_data.surface)
+                .get_physical_device_surface_capabilities(
+                    *device.physical_device(),
+                    surface_data.surface,
+                )
                 .expect("Failed to query for surface capabilities.");
             let formats = surface_data
                 .surface_loader
-                .get_physical_device_surface_formats(*device.physical_device(), surface_data.surface)
+                .get_physical_device_surface_formats(
+                    *device.physical_device(),
+                    surface_data.surface,
+                )
                 .expect("Failed to query for surface formats.");
             let present_modes = surface_data
                 .surface_loader
-                .get_physical_device_surface_present_modes(*device.physical_device(), surface_data.surface)
+                .get_physical_device_surface_present_modes(
+                    *device.physical_device(),
+                    surface_data.surface,
+                )
                 .expect("Failed to query for surface present mode.");
 
             SwapChainSupportDetails {
@@ -111,7 +122,8 @@ impl SwapChain {
             image_array_layers: 1,
         };
 
-        let swapchain_loader = ash::extensions::khr::Swapchain::new(instance.deref(), device.deref());
+        let swapchain_loader =
+            ash::extensions::khr::Swapchain::new(instance.deref(), device.deref());
         let swapchain = unsafe {
             swapchain_loader
                 .create_swapchain(&swapchain_create_info, None)
@@ -124,7 +136,8 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-        let image_views = Self::create_image_views(&device, &swapchain_images, &surface_format.format);
+        let image_views =
+            Self::create_image_views(&device, &swapchain_images, &surface_format.format);
 
         SwapChain {
             loader: swapchain_loader,
@@ -136,7 +149,11 @@ impl SwapChain {
         }
     }
 
-    fn create_image_views(device: &LogicalDevice, images: &Vec<vk::Image>, format: &vk::Format) -> Vec<vk::ImageView> {
+    fn create_image_views(
+        device: &LogicalDevice,
+        images: &Vec<vk::Image>,
+        format: &vk::Format,
+    ) -> Vec<vk::ImageView> {
         let mut swapchain_imageviews = vec![];
 
         for &image in images.iter() {
@@ -174,7 +191,9 @@ impl SwapChain {
     }
 
     /// Pick a format to use for the swapchain.
-    fn choose_swapchain_format(available_formats: &Vec<vk::SurfaceFormatKHR>) -> vk::SurfaceFormatKHR {
+    fn choose_swapchain_format(
+        available_formats: &Vec<vk::SurfaceFormatKHR>,
+    ) -> vk::SurfaceFormatKHR {
         // check if list contains most widely used R8G8B8A8 format with nonlinear color space
         for available_format in available_formats {
             if available_format.format == vk::Format::B8G8R8A8_SRGB
@@ -235,5 +254,5 @@ impl Deref for SwapChain {
 pub struct SwapChainSupportDetails {
     capabilities: vk::SurfaceCapabilitiesKHR,
     formats: Vec<vk::SurfaceFormatKHR>,
-    present_modes: Vec<vk::PresentModeKHR>
+    present_modes: Vec<vk::PresentModeKHR>,
 }

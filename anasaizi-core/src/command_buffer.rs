@@ -1,11 +1,9 @@
-use ash::vk;
+use crate::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass};
+use ash::{version::DeviceV1_0, vk};
 use std::ptr;
-use crate::{LogicalDevice, CommandPool, Pipeline, FrameBuffers, RenderPass};
-use ash::version::DeviceV1_0;
-use std::ops::Deref;
 
 pub struct CommandBuffers {
-    command_buffers: Vec<vk::CommandBuffer>
+    command_buffers: Vec<vk::CommandBuffer>,
 }
 
 impl CommandBuffers {
@@ -85,9 +83,7 @@ impl CommandBuffers {
             }
         }
 
-        CommandBuffers {
-            command_buffers
-        }
+        CommandBuffers { command_buffers }
     }
 
     pub fn get(&self, index: usize) -> vk::CommandBuffer {

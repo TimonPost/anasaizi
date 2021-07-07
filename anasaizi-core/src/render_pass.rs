@@ -1,11 +1,9 @@
-use ash::vk;
-use std::ptr;
-use ash::version::DeviceV1_0;
-use std::ops::Deref;
 use crate::LogicalDevice;
+use ash::{version::DeviceV1_0, vk};
+use std::{ops::Deref, ptr};
 
 pub struct RenderPass {
-    render_pass: vk::RenderPass
+    render_pass: vk::RenderPass,
 }
 
 impl RenderPass {
@@ -60,9 +58,7 @@ impl RenderPass {
                 .expect("Failed to create render pass!")
         };
 
-        RenderPass {
-             render_pass
-        }
+        RenderPass { render_pass }
     }
 }
 

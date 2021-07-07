@@ -17,13 +17,13 @@ impl Version {
     }
 
     pub fn encode(&self) -> u32 {
-        (((self.major) << 22) | ((self.minor) << 12) | (self.patch))
+        ((self.major) << 22) | ((self.minor) << 12) | (self.patch)
     }
 
     pub fn decode(encoded_version: u32) -> Version {
-        let major = (((encoded_version) >> 22) & 0x7F);
-        let minor = (((encoded_version) >> 12) & 0x3FF);
-        let patch = ((encoded_version) & 0xFFF);
+        let major = ((encoded_version) >> 22) & 0x7F;
+        let minor = ((encoded_version) >> 12) & 0x3FF;
+        let patch = (encoded_version) & 0xFFF;
 
         Version {
             major,
@@ -53,7 +53,7 @@ impl fmt::Debug for Version {
 
 #[cfg(test)]
 mod tests {
-    use crate::ash_implementation::Version;
+    use crate::Version;
 
     #[test]
     fn encode_decode_version_test() {

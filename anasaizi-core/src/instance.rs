@@ -1,14 +1,8 @@
-use crate::{
-    Application, Extensions, ValidationLayers,
-};
-use ash::extensions::ext::DebugUtils;
-use ash::extensions::khr::{Surface, Win32Surface};
-use ash::version::EntryV1_0;
-use ash::vk;
-use std::ffi::{CStr, CString};
-use std::ops::Deref;
-use std::{fmt, ptr};
+use crate::{Application, Extensions, ValidationLayers};
+
 use crate::structures::ValidationInfo;
+use ash::{version::EntryV1_0, vk};
+use std::{ffi::CString, fmt, ops::Deref, ptr};
 
 pub struct Instance {
     entry: ash::Entry,
@@ -40,7 +34,7 @@ impl Instance {
         }
 
         // Get enabled layers
-        let mut enabled_layers = validation.to_vec_ptr();
+        let enabled_layers = validation.to_vec_ptr();
 
         let enabled_layers_ptr = enabled_layers
             .iter()

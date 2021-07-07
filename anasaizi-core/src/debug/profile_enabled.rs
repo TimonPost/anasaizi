@@ -1,15 +1,21 @@
-use std::time::{SystemTime, Duration, Instant};
-use std::sync::mpsc::{channel, Sender, Receiver};
-use std::{thread, fs, io};
-use std::fs::{OpenOptions, File};
-use std::collections::LinkedList;
-use std::fmt::Write;
 use lazy_static::lazy_static;
-use std::sync::{Mutex, Arc};
-use serde::{Serialize, Deserialize};
-use std::path::Path;
-use std::io::BufRead;
-use std::sync::atomic::{AtomicBool, Ordering};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::LinkedList,
+    fmt::Write,
+    fs,
+    fs::{File, OpenOptions},
+    io,
+    io::BufRead,
+    path::Path,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex,
+    },
+    thread,
+    time::{Duration, Instant, SystemTime},
+};
 
 #[macro_export]
 macro_rules! profile_fn {
@@ -31,18 +37,17 @@ macro_rules! profile_fn {
 
         let result = $to_profile;
 
-
         profile_data.end_profile();
 
         result
-    }}
+    }};
 }
 
 pub struct Batch {
     records: LinkedList<ProfileObject>,
     max_size: usize,
     output: &'static str,
-    start_profile_time: Instant
+    start_profile_time: Instant,
 }
 
 impl Batch {
@@ -51,7 +56,7 @@ impl Batch {
             output,
             max_size: 0,
             records: LinkedList::new(),
-            start_profile_time
+            start_profile_time,
         }
     }
 
@@ -63,9 +68,18 @@ impl Batch {
         let mut result = String::new();
 
         while let Some(record) = self.records.pop_back() {
-           if let Some(start_of_record) =  record.start_time.checked_duration_since(self.start_profile_time) {
-               write!(result, "\n{},{},{}", record.profile_fn, record.duration.as_micros(), start_of_record.as_micros());
-           }
+            if let Some(start_of_record) = record
+                .start_time
+                .checked_duration_since(self.start_profile_time)
+            {
+                write!(
+                    result,
+                    "\n{},{},{}",
+                    record.profile_fn,
+                    record.duration.as_micros(),
+                    start_of_record.as_micros()
+                );
+            }
         }
 
         Self::write_to_file(self.output, &result);
@@ -94,7 +108,7 @@ pub struct Profiler {
     channel_tx: Sender<ProfileObject>,
     channel_rx: Option<Receiver<ProfileObject>>,
     output_path: &'static str,
-    is_profiling: Arc<AtomicBool>
+    is_profiling: Arc<AtomicBool>,
 }
 
 impl Profiler {
@@ -105,7 +119,7 @@ impl Profiler {
             channel_tx: tx,
             channel_rx: Some(rx),
             output_path: "output.json",
-            is_profiling: Arc::new(AtomicBool::new(false))
+            is_profiling: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -120,7 +134,8 @@ impl Profiler {
     }
 
     pub fn start_session(&mut self) {
-        self.is_profiling.compare_exchange(false, true, Ordering::Acquire,Ordering::Relaxed);
+        self.is_profiling
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed);
 
         self.remove_file();
 
@@ -149,32 +164,39 @@ impl Profiler {
     }
 
     pub fn end_session(&mut self) {
-        self.is_profiling.compare_exchange(true, false, Ordering::Acquire,Ordering::Relaxed);
+        self.is_profiling
+            .compare_exchange(true, false, Ordering::Acquire, Ordering::Relaxed);
 
         if let Ok(lines) = Self::read_lines(self.output_path) {
             let mut sorted_vec = lines
-                .filter(|x | {
+                .filter(|x| {
                     if let Ok(x) = x {
                         if x == "" {
                             return false;
                         }
                     }
                     true
-                } )
+                })
                 .map(|x| {
                     let line = x.unwrap();
                     let results = line.split(",").collect::<Vec<&str>>();
-                    SerializedProfileObject::new(results[0].to_owned(), results[1].parse().unwrap(), results[2].parse().unwrap())
+                    SerializedProfileObject::new(
+                        results[0].to_owned(),
+                        results[1].parse().unwrap(),
+                        results[2].parse().unwrap(),
+                    )
                 })
                 .collect::<Vec<SerializedProfileObject>>();
 
-            sorted_vec
-                .sort_by(|a, b| a.ts.partial_cmp(&b.ts).unwrap());
+            sorted_vec.sort_by(|a, b| a.ts.partial_cmp(&b.ts).unwrap());
 
             self.remove_file();
 
             Batch::write_to_file(self.output_path, "{\"traceEvents\":");
-            Batch::write_to_file(self.output_path,  &serde_json::ser::to_string(&sorted_vec).unwrap());
+            Batch::write_to_file(
+                self.output_path,
+                &serde_json::ser::to_string(&sorted_vec).unwrap(),
+            );
             Batch::write_to_file(self.output_path, "}");
         }
     }
@@ -184,11 +206,12 @@ impl Profiler {
     }
 
     fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-        where P: AsRef<Path>, {
+    where
+        P: AsRef<Path>,
+    {
         let file = File::open(filename)?;
         Ok(io::BufReader::new(file).lines())
     }
-
 }
 
 #[derive(Serialize, Deserialize)]
@@ -199,7 +222,7 @@ struct SerializedProfileObject {
     ph: &'static str,
     pid: u32,
     tid: u32,
-    ts: u128
+    ts: u128,
 }
 
 impl SerializedProfileObject {
@@ -211,7 +234,7 @@ impl SerializedProfileObject {
             ph: "X",
             pid: 0,
             tid: 1,
-            ts: start
+            ts: start,
         }
     }
 }
@@ -226,9 +249,9 @@ pub struct ProfileObject {
 impl ProfileObject {
     pub fn new(profile_fn: String) -> ProfileObject {
         ProfileObject {
-            start_time:  get_current_time_ns(),
+            start_time: get_current_time_ns(),
             duration: Duration::default(),
-            profile_fn
+            profile_fn,
         }
     }
 
@@ -245,7 +268,7 @@ lazy_static! {
 }
 
 fn get_current_time_ns() -> Instant {
-   Instant::now()
+    Instant::now()
 }
 
 pub fn start_profiler() {

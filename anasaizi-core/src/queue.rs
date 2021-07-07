@@ -1,9 +1,6 @@
-use crate::structures::QueueFamilyIndices;
 use crate::LogicalDevice;
-use ash::version::DeviceV1_0;
-use ash::vk;
-use std::fmt;
-use std::ops::Deref;
+use ash::{version::DeviceV1_0, vk};
+use std::{fmt, ops::Deref};
 
 pub struct Queue {
     queue: vk::Queue,
@@ -24,7 +21,6 @@ impl Deref for Queue {
         &self.queue
     }
 }
-
 
 pub struct QueueFamilyProperties {
     pub queue_flags: vk::QueueFlags,

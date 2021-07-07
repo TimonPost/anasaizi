@@ -10,7 +10,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::{debug::PROFILER, profile_fn};
+use anasaizi_core::profile_fn;
 use anasaizi_profile::profile;
 
 use anasaizi_core::debug::{start_profiler, stop_profiler};
@@ -18,7 +18,7 @@ use ash::{
     extensions::{ext::DebugUtils, khr},
     version::DeviceV1_0,
 };
-use std::{ptr, thread, time::Duration};
+use std::ptr;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 

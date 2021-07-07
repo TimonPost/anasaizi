@@ -1,7 +1,6 @@
-use crate::surface::SurfaceData;
-use crate::Instance;
-use winit::event_loop::EventLoop;
+use crate::{surface::SurfaceData, Instance};
 use std::ops::Deref;
+use winit::event_loop::EventLoop;
 
 pub struct Window {
     surface: SurfaceData,
