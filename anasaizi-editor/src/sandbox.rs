@@ -10,8 +10,10 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::{debug::profile::PROFILER, profile_fn};
+use anasaizi_core::{debug::PROFILER, profile_fn};
 use anasaizi_profile::profile;
+
+use anasaizi_core::debug::{start_profiler, stop_profiler};
 use ash::{
     extensions::{ext::DebugUtils, khr},
     version::DeviceV1_0,
@@ -167,9 +169,7 @@ impl VulkanApp {
         println!("{:?}", instance);
         println!("{:?}", device);
 
-        let mut profiler = PROFILER.lock().unwrap();
-        profiler.start_session();
-        drop(profiler);
+        start_profiler();
 
         VulkanApp {
             window,
@@ -281,9 +281,7 @@ impl VulkanApp {
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
 
-                    let mut profiler = PROFILER.lock().unwrap();
-                    profiler.end_session();
-                    drop(profiler);
+                    stop_profiler();
                 }
                 WindowEvent::KeyboardInput { input, .. } => match input {
                     KeyboardInput {

@@ -249,3 +249,15 @@ lazy_static! {
 fn get_current_time_ns() -> Instant {
    Instant::now()
 }
+
+pub fn start_profiler() {
+    let mut profiler = PROFILER.lock().unwrap();
+    profiler.start_session();
+    drop(profiler);
+}
+
+pub fn stop_profiler() {
+    let mut profiler = PROFILER.lock().unwrap();
+    profiler.end_session();
+    drop(profiler);
+}
