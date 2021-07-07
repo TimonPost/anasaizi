@@ -2,6 +2,10 @@ use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{fmt, ops::Deref};
 
+/// A Vulkan Queue.
+///
+/// A queue is the abstracted mechanism used to submit commands to the hardware.
+/// Vulkan arranges queues according to their type into queue families.
 pub struct Queue {
     queue: vk::Queue,
 }

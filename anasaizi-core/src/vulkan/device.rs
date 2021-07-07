@@ -10,6 +10,9 @@ use crate::{
 };
 use std::{fmt, ops::Deref, ptr};
 
+/// A Vulkan logical device.
+///
+/// A logical device acts upont a physical device by proving helper functions.
 pub struct LogicalDevice {
     physical_device: vk::PhysicalDevice,
     device_features: vk::PhysicalDeviceFeatures,
@@ -97,7 +100,7 @@ impl LogicalDevice {
         };
 
         // Get extensions
-        let extensions_raw = extensions.extensions_ptr();
+        let extensions_raw = extensions.as_cstrings();
         let extensions_ptr = extensions_raw
             .iter()
             .map(|x| x.as_ptr())
@@ -112,7 +115,7 @@ impl LogicalDevice {
             p_queue_create_infos: &queue_create_info,
             enabled_layer_count: 0,
             pp_enabled_layer_names: ptr::null(),
-            enabled_extension_count: extensions.extensions_count(),
+            enabled_extension_count: extensions.count(),
             pp_enabled_extension_names: extensions_ptr.as_ptr(),
             p_enabled_features: &features,
         };

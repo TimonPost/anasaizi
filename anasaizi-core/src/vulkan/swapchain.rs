@@ -7,10 +7,11 @@ use crate::{
 use ash::version::DeviceV1_0;
 use std::{ops::Deref, ptr};
 
+/// A Vulkan Swapchain.
+///
 /// The swap chain is essentially a queue of images that are waiting to be presented to the screen.
-/// Our application will acquire such an image to draw to it, and then return it to the queue.
-/// How exactly the queue works and the conditions for presenting an image from the queue depend on how the swap chain is set up,
-/// but the general purpose of the swap chain is to synchronize the presentation of images with the refresh rate of the screen.
+/// The general purpose of the swap chain is to synchronize the presentation of images with the refresh rate of the screen.
+///
 pub struct SwapChain {
     pub loader: ash::extensions::khr::Swapchain,
     pub swapchain: vk::SwapchainKHR,
@@ -18,6 +19,8 @@ pub struct SwapChain {
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
     pub image_views: Vec<vk::ImageView>,
+    pub depth_image: Image,
+    pub depth_image_view: ImageView
 }
 
 impl SwapChain {
@@ -139,6 +142,8 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
+        let depth_image = Self::create_depth_buffer(&device, extend);
+
         let image_views =
             Self::create_image_views(&device, &swapchain_images, &surface_format.format);
 
@@ -146,12 +151,15 @@ impl SwapChain {
             loader: swapchain_loader,
             swapchain,
             image_format: surface_format.format,
-            extent: extent,
+            extent,
             image_views,
             images: swapchain_images,
+            depth_image: depth_image.0,
+            depth_image_view: depth_image.1
         }
     }
 
+    /// An image view defines how the swapchain is going to use an image.
     fn create_image_views(
         device: &LogicalDevice,
         images: &Vec<vk::Image>,
@@ -191,6 +199,79 @@ impl SwapChain {
         }
 
         swapchain_imageviews
+    }
+
+    fn create_depth_buffer(device: &LogicalDevice, extent: Extend2D) -> (vk::Image, vk::ImageView) {
+        let image_create_info = vk::ImageCreateInfo {
+            s_type: vk::StructureType::IMAGE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::ImageCreateFlags::empty(),
+            image_type: vk::ImageType::TYPE_2D,
+            format: vk::Format::D16_UNORM,
+            extent,
+            mip_levels: 1,
+            array_layers: 1,
+            samples: vk::SampleCountFlags::TYPE_2,
+            tiling: vk::ImageTiling::Optimal ,
+            usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+            sharing_mode: vk::SharingMode::EXCLUSIVE,
+            queue_family_index_count: 0,
+            p_queue_family_indices: ptr::null(),
+            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        let depth_buffer_image = unsafe {
+             device.create_image(&image_create_info, None).expect("Could not create depth buffer image.")
+        };
+
+        let memory_requirements = unsafe {
+            device.get_image_memory_requirements(image)
+        };
+
+        let allocate_info = vk::MemoryAllocateInfo {
+            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
+            p_next: ptr::null(),
+            allocation_size: memory_requirements.size,
+            memory_type_index: 0, //TODO
+        };
+
+        let allocation = unsafe {
+            device.allocate_memory(&allocate_info, None).expect("Could not allocate memory for depth buffer image.")
+        };
+
+        unsafe {
+            device.bind_image_memory(depth_buffer_image, allocation, 0);
+        };
+
+        let imageview_create_info = vk::ImageViewCreateInfo {
+            s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::ImageViewCreateFlags::empty(),
+            view_type: vk::ImageViewType::TYPE_2D,
+            format: vk::Format::D16_UNORM,
+            components: vk::ComponentMapping {
+                r: vk::ComponentSwizzle::IDENTITY,
+                g: vk::ComponentSwizzle::IDENTITY,
+                b: vk::ComponentSwizzle::IDENTITY,
+                a: vk::ComponentSwizzle::IDENTITY,
+            },
+            subresource_range: vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            },
+            image: depth_buffer_image,
+        };
+
+        let imageview = unsafe {
+            device
+                .create_image_view(&imageview_create_info, None)
+                .expect("Failed to create Image View!")
+        };
+
+        (image, imageview)
     }
 
     /// Pick a format to use for the swapchain.

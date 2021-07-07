@@ -4,6 +4,8 @@ use std::ptr;
 use crate::vulkan::LogicalDevice;
 use std::ops::Deref;
 
+/// A Vulkan command pool.
+/// Command pools manage the memory that is used to store the buffers and command buffers are allocated from them.
 pub struct CommandPool {
     pool: vk::CommandPool,
 }

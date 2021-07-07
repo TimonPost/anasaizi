@@ -40,7 +40,7 @@ impl Instance {
             .collect::<Vec<*const i8>>();
 
         // Get extensions
-        let extensions_raw = extensions.extensions_ptr();
+        let extensions_raw = extensions.as_cstrings();
         let extensions_ptr = extensions_raw
             .iter()
             .map(|x| x.as_ptr())
@@ -77,7 +77,7 @@ impl Instance {
                 0
             } as u32,
             pp_enabled_extension_names: extensions_ptr.as_ptr(),
-            enabled_extension_count: extensions.extensions_count(),
+            enabled_extension_count: extensions.count(),
         };
 
         let instance: ash::Instance = unsafe {

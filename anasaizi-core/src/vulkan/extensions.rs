@@ -1,5 +1,6 @@
 use std::{collections::HashSet, ffi::CString, iter::FromIterator};
 
+/// A simple wrapper over a collection of extensions.
 #[derive(Debug)]
 pub struct Extensions {
     extensions: Vec<String>,
@@ -14,6 +15,7 @@ impl Extensions {
         self.extensions.clone()
     }
 
+    /// Returns whether the current collection has the given collection.
     pub fn has(&self, extensions: &Extensions) -> bool {
         let set1: HashSet<String> = HashSet::from_iter(extensions.extensions());
         let set2: HashSet<String> = HashSet::from_iter(self.extensions());
@@ -23,7 +25,8 @@ impl Extensions {
         difference == 0
     }
 
-    pub fn extensions_ptr(&self) -> Vec<CString> {
+    /// Returns a collection of the extensions as cstrings.
+    pub fn as_cstrings(&self) -> Vec<CString> {
         return self
             .extensions
             .iter()
@@ -31,7 +34,8 @@ impl Extensions {
             .collect();
     }
 
-    pub fn extensions_count(&self) -> u32 {
+    /// Returns the number of extensions.
+    pub fn count(&self) -> u32 {
         self.extensions.len() as u32
     }
 }

@@ -25,18 +25,17 @@
   <component name="ChangeListManager">
     <list default="true" id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/application.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/application.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/command_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/command_buffer.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/command_pool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/command_pool.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/device.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/device.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/extensions.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/extensions.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/instance.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/instance.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/queue.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/queue.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/surface.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/surface.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/swapchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/swapchain.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/version.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/version.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/application.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/application.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/command_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/command_buffer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/command_pool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/command_pool.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/device.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/device.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/extensions.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/extensions.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/framebuffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/framebuffer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/instance.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/instance.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/queue.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/queue.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/surface.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/surface.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/swapchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/swapchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/window.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/window.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -78,6 +77,7 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\programming\Anasazi\anasaizi-core\src\vulkan" />
       <recent name="E:\programming\Anasazi\anasaizi-core" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
@@ -146,7 +146,7 @@
       <workItem from="1625417854052" duration="6179000" />
       <workItem from="1625486759489" duration="19050000" />
       <workItem from="1625577338315" duration="18851000" />
-      <workItem from="1625659825088" duration="2700000" />
+      <workItem from="1625659825088" duration="8512000" />
     </task>
     <servers />
   </component>
@@ -178,10 +178,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625490371038" />
-    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1625149945321">
+    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1625662881652">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625149945321" />
+    <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625662881652" />
     <state x="1027" y="390" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1625580455040">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -247,10 +247,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="936" y="243" key="run.anything.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625491605382" />
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1625579064157">
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1625665864291">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625579064157" />
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625665864291" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

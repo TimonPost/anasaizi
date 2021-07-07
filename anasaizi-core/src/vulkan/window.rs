@@ -2,6 +2,7 @@ use crate::vulkan::{Instance, SurfaceData};
 use std::ops::Deref;
 use winit::event_loop::EventLoop;
 
+/// A Vulkan winit window.
 pub struct Window {
     surface: SurfaceData,
     window: winit::window::Window,

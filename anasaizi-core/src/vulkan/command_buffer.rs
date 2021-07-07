@@ -3,6 +3,11 @@ use ash::{version::DeviceV1_0, vk};
 use std::ptr;
 
 /// A Vulkan command buffer.
+///
+/// Commands in Vulkan, like drawing operations and memory transfers, are not executed directly using function calls.
+/// You have to record all of the operations you want to perform in command buffer objects.
+/// The advantage of this is that all of the hard work of setting up the drawing commands can be done in advance and in multiple threads.
+/// After that, you just have to tell Vulkan to execute the commands in the main loop.
 pub struct CommandBuffers {
     command_buffers: Vec<vk::CommandBuffer>,
 }

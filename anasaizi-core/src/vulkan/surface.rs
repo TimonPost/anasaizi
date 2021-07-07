@@ -4,6 +4,11 @@ use crate::vulkan::Instance;
 use ash::vk;
 use std::ops::Deref;
 
+/// In Vulkan, the windowing system particulars are exposed via the WSI (Window System Integration) extensions.
+///
+/// Vulkan uses the VkSurfaceKHR object to abstract the native platform surface or window.
+/// This symbol is defined as part of the VK_KHR_surface extension.
+/// The various functions in the WSI extensions are used to create, manipulate, and destroy these surface objects.
 pub struct SurfaceData {
     pub surface_loader: ash::extensions::khr::Surface,
     pub surface: vk::SurfaceKHR,
