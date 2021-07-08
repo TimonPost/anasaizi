@@ -1,9 +1,7 @@
 mod application;
-mod command_buffer;
 mod command_pool;
 mod device;
 mod extensions;
-mod framebuffer;
 mod instance;
 mod layer;
 mod pipeline;
@@ -15,13 +13,15 @@ mod surface;
 mod swapchain;
 mod version;
 mod window;
+mod buffer_layout;
+mod buffers;
 
 pub use application::Application;
-pub use command_buffer::CommandBuffers;
+
 pub use command_pool::CommandPool;
 pub use device::LogicalDevice;
 pub use extensions::Extensions;
-pub use framebuffer::{FrameBuffer, FrameBuffers};
+
 pub use instance::Instance;
 pub use layer::{ValidationLayerProperties, ValidationLayers};
 pub use pipeline::Pipeline;
@@ -33,3 +33,6 @@ pub use surface::SurfaceData;
 pub use swapchain::{SwapChain, SwapChainSupportDetails};
 pub use version::Version;
 pub use window::Window;
+pub use buffer_layout::BufferLayout;
+
+pub use buffers::{CommandBuffers, FrameBuffers, FrameBuffer, VertexBuffer};

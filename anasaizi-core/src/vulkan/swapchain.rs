@@ -19,8 +19,8 @@ pub struct SwapChain {
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
     pub image_views: Vec<vk::ImageView>,
-    pub depth_image: vk::Image,
-    pub depth_image_view: vk::ImageView,
+    // pub depth_image: vk::Image,
+    // pub depth_image_view: vk::ImageView,
 }
 
 impl SwapChain {
@@ -142,7 +142,7 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-        let depth_image = Self::create_depth_buffer(&device, extent);
+       // let depth_image = Self::create_depth_buffer(&device, extent);
 
         let image_views =
             Self::create_image_views(&device, &swapchain_images, &surface_format.format);
@@ -154,8 +154,8 @@ impl SwapChain {
             extent,
             image_views,
             images: swapchain_images,
-            depth_image: depth_image.0,
-            depth_image_view: depth_image.1,
+            // depth_image: depth_image.0,
+            // depth_image_view: depth_image.1,
         }
     }
 

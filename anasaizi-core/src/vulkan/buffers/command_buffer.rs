@@ -1,6 +1,8 @@
-use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass};
+use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass, VertexBuffer, Instance};
 use ash::{version::DeviceV1_0, vk};
 use std::ptr;
+use crate::model::{triangle_vertices, Mesh};
+use std::ops::Deref;
 
 /// A Vulkan command buffer.
 ///
@@ -20,6 +22,7 @@ impl CommandBuffers {
         framebuffers: &FrameBuffers,
         render_pass: &RenderPass,
         surface_extent: vk::Extent2D,
+        mesh: &Mesh
     ) -> CommandBuffers {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
@@ -68,6 +71,8 @@ impl CommandBuffers {
                 p_clear_values: clear_values.as_ptr(),
             };
 
+            let offsets = [0 as u64];
+
             unsafe {
                 device.cmd_begin_render_pass(
                     command_buffer,
@@ -79,7 +84,12 @@ impl CommandBuffers {
                     vk::PipelineBindPoint::GRAPHICS,
                     **graphics_pipeline,
                 );
-                device.cmd_draw(command_buffer, 6, 1, 0, 0);
+
+                let vertex_buffer = *mesh.vertex_buffer().deref();
+
+                device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer] , &offsets);
+
+                device.cmd_draw(command_buffer, mesh.vertices_count() as u32, 1, 0, 0);
 
                 device.cmd_end_render_pass(command_buffer);
 

@@ -1,16 +1,11 @@
-use anasaizi_core::vulkan::{
-    structures::{SyncObjects, ValidationInfo},
-    Application, CommandBuffers, CommandPool, Extensions, FrameBuffers, Instance, LogicalDevice,
-    Pipeline, Queue, RenderPass, Shader, Shaders, SwapChain, Version, Window, WINDOW_HEIGHT,
-    WINDOW_WIDTH,
-};
+use anasaizi_core::vulkan::{structures::{SyncObjects, ValidationInfo}, Application, CommandBuffers, CommandPool, Extensions, FrameBuffers, Instance, LogicalDevice, Pipeline, Queue, RenderPass, Shader, Shaders, SwapChain, Version, Window, VertexBuffer};
 use ash::vk;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::profile_fn;
+use anasaizi_core::{profile_fn, WINDOW_WIDTH, WINDOW_HEIGHT};
 use anasaizi_profile::profile;
 
 use anasaizi_core::debug::{start_profiler, stop_profiler};
@@ -19,6 +14,7 @@ use ash::{
     version::DeviceV1_0,
 };
 use std::ptr;
+use anasaizi_core::model::{triangle_vertices, Mesh, square_vertices};
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
@@ -91,6 +87,7 @@ pub struct VulkanApp {
     sync_object: SyncObjects,
 
     current_frame: usize,
+    pub square_mesh: Mesh
 }
 
 impl VulkanApp {
@@ -154,6 +151,14 @@ impl VulkanApp {
 
         let command_pool = CommandPool::create(&device);
 
+        // let triangle_vertices = triangle_vertices().to_vec();
+        // let vertex_buffer = VertexBuffer::create(&instance, &device, &triangle_vertices, &graphics_queue, &command_pool);
+        // let triangle_mesh = Mesh::new(vertex_buffer, triangle_vertices);
+
+        let square_vertices = square_vertices().to_vec();
+        let square_vertex_buffer = VertexBuffer::create(&instance, &device, &square_vertices, &graphics_queue, &command_pool);
+        let square_mesh = Mesh::new(square_vertex_buffer, square_vertices);
+
         let buffers = CommandBuffers::create(
             &device,
             &command_pool,
@@ -161,6 +166,7 @@ impl VulkanApp {
             &frame_buffers,
             &render_pass,
             swapchain.extent,
+            &square_mesh
         );
 
         let sync_object = create_sync_objects(device.logical_device());
@@ -191,6 +197,7 @@ impl VulkanApp {
 
             sync_object,
             current_frame: 0,
+            square_mesh
         }
     }
 

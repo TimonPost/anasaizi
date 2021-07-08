@@ -1,4 +1,4 @@
-use crate::vulkan::{LogicalDevice, RenderPass, Shader};
+use crate::vulkan::{LogicalDevice, RenderPass, Shader, BufferLayout};
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, ops::Deref, ptr};
 
@@ -41,14 +41,21 @@ impl Pipeline {
             },
         ];
 
+        let layout = BufferLayout::new()
+            .add_float_vec2(0)
+            .add_float_vec3(1);
+
+        let attrib_descriptions = layout.build_attrib_description();
+        let binding_descriptions = layout.build_binding_description();
+
         let vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo {
             s_type: vk::StructureType::PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineVertexInputStateCreateFlags::empty(),
-            vertex_attribute_description_count: 0,
-            p_vertex_attribute_descriptions: ptr::null(),
-            vertex_binding_description_count: 0,
-            p_vertex_binding_descriptions: ptr::null(),
+            vertex_attribute_description_count: attrib_descriptions.len() as u32,
+            p_vertex_attribute_descriptions: attrib_descriptions.as_ptr(),
+            vertex_binding_description_count: 1,
+            p_vertex_binding_descriptions: &binding_descriptions,
         };
 
         let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo {
