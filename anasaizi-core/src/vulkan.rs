@@ -35,4 +35,4 @@ pub use version::Version;
 pub use window::Window;
 pub use buffer_layout::BufferLayout;
 
-pub use buffers::{CommandBuffers, FrameBuffers, FrameBuffer, VertexBuffer};
+pub use buffers::{CommandBuffers, FrameBuffers, FrameBuffer, VertexBuffer, IndexBuffer};

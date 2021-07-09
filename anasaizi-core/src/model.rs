@@ -18,6 +18,12 @@ pub fn square_vertices() -> [Vertex; 4] {
         Vertex { pos: Vector2::new(-0.5, -0.5), color: Vector3::new(1.0,0.0,0.0) },
         Vertex { pos: Vector2::new(0.5, -0.5), color: Vector3::new(1.0,0.0,0.0) },
         Vertex { pos: Vector2::new(0.5, 0.5), color: Vector3::new(0.0,1.0,0.0) },
-        Vertex { pos: Vector2::new(-0.5, 0.5), color: Vector3::new(0.0,0.0,1.0) }
+        Vertex { pos: Vector2::new(-0.5, 0.5), color: Vector3::new(0.0,0.0,1.0) },
+    ]
+}
+
+pub fn square_indices() -> [u16; 6] {
+    return [
+        0, 1, 2, 2, 3, 0
     ]
 }

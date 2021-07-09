@@ -1,19 +1,20 @@
 use crate::vulkan::VertexBuffer;
 use crate::math::Vertex;
 use nalgebra::Matrix4;
+use crate::vulkan::IndexBuffer;
 
 pub struct Mesh {
     vertex_buffer: VertexBuffer,
+    index_buffer: IndexBuffer,
     model_transform: nalgebra::Matrix4<f32>,
-    vertices: Vec<Vertex>
 }
 
 impl Mesh {
-    pub fn new(vertex_buffer: VertexBuffer, vertices: Vec<Vertex>) -> Mesh {
+    pub fn new(vertex_buffer: VertexBuffer, index_buffer: IndexBuffer) -> Mesh {
         Mesh {
             vertex_buffer,
             model_transform: Matrix4::default(),
-            vertices
+            index_buffer
         }
     }
 
@@ -21,7 +22,15 @@ impl Mesh {
         &self.vertex_buffer
     }
 
+    pub fn index_buffer(&self) -> &IndexBuffer {
+        &self.index_buffer
+    }
+
     pub fn vertices_count(&self) -> usize {
-        self.vertices.len()
+        self.vertex_buffer.vertices_count()
+    }
+
+    pub fn indices_count(&self) -> usize {
+        self.index_buffer.indices_count()
     }
 }

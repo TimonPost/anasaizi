@@ -8,15 +8,15 @@ use ash::version::{DeviceV1_0, InstanceV1_0};
 use core::ops::Deref;
 use crate::vulkan::buffers::buffer::{create_buffer, copy_buffer};
 
-pub struct VertexBuffer {
-    vertex_buffer: vk::Buffer,
-    vertex_buffer_memory: vk::DeviceMemory,
-    vertices_count: usize
+pub struct IndexBuffer {
+    index_buffer: vk::Buffer,
+    index_buffer_memory: vk::DeviceMemory,
+    indices_count: usize
 }
 
-impl VertexBuffer {
-    pub fn create(instance: &Instance, device: &LogicalDevice, vertices: &Vec<Vertex>, submit_queue: &Queue, command_pool: &CommandPool) -> VertexBuffer {
-        let buffer_size = (size_of::<Vertex>() * vertices.len()) as u64;
+impl IndexBuffer {
+    pub fn create(instance: &Instance, device: &LogicalDevice, indices: &Vec<u16>, submit_queue: &Queue, command_pool: &CommandPool) -> IndexBuffer {
+        let buffer_size = (size_of::<u16>() * indices.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_buffer(
             &instance,
@@ -34,18 +34,18 @@ impl VertexBuffer {
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
                 )
-                .expect("Failed to Map Memory") as *mut Vertex;
+                .expect("Failed to Map Memory") as *mut u16;
 
-            data_ptr.copy_from_nonoverlapping(vertices.as_ptr(), vertices.len());
+            data_ptr.copy_from_nonoverlapping(indices.as_ptr(), indices.len());
 
             device.unmap_memory(staging_buffer_memory);
         }
 
-        let (vertex_buffer, vertex_buffer_memory) = create_buffer(
+        let (index_buffer, index_buffer_memory) = create_buffer(
             &instance,
             &device,
             buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
             vk::MemoryPropertyFlags::DEVICE_LOCAL
         );
 
@@ -54,7 +54,7 @@ impl VertexBuffer {
             submit_queue,
             command_pool,
             staging_buffer,
-            vertex_buffer,
+            index_buffer,
             buffer_size,
         );
 
@@ -64,29 +64,29 @@ impl VertexBuffer {
             device.free_memory(staging_buffer_memory, None)
         }
 
-        VertexBuffer {
-            vertex_buffer,
-            vertex_buffer_memory,
-            vertices_count: vertices.len() as usize
+        IndexBuffer {
+            index_buffer,
+            index_buffer_memory,
+            indices_count: indices.len()
         }
     }
 
     pub fn destroy(&self, device: &LogicalDevice) {
         unsafe  {
-            device.destroy_buffer(self.vertex_buffer, None);
-            device.free_memory(self.vertex_buffer_memory, None)
+            device.destroy_buffer(self.index_buffer, None);
+            device.free_memory(self.index_buffer_memory, None)
         }
     }
 
-    pub fn vertices_count(&self) -> usize {
-        self.vertices_count
+    pub fn indices_count(&self) -> usize {
+        self.indices_count
     }
 }
 
-impl Deref for VertexBuffer {
+impl Deref for IndexBuffer {
     type Target = vk::Buffer;
 
     fn deref(&self) -> &Self::Target {
-        &self.vertex_buffer
+        &self.index_buffer
     }
 }

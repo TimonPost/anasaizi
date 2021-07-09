@@ -86,10 +86,12 @@ impl CommandBuffers {
                 );
 
                 let vertex_buffer = *mesh.vertex_buffer().deref();
+                let index_buffer = *mesh.index_buffer().deref();
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer] , &offsets);
+                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
 
-                device.cmd_draw(command_buffer, mesh.vertices_count() as u32, 1, 0, 0);
+                device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
 
                 device.cmd_end_render_pass(command_buffer);
 

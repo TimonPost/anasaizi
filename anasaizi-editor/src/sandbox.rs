@@ -1,4 +1,4 @@
-use anasaizi_core::vulkan::{structures::{SyncObjects, ValidationInfo}, Application, CommandBuffers, CommandPool, Extensions, FrameBuffers, Instance, LogicalDevice, Pipeline, Queue, RenderPass, Shader, Shaders, SwapChain, Version, Window, VertexBuffer};
+use anasaizi_core::vulkan::{structures::{SyncObjects, ValidationInfo}, Application, CommandBuffers, CommandPool, Extensions, FrameBuffers, Instance, LogicalDevice, Pipeline, Queue, RenderPass, Shader, Shaders, SwapChain, Version, Window, VertexBuffer, IndexBuffer};
 use ash::vk;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
@@ -14,7 +14,7 @@ use ash::{
     version::DeviceV1_0,
 };
 use std::ptr;
-use anasaizi_core::model::{triangle_vertices, Mesh, square_vertices};
+use anasaizi_core::model::{triangle_vertices, Mesh, square_vertices, square_indices};
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
@@ -157,7 +157,11 @@ impl VulkanApp {
 
         let square_vertices = square_vertices().to_vec();
         let square_vertex_buffer = VertexBuffer::create(&instance, &device, &square_vertices, &graphics_queue, &command_pool);
-        let square_mesh = Mesh::new(square_vertex_buffer, square_vertices);
+
+        let square_indices = square_indices().to_vec();
+        let square_index_buffer = IndexBuffer::create(&instance, &device, &square_indices, &graphics_queue, &command_pool);
+
+        let square_mesh = Mesh::new(square_vertex_buffer, square_index_buffer);
 
         let buffers = CommandBuffers::create(
             &device,
