@@ -1,13 +1,21 @@
-use ash::vk;
-use std::ptr;
-use crate::math::Vertex;
-use ash::vk::{StructureType, DeviceMemory, Buffer};
-use std::mem::size_of;
-use crate::vulkan::{LogicalDevice, Instance, Queue, CommandPool};
-use ash::version::{DeviceV1_0, InstanceV1_0};
-use std::ops::Deref;
+use crate::{
+    math::Vertex,
+    vulkan::{CommandPool, Instance, LogicalDevice, Queue},
+};
+use ash::{
+    version::{DeviceV1_0, InstanceV1_0},
+    vk,
+    vk::{Buffer, DeviceMemory, StructureType},
+};
+use std::{mem::size_of, ops::Deref, ptr};
 
-pub fn create_buffer(instance: &Instance, device: &LogicalDevice, size: u64, usage: vk::BufferUsageFlags, flags: vk::MemoryPropertyFlags) -> (Buffer, DeviceMemory) {
+pub fn create_buffer(
+    instance: &Instance,
+    device: &LogicalDevice,
+    size: u64,
+    usage: vk::BufferUsageFlags,
+    flags: vk::MemoryPropertyFlags,
+) -> (Buffer, DeviceMemory) {
     let buffer_create_info = vk::BufferCreateInfo {
         s_type: StructureType::BUFFER_CREATE_INFO,
         p_next: ptr::null(),
@@ -16,16 +24,20 @@ pub fn create_buffer(instance: &Instance, device: &LogicalDevice, size: u64, usa
         usage,
         sharing_mode: vk::SharingMode::EXCLUSIVE,
         queue_family_index_count: 0,
-        p_queue_family_indices: ptr::null()
+        p_queue_family_indices: ptr::null(),
     };
 
     let buffer = unsafe {
-        device.create_buffer(&buffer_create_info, None).expect("Could not create vertex buffer.")
+        device
+            .create_buffer(&buffer_create_info, None)
+            .expect("Could not create vertex buffer.")
     };
 
     let mem_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-    let mem_properties = unsafe { instance.get_physical_device_memory_properties(*device.physical_device()) };
-    let memory_type = device.find_memory_type(mem_requirements.memory_type_bits, flags, mem_properties);
+    let mem_properties =
+        unsafe { instance.get_physical_device_memory_properties(*device.physical_device()) };
+    let memory_type =
+        device.find_memory_type(mem_requirements.memory_type_bits, flags, mem_properties);
 
     let allocate_info = vk::MemoryAllocateInfo {
         s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,

@@ -142,7 +142,7 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-       // let depth_image = Self::create_depth_buffer(&device, extent);
+        // let depth_image = Self::create_depth_buffer(&device, extent);
 
         let image_views =
             Self::create_image_views(&device, &swapchain_images, &surface_format.format);

@@ -1,20 +1,29 @@
-use anasaizi_core::vulkan::{structures::{SyncObjects, ValidationInfo}, Application, CommandBuffers, CommandPool, Extensions, FrameBuffers, Instance, LogicalDevice, Pipeline, Queue, RenderPass, Shader, Shaders, SwapChain, Version, Window, VertexBuffer, IndexBuffer};
+use anasaizi_core::vulkan::{
+    structures::{SyncObjects, ValidationInfo},
+    Application, CommandBuffers, CommandPool, DescriptorPool, DescriptorSet, Extensions,
+    FrameBuffers, IndexBuffer, Instance, LogicalDevice, Pipeline, Queue, RenderPass, Shader,
+    Shaders, SwapChain, UniformBuffer, UniformBufferObject, Version, VertexBuffer, Window,
+};
 use ash::vk;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::{profile_fn, WINDOW_WIDTH, WINDOW_HEIGHT};
+use anasaizi_core::{profile_fn, reexports::nalgebra as math, WINDOW_HEIGHT, WINDOW_WIDTH};
 use anasaizi_profile::profile;
 
-use anasaizi_core::debug::{start_profiler, stop_profiler};
+use anasaizi_core::{
+    debug::{start_profiler, stop_profiler},
+    model::{square_indices, square_vertices, triangle_vertices, Mesh},
+    reexports::nalgebra::{Matrix3, Matrix4, Orthographic3},
+};
 use ash::{
     extensions::{ext::DebugUtils, khr},
     version::DeviceV1_0,
+    vk::DescriptorSetLayout,
 };
 use std::ptr;
-use anasaizi_core::model::{triangle_vertices, Mesh, square_vertices, square_indices};
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
@@ -87,7 +96,13 @@ pub struct VulkanApp {
     sync_object: SyncObjects,
 
     current_frame: usize,
-    pub square_mesh: Mesh
+    square_mesh: Mesh,
+    uniform_buffer: UniformBuffer,
+    uniform_buffer_object: UniformBufferObject,
+    pub count: f32,
+    pub descriptor_layout: DescriptorSetLayout,
+    pub descriptor_sets: Vec<DescriptorSet>,
+    pub descriptor_pool: DescriptorPool,
 }
 
 impl VulkanApp {
@@ -134,12 +149,20 @@ impl VulkanApp {
         shaders.add_shader(VERTEX_SHADER, Shader::new(&device, VERTEX_SHADER));
         shaders.add_shader(FRAGMENT_SHADER, Shader::new(&device, FRAGMENT_SHADER));
 
+        let descriptor_pool = DescriptorPool::new(&device, swapchain.image_views.len());
+        let uniform_buffer_object = UniformBufferObject::new();
+        let uniform_buffer = UniformBuffer::new(&instance, &device, swapchain.image_views.len());
+        let descriptor_layout = DescriptorPool::descriptor_set_layout(&device);
+        let descriptor_sets =
+            descriptor_pool.create_descriptor_sets(&device, &uniform_buffer, descriptor_layout);
+
         let pipeline = Pipeline::create(
             &device,
             swapchain.extent,
             &render_pass,
             shaders.shader(VERTEX_SHADER),
             shaders.shader(FRAGMENT_SHADER),
+            &[descriptor_layout],
         );
 
         let frame_buffers = FrameBuffers::create(
@@ -156,10 +179,22 @@ impl VulkanApp {
         // let triangle_mesh = Mesh::new(vertex_buffer, triangle_vertices);
 
         let square_vertices = square_vertices().to_vec();
-        let square_vertex_buffer = VertexBuffer::create(&instance, &device, &square_vertices, &graphics_queue, &command_pool);
+        let square_vertex_buffer = VertexBuffer::create(
+            &instance,
+            &device,
+            &square_vertices,
+            &graphics_queue,
+            &command_pool,
+        );
 
         let square_indices = square_indices().to_vec();
-        let square_index_buffer = IndexBuffer::create(&instance, &device, &square_indices, &graphics_queue, &command_pool);
+        let square_index_buffer = IndexBuffer::create(
+            &instance,
+            &device,
+            &square_indices,
+            &graphics_queue,
+            &command_pool,
+        );
 
         let square_mesh = Mesh::new(square_vertex_buffer, square_index_buffer);
 
@@ -170,7 +205,8 @@ impl VulkanApp {
             &frame_buffers,
             &render_pass,
             swapchain.extent,
-            &square_mesh
+            &square_mesh,
+            &descriptor_sets,
         );
 
         let sync_object = create_sync_objects(device.logical_device());
@@ -198,15 +234,63 @@ impl VulkanApp {
             buffers,
             graphics_queue,
             present_queue,
+            uniform_buffer,
+            uniform_buffer_object,
+
+            descriptor_pool,
+            descriptor_sets,
+            descriptor_layout,
 
             sync_object,
             current_frame: 0,
-            square_mesh
+            square_mesh,
+            count: 0.0,
+        }
+    }
+
+    fn update_uniform(&mut self, current_image: usize) {
+        let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, 0.0, self.count as f32));
+        let view = math::Matrix4::look_at_rh(
+            &math::Point3::new(2.0, 2.0, 2.0),
+            &math::Point3::new(0.0, 0.0, 0.0),
+            &math::Vector3::new(0.0, 0.0, 1.0),
+        );
+        let perspective = math::Perspective3::new(
+            16.0 / 9.0,
+            ((self.swapchain.extent.width / self.swapchain.extent.height) as f32),
+            1.0,
+            10.0,
+        );
+
+        self.uniform_buffer_object.model = rotation;
+        self.uniform_buffer_object.view = view;
+        self.uniform_buffer_object.proj = *perspective.as_matrix();
+
+        let ubos = [self.uniform_buffer_object.clone()];
+
+        let buffer_size = (std::mem::size_of::<UniformBufferObject>() * ubos.len()) as u64;
+
+        unsafe {
+            let data_ptr =
+                self.device
+                    .map_memory(
+                        self.uniform_buffer.buffers_memory(current_image),
+                        0,
+                        buffer_size,
+                        vk::MemoryMapFlags::empty(),
+                    )
+                    .expect("Failed to Map Memory") as *mut UniformBufferObject;
+
+            data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
+
+            self.device
+                .unmap_memory(self.uniform_buffer.buffers_memory(current_image));
         }
     }
 
     #[profile(Sandbox)]
     fn draw_frame(&mut self) {
+        self.count += 3.14 / 10000.0;
         let wait_fences = [self.sync_object.inflight_fences[self.current_frame]];
 
         let (image_index, _is_sub_optimal) = unsafe {
@@ -226,6 +310,9 @@ impl VulkanApp {
                     .expect("Failed to acquire next image.")
             })
         };
+
+        self.update_uniform(image_index as usize);
+
         profile_fn!("Wrapper Queues...", {
             let wait_semaphores = [self.sync_object.image_available_semaphores[self.current_frame]];
             let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];

@@ -1,4 +1,6 @@
-use crate::vulkan::{LogicalDevice, RenderPass, Shader, BufferLayout};
+use crate::vulkan::{
+    BufferLayout, DescriptorPool, LogicalDevice, RenderPass, Shader, UniformBufferObject,
+};
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, ops::Deref, ptr};
 
@@ -15,6 +17,7 @@ impl Pipeline {
         render_pass: &RenderPass,
         vertex_shader: &Shader,
         fragment_shader: &Shader,
+        descriptor_layout: &[vk::DescriptorSetLayout],
     ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -41,9 +44,7 @@ impl Pipeline {
             },
         ];
 
-        let layout = BufferLayout::new()
-            .add_float_vec2(0)
-            .add_float_vec3(1);
+        let layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
 
         let attrib_descriptions = layout.build_attrib_description();
         let binding_descriptions = layout.build_binding_description();
@@ -169,8 +170,8 @@ impl Pipeline {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
-            set_layout_count: 0,
-            p_set_layouts: ptr::null(),
+            set_layout_count: 1,
+            p_set_layouts: descriptor_layout.as_ptr(),
             push_constant_range_count: 0,
             p_push_constant_ranges: ptr::null(),
         };
@@ -219,6 +220,10 @@ impl Pipeline {
             layout: pipeline_layout,
             pipeline: graphics_pipelines[0],
         }
+    }
+
+    pub fn layout(&self) -> vk::PipelineLayout {
+        self.layout
     }
 }
 

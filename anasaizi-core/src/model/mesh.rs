@@ -1,7 +1,8 @@
-use crate::vulkan::VertexBuffer;
-use crate::math::Vertex;
+use crate::{
+    math::Vertex,
+    vulkan::{IndexBuffer, VertexBuffer},
+};
 use nalgebra::Matrix4;
-use crate::vulkan::IndexBuffer;
 
 pub struct Mesh {
     vertex_buffer: VertexBuffer,
@@ -14,7 +15,7 @@ impl Mesh {
         Mesh {
             vertex_buffer,
             model_transform: Matrix4::default(),
-            index_buffer
+            index_buffer,
         }
     }
 

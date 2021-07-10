@@ -1,6 +1,77 @@
+use crate::vulkan::{buffers::buffer::create_buffer, Instance, LogicalDevice};
+use ash::{version::DeviceV1_0, vk};
+use std::{mem::size_of, ptr};
+
+#[derive(Copy, Clone)]
 pub struct UniformBufferObject {
-    model: nalgebra::Matrix4<f32>,
-    view: nalgebra::Matrix4<f32>,
-    proj: nalgebra::Matrix4<f32>
+    pub model: nalgebra::Matrix4<f32>,
+    pub view: nalgebra::Matrix4<f32>,
+    pub proj: nalgebra::Matrix4<f32>,
 }
 
+impl UniformBufferObject {
+    pub fn new() -> UniformBufferObject {
+        UniformBufferObject {
+            model: nalgebra::Matrix::default(),
+            view: nalgebra::Matrix::default(),
+            proj: nalgebra::Matrix::default(),
+        }
+    }
+}
+
+pub struct UniformBuffer {
+    // because we can pregenerate frames and uniforms change per frame we want to have various buffers in our arsenal to use.
+    buffers: Vec<vk::Buffer>,
+    buffers_memory: Vec<vk::DeviceMemory>,
+    swap_chain_image_count: usize,
+}
+
+impl UniformBuffer {
+    pub fn new(
+        instance: &Instance,
+        device: &LogicalDevice,
+        swap_chain_image_count: usize,
+    ) -> UniformBuffer {
+        let buffer_size = size_of::<UniformBufferObject>() as u64;
+
+        let mut buffers = vec![];
+        let mut buffers_memory = vec![];
+
+        for i in 0..swap_chain_image_count {
+            unsafe {
+                let (buffer, memory) = create_buffer(
+                    instance,
+                    device,
+                    buffer_size,
+                    vk::BufferUsageFlags::UNIFORM_BUFFER,
+                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                );
+                buffers.push(buffer);
+                buffers_memory.push(memory);
+            }
+        }
+
+        UniformBuffer {
+            buffers,
+            buffers_memory,
+            swap_chain_image_count,
+        }
+    }
+
+    pub fn cleanup(&self, device: &LogicalDevice) {
+        for i in 0..self.swap_chain_image_count {
+            unsafe {
+                device.destroy_buffer(self.buffers[i], None);
+                device.free_memory(self.buffers_memory[i], None);
+            }
+        }
+    }
+
+    pub fn buffers_memory(&self, image_index: usize) -> vk::DeviceMemory {
+        self.buffers_memory[image_index]
+    }
+
+    pub fn buffers(&self, image_index: usize) -> vk::Buffer {
+        self.buffers[image_index]
+    }
+}

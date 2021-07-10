@@ -1,8 +1,12 @@
-use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass, VertexBuffer, Instance};
+use crate::{
+    model::{triangle_vertices, Mesh},
+    vulkan::{
+        CommandPool, DescriptorSet, FrameBuffers, Instance, LogicalDevice, Pipeline, RenderPass,
+        VertexBuffer,
+    },
+};
 use ash::{version::DeviceV1_0, vk};
-use std::ptr;
-use crate::model::{triangle_vertices, Mesh};
-use std::ops::Deref;
+use std::{ops::Deref, ptr};
 
 /// A Vulkan command buffer.
 ///
@@ -22,7 +26,8 @@ impl CommandBuffers {
         framebuffers: &FrameBuffers,
         render_pass: &RenderPass,
         surface_extent: vk::Extent2D,
-        mesh: &Mesh
+        mesh: &Mesh,
+        descriptor_sets: &Vec<DescriptorSet>,
     ) -> CommandBuffers {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
             s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
@@ -72,6 +77,7 @@ impl CommandBuffers {
             };
 
             let offsets = [0 as u64];
+            let descriptor_sets_to_bind = [*descriptor_sets[i]];
 
             unsafe {
                 device.cmd_begin_render_pass(
@@ -88,11 +94,24 @@ impl CommandBuffers {
                 let vertex_buffer = *mesh.vertex_buffer().deref();
                 let index_buffer = *mesh.index_buffer().deref();
 
-                device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer] , &offsets);
-                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
+                device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &offsets);
+                device.cmd_bind_index_buffer(
+                    command_buffer,
+                    index_buffer,
+                    0,
+                    vk::IndexType::UINT16,
+                );
 
                 device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
 
+                device.cmd_bind_descriptor_sets(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    graphics_pipeline.layout(),
+                    0,
+                    &descriptor_sets_to_bind,
+                    &[],
+                );
                 device.cmd_end_render_pass(command_buffer);
 
                 device

@@ -1,21 +1,32 @@
-use ash::vk;
-use ash::vk::{StructureType, SharingMode};
-use crate::math::Vertex;
-use std::ptr;
-use std::mem::size_of;
-use crate::vulkan::{LogicalDevice, Instance, Queue, CommandPool};
-use ash::version::{DeviceV1_0, InstanceV1_0};
+use crate::{
+    math::Vertex,
+    vulkan::{
+        buffers::buffer::{copy_buffer, create_buffer},
+        CommandPool, Instance, LogicalDevice, Queue,
+    },
+};
+use ash::{
+    version::{DeviceV1_0, InstanceV1_0},
+    vk,
+    vk::{SharingMode, StructureType},
+};
 use core::ops::Deref;
-use crate::vulkan::buffers::buffer::{create_buffer, copy_buffer};
+use std::{mem::size_of, ptr};
 
 pub struct IndexBuffer {
     index_buffer: vk::Buffer,
     index_buffer_memory: vk::DeviceMemory,
-    indices_count: usize
+    indices_count: usize,
 }
 
 impl IndexBuffer {
-    pub fn create(instance: &Instance, device: &LogicalDevice, indices: &Vec<u16>, submit_queue: &Queue, command_pool: &CommandPool) -> IndexBuffer {
+    pub fn create(
+        instance: &Instance,
+        device: &LogicalDevice,
+        indices: &Vec<u16>,
+        submit_queue: &Queue,
+        command_pool: &CommandPool,
+    ) -> IndexBuffer {
         let buffer_size = (size_of::<u16>() * indices.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_buffer(
@@ -23,7 +34,7 @@ impl IndexBuffer {
             &device,
             buffer_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         );
 
         unsafe {
@@ -46,7 +57,7 @@ impl IndexBuffer {
             &device,
             buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
         );
 
         copy_buffer(
@@ -67,12 +78,12 @@ impl IndexBuffer {
         IndexBuffer {
             index_buffer,
             index_buffer_memory,
-            indices_count: indices.len()
+            indices_count: indices.len(),
         }
     }
 
     pub fn destroy(&self, device: &LogicalDevice) {
-        unsafe  {
+        unsafe {
             device.destroy_buffer(self.index_buffer, None);
             device.free_memory(self.index_buffer_memory, None)
         }
