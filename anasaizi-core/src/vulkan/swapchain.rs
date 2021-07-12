@@ -107,26 +107,22 @@ impl SwapChain {
                 (vk::SharingMode::EXCLUSIVE, 0, vec![])
             };
 
-        let swapchain_create_info = vk::SwapchainCreateInfoKHR {
-            s_type: vk::StructureType::SWAPCHAIN_CREATE_INFO_KHR,
-            p_next: ptr::null(),
-            flags: vk::SwapchainCreateFlagsKHR::empty(),
-            surface: surface_stuff.surface,
-            min_image_count: image_count,
-            image_color_space: surface_format.color_space,
-            image_format: surface_format.format,
-            image_extent: extent,
-            image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT,
-            image_sharing_mode,
-            p_queue_family_indices: queue_family_indices.as_ptr(),
-            queue_family_index_count,
-            pre_transform: swapchain_support.capabilities.current_transform,
-            composite_alpha: vk::CompositeAlphaFlagsKHR::OPAQUE,
-            present_mode,
-            clipped: vk::TRUE,
-            old_swapchain: vk::SwapchainKHR::null(),
-            image_array_layers: 1,
-        };
+        let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
+            .surface(surface_stuff.surface)
+            .min_image_count(image_count)
+            .image_color_space(surface_format.color_space)
+            .image_format(surface_format.format)
+            .image_extent(extent)
+            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+            .image_sharing_mode(image_sharing_mode)
+            .queue_family_indices(&queue_family_indices)
+            .pre_transform(swapchain_support.capabilities.current_transform)
+            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .present_mode(present_mode)
+            .clipped(true)
+            .old_swapchain(vk::SwapchainKHR::null())
+            .image_array_layers(1)
+            .build();
 
         let swapchain_loader =
             ash::extensions::khr::Swapchain::new(instance.deref(), device.deref());
@@ -168,27 +164,24 @@ impl SwapChain {
         let mut swapchain_imageviews = vec![];
 
         for &image in images.iter() {
-            let imageview_create_info = vk::ImageViewCreateInfo {
-                s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
-                p_next: ptr::null(),
-                flags: vk::ImageViewCreateFlags::empty(),
-                view_type: vk::ImageViewType::TYPE_2D,
-                format: *format,
-                components: vk::ComponentMapping {
+            let imageview_create_info = vk::ImageViewCreateInfo::builder()
+                .view_type(vk::ImageViewType::TYPE_2D)
+                .format(*format)
+                .components(vk::ComponentMapping {
                     r: vk::ComponentSwizzle::IDENTITY,
                     g: vk::ComponentSwizzle::IDENTITY,
                     b: vk::ComponentSwizzle::IDENTITY,
                     a: vk::ComponentSwizzle::IDENTITY,
-                },
-                subresource_range: vk::ImageSubresourceRange {
+                })
+                .subresource_range(vk::ImageSubresourceRange {
                     aspect_mask: vk::ImageAspectFlags::COLOR,
                     base_mip_level: 0,
                     level_count: 1,
                     base_array_layer: 0,
                     layer_count: 1,
-                },
-                image,
-            };
+                })
+                .image(image)
+                .build();
 
             let imageview = unsafe {
                 device
@@ -205,27 +198,22 @@ impl SwapChain {
         device: &LogicalDevice,
         extent: vk::Extent2D,
     ) -> (vk::Image, vk::ImageView) {
-        let image_create_info = vk::ImageCreateInfo {
-            s_type: vk::StructureType::IMAGE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::ImageCreateFlags::empty(),
-            image_type: vk::ImageType::TYPE_2D,
-            format: vk::Format::D16_UNORM,
-            extent: vk::Extent3D {
+        let image_create_info = vk::ImageCreateInfo::builder()
+            .image_type(vk::ImageType::TYPE_2D)
+            .format(vk::Format::D16_UNORM)
+            .extent(vk::Extent3D {
                 width: extent.width,
                 height: extent.height,
                 depth: 1,
-            }, // TODO validate depth size
-            mip_levels: 1,
-            array_layers: 1,
-            samples: vk::SampleCountFlags::TYPE_2,
-            tiling: vk::ImageTiling::OPTIMAL,
-            usage: vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: ptr::null(),
-            initial_layout: vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
+            })
+            .mip_levels(1)
+            .array_layers(1)
+            .samples(vk::SampleCountFlags::TYPE_2)
+            .tiling(vk::ImageTiling::OPTIMAL)
+            .usage(vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT)
+            .sharing_mode(vk::SharingMode::EXCLUSIVE)
+            .initial_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+            .build();
 
         let depth_buffer_image = unsafe {
             device
@@ -236,12 +224,10 @@ impl SwapChain {
         let memory_requirements =
             unsafe { device.get_image_memory_requirements(depth_buffer_image) };
 
-        let allocate_info = vk::MemoryAllocateInfo {
-            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            allocation_size: memory_requirements.size,
-            memory_type_index: 0, //TODO
-        };
+        let allocate_info = vk::MemoryAllocateInfo::builder()
+            .allocation_size(memory_requirements.size)
+            .memory_type_index(0)
+            .build();
 
         let allocation = unsafe {
             device
@@ -253,27 +239,25 @@ impl SwapChain {
             device.bind_image_memory(depth_buffer_image, allocation, 0);
         };
 
-        let imageview_create_info = vk::ImageViewCreateInfo {
-            s_type: vk::StructureType::IMAGE_VIEW_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::ImageViewCreateFlags::empty(),
-            view_type: vk::ImageViewType::TYPE_2D,
-            format: vk::Format::D16_UNORM,
-            components: vk::ComponentMapping {
+        let imageview_create_info = vk::ImageViewCreateInfo::builder()
+            .view_type(vk::ImageViewType::TYPE_2D)
+            .format(vk::Format::D16_UNORM)
+            .format(vk::Format::D16_UNORM)
+            .components(vk::ComponentMapping {
                 r: vk::ComponentSwizzle::IDENTITY,
                 g: vk::ComponentSwizzle::IDENTITY,
                 b: vk::ComponentSwizzle::IDENTITY,
                 a: vk::ComponentSwizzle::IDENTITY,
-            },
-            subresource_range: vk::ImageSubresourceRange {
+            })
+            .subresource_range(vk::ImageSubresourceRange {
                 aspect_mask: vk::ImageAspectFlags::COLOR,
                 base_mip_level: 0,
                 level_count: 1,
                 base_array_layer: 0,
                 layer_count: 1,
-            },
-            image: depth_buffer_image,
-        };
+            })
+            .image(depth_buffer_image)
+            .build();
 
         let imageview = unsafe {
             device

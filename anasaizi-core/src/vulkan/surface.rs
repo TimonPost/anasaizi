@@ -37,15 +37,12 @@ impl SurfaceData {
         use winapi::{shared::windef::HWND, um::libloaderapi::GetModuleHandleW};
         use winit::platform::windows::WindowExtWindows;
 
-        let hwnd = window.hwnd() as HWND;
+        let hwnd = window.hwnd();
         let hinstance = GetModuleHandleW(ptr::null()) as *const c_void;
-        let win32_create_info = vk::Win32SurfaceCreateInfoKHR {
-            s_type: vk::StructureType::WIN32_SURFACE_CREATE_INFO_KHR,
-            p_next: ptr::null(),
-            flags: Default::default(),
-            hinstance,
-            hwnd: hwnd as *const c_void,
-        };
+        let win32_create_info = vk::Win32SurfaceCreateInfoKHR::builder()
+            .hinstance(hinstance)
+            .hwnd(hwnd);
+
         let win32_surface_loader = Win32Surface::new(instance.entry(), instance.deref());
         win32_surface_loader.create_win32_surface(&win32_create_info, None)
     }

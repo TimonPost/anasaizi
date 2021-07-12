@@ -117,21 +117,15 @@ impl DescriptorPool {
     }
 
     pub fn descriptor_set_layout(device: &LogicalDevice) -> vk::DescriptorSetLayout {
-        let layout_binding = [vk::DescriptorSetLayoutBinding {
-            binding: 0,
-            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: 1,
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            p_immutable_samplers: ptr::null(),
-        }];
+        let layout_binding = [vk::DescriptorSetLayoutBinding::builder()
+            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+            .descriptor_count(1)
+            .stage_flags(vk::ShaderStageFlags::VERTEX)
+            .build()];
 
-        let layout_create_info = vk::DescriptorSetLayoutCreateInfo {
-            s_type: vk::StructureType::DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: Default::default(),
-            binding_count: layout_binding.len() as u32,
-            p_bindings: layout_binding.as_ptr(),
-        };
+        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
+            .bindings(&layout_binding)
+            .build();
 
         let descriptor_set_layout = unsafe {
             device

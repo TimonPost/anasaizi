@@ -12,12 +12,8 @@ pub struct CommandPool {
 
 impl CommandPool {
     pub fn create(device: &LogicalDevice) -> CommandPool {
-        let command_pool_create_info = vk::CommandPoolCreateInfo {
-            s_type: vk::StructureType::COMMAND_POOL_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::CommandPoolCreateFlags::empty(),
-            queue_family_index: device.queue_family_indices().graphics_family.unwrap(),
-        };
+        let command_pool_create_info = vk::CommandPoolCreateInfo::builder()
+            .queue_family_index(device.queue_family_indices().graphics_family.unwrap());
 
         let command_pool = unsafe {
             device

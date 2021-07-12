@@ -47,38 +47,22 @@ impl Instance {
             .collect::<Vec<*const i8>>();
 
         // Build instance
-        let app_info = vk::ApplicationInfo {
-            s_type: vk::StructureType::APPLICATION_INFO,
-            p_next: ptr::null(),
-            p_application_name: CString::new(application.app_name)
-                .expect("No valid cstring")
-                .as_ptr(),
-            application_version: application.app_version.encode(),
-            p_engine_name: CString::new(application.engine_name)
-                .expect("No valid cstring")
-                .as_ptr(),
-            engine_version: application.engine_version.encode(),
-            api_version: application.api_version.encode(),
-        };
+        let app_info = vk::ApplicationInfo::builder()
+            .application_name(&CString::new(application.app_name).expect("No valid cstring"))
+            .application_version(application.app_version.encode())
+            .engine_name(&CString::new(application.engine_name).expect("No valid cstring"))
+            .engine_version(application.engine_version.encode())
+            .api_version(application.api_version.encode())
+            .build();
 
-        let create_info = vk::InstanceCreateInfo {
-            s_type: vk::StructureType::INSTANCE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::InstanceCreateFlags::empty(),
-            p_application_info: &app_info,
-            pp_enabled_layer_names: if validation.is_enable {
-                enabled_layers_ptr.as_ptr()
+        let create_info = vk::InstanceCreateInfo::builder()
+            .application_info(&app_info)
+            .enabled_layer_names(if validation.is_enable {
+                &enabled_layers_ptr
             } else {
-                ptr::null()
-            },
-            enabled_layer_count: if validation.is_enable {
-                enabled_layers.len()
-            } else {
-                0
-            } as u32,
-            pp_enabled_extension_names: extensions_ptr.as_ptr(),
-            enabled_extension_count: extensions.count(),
-        };
+                &[]
+            })
+            .enabled_extension_names(&extensions_ptr);
 
         let instance: ash::Instance = unsafe {
             entry

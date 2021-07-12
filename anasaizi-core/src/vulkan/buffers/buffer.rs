@@ -16,16 +16,11 @@ pub fn create_buffer(
     usage: vk::BufferUsageFlags,
     flags: vk::MemoryPropertyFlags,
 ) -> (Buffer, DeviceMemory) {
-    let buffer_create_info = vk::BufferCreateInfo {
-        s_type: StructureType::BUFFER_CREATE_INFO,
-        p_next: ptr::null(),
-        flags: Default::default(),
-        size,
-        usage,
-        sharing_mode: vk::SharingMode::EXCLUSIVE,
-        queue_family_index_count: 0,
-        p_queue_family_indices: ptr::null(),
-    };
+    let buffer_create_info = vk::BufferCreateInfo::builder()
+        .size(size)
+        .usage(usage)
+        .sharing_mode(vk::SharingMode::EXCLUSIVE)
+        .build();
 
     let buffer = unsafe {
         device
@@ -39,12 +34,10 @@ pub fn create_buffer(
     let memory_type =
         device.find_memory_type(mem_requirements.memory_type_bits, flags, mem_properties);
 
-    let allocate_info = vk::MemoryAllocateInfo {
-        s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-        p_next: ptr::null(),
-        allocation_size: mem_requirements.size,
-        memory_type_index: memory_type,
-    };
+    let allocate_info = vk::MemoryAllocateInfo::builder()
+        .allocation_size(mem_requirements.size)
+        .memory_type_index(memory_type)
+        .build();
 
     let buffer_memory = unsafe {
         device
@@ -69,13 +62,11 @@ pub fn copy_buffer(
     dst_buffer: vk::Buffer,
     size: vk::DeviceSize,
 ) {
-    let allocate_info = vk::CommandBufferAllocateInfo {
-        s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-        p_next: ptr::null(),
-        command_buffer_count: 1,
-        command_pool: **command_pool,
-        level: vk::CommandBufferLevel::PRIMARY,
-    };
+    let allocate_info = vk::CommandBufferAllocateInfo::builder()
+        .command_buffer_count(1)
+        .command_pool(**command_pool)
+        .level(vk::CommandBufferLevel::PRIMARY)
+        .build();
 
     let command_buffers = unsafe {
         device
@@ -85,12 +76,9 @@ pub fn copy_buffer(
 
     let command_buffer = command_buffers[0];
 
-    let begin_info = vk::CommandBufferBeginInfo {
-        s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-        p_next: ptr::null(),
-        flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-        p_inheritance_info: ptr::null(),
-    };
+    let begin_info = vk::CommandBufferBeginInfo::builder()
+        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
+        .build();
 
     unsafe {
         device
@@ -110,17 +98,9 @@ pub fn copy_buffer(
             .expect("Failed to end Command Buffer");
     }
 
-    let submit_info = [vk::SubmitInfo {
-        s_type: vk::StructureType::SUBMIT_INFO,
-        p_next: ptr::null(),
-        wait_semaphore_count: 0,
-        p_wait_semaphores: ptr::null(),
-        p_wait_dst_stage_mask: ptr::null(),
-        command_buffer_count: 1,
-        p_command_buffers: &command_buffer,
-        signal_semaphore_count: 0,
-        p_signal_semaphores: ptr::null(),
-    }];
+    let submit_info = [vk::SubmitInfo::builder()
+        .command_buffers(&command_buffers)
+        .build()];
 
     unsafe {
         device

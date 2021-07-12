@@ -29,13 +29,11 @@ impl CommandBuffers {
         mesh: &Mesh,
         descriptor_sets: &Vec<DescriptorSet>,
     ) -> CommandBuffers {
-        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            command_buffer_count: framebuffers.len() as u32,
-            command_pool: **command_pool,
-            level: vk::CommandBufferLevel::PRIMARY,
-        };
+        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
+            .command_pool(**command_pool)
+            .level(vk::CommandBufferLevel::PRIMARY)
+            .command_buffer_count(framebuffers.len() as u32)
+            .build();
 
         let command_buffers = unsafe {
             device
@@ -44,12 +42,8 @@ impl CommandBuffers {
         };
 
         for (i, &command_buffer) in command_buffers.iter().enumerate() {
-            let command_buffer_begin_info = vk::CommandBufferBeginInfo {
-                s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-                p_next: ptr::null(),
-                p_inheritance_info: ptr::null(),
-                flags: vk::CommandBufferUsageFlags::SIMULTANEOUS_USE,
-            };
+            let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
+                .flags(vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
 
             unsafe {
                 device
@@ -63,18 +57,15 @@ impl CommandBuffers {
                 },
             }];
 
-            let render_pass_begin_info = vk::RenderPassBeginInfo {
-                s_type: vk::StructureType::RENDER_PASS_BEGIN_INFO,
-                p_next: ptr::null(),
-                render_pass: **render_pass,
-                framebuffer: framebuffers.get(i),
-                render_area: vk::Rect2D {
+            let render_pass_begin_info = vk::RenderPassBeginInfo::builder()
+                .render_area(vk::Rect2D {
                     offset: vk::Offset2D { x: 0, y: 0 },
                     extent: surface_extent,
-                },
-                clear_value_count: clear_values.len() as u32,
-                p_clear_values: clear_values.as_ptr(),
-            };
+                })
+                .framebuffer(framebuffers.get(i))
+                .clear_values(&clear_values)
+                .render_pass(**render_pass)
+                .build();
 
             let offsets = [0 as u64];
             let descriptor_sets_to_bind = [*descriptor_sets[i]];
@@ -102,8 +93,6 @@ impl CommandBuffers {
                     vk::IndexType::UINT16,
                 );
 
-                device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
-
                 device.cmd_bind_descriptor_sets(
                     command_buffer,
                     vk::PipelineBindPoint::GRAPHICS,
@@ -112,6 +101,9 @@ impl CommandBuffers {
                     &descriptor_sets_to_bind,
                     &[],
                 );
+
+                device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
+
                 device.cmd_end_render_pass(command_buffer);
 
                 device

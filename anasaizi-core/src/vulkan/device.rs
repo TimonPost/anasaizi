@@ -107,14 +107,10 @@ impl LogicalDevice {
 
         let queue_priorities = [1.0_f32];
 
-        let queue_create_info = vk::DeviceQueueCreateInfo {
-            s_type: vk::StructureType::DEVICE_QUEUE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::DeviceQueueCreateFlags::empty(),
-            queue_family_index: indices.graphics_family.unwrap(),
-            p_queue_priorities: queue_priorities.as_ptr(),
-            queue_count: queue_priorities.len() as u32,
-        };
+        let queue_create_info = vk::DeviceQueueCreateInfo::builder()
+            .queue_family_index(indices.graphics_family.unwrap())
+            .queue_priorities(&queue_priorities)
+            .build();
 
         // Get extensions
         let extensions_raw = extensions.as_cstrings();
@@ -124,18 +120,11 @@ impl LogicalDevice {
             .collect::<Vec<*const i8>>();
 
         // Create device
-        let device_create_info = vk::DeviceCreateInfo {
-            s_type: vk::StructureType::DEVICE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::DeviceCreateFlags::empty(),
-            queue_create_info_count: 1,
-            p_queue_create_infos: &queue_create_info,
-            enabled_layer_count: 0,
-            pp_enabled_layer_names: ptr::null(),
-            enabled_extension_count: extensions.count(),
-            pp_enabled_extension_names: extensions_ptr.as_ptr(),
-            p_enabled_features: &features,
-        };
+        let device_create_info = vk::DeviceCreateInfo::builder()
+            .queue_create_infos(&[queue_create_info])
+            .enabled_extension_names(&extensions_ptr)
+            .enabled_features(&features)
+            .build();
 
         let device: ash::Device = unsafe {
             instance
