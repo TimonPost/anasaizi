@@ -1,5 +1,6 @@
 use crate::vulkan::{
-    BufferLayout, DescriptorPool, LogicalDevice, RenderPass, Shader, UniformBufferObject,
+    BufferLayout, DescriptorPool, LogicalDevice, RenderPass, ShaderSet, UniformBufferObject,
+    UniformBufferObjectTemplate,
 };
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, ops::Deref, ptr};
@@ -11,30 +12,28 @@ pub struct Pipeline {
 
 impl Pipeline {
     // TODO: Make this pipeline more dynamic.
-    pub fn create(
+    pub fn create<U: UniformBufferObjectTemplate>(
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        vertex_shader: &Shader,
-        fragment_shader: &Shader,
+        shader_set: &ShaderSet<U>,
         descriptor_layout: &[vk::DescriptorSetLayout],
+        layout: BufferLayout,
     ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
         let shader_stages = [
             vk::PipelineShaderStageCreateInfo::builder()
-                .module(**vertex_shader)
+                .module(shader_set.vertex_shader())
                 .name(&main_function_name)
                 .stage(vk::ShaderStageFlags::VERTEX)
                 .build(),
             vk::PipelineShaderStageCreateInfo::builder()
-                .module(**fragment_shader)
+                .module(shader_set.fragment_shader())
                 .name(&main_function_name)
                 .stage(vk::ShaderStageFlags::FRAGMENT)
                 .build(),
         ];
-
-        let layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
 
         let attrib_descriptions = layout.build_attrib_description();
         let binding_descriptions = layout.build_binding_description();
@@ -96,11 +95,15 @@ impl Pipeline {
             .build();
 
         let depth_state_create_info = vk::PipelineDepthStencilStateCreateInfo::builder()
-            .depth_compare_op(vk::CompareOp::LESS_OR_EQUAL)
+            .depth_compare_op(vk::CompareOp::LESS)
+            .stencil_test_enable(false) // can be enabled
             .front(stencil_state)
             .back(stencil_state)
+            .depth_bounds_test_enable(false) // can be enabled
             .max_depth_bounds(1.0)
             .min_depth_bounds(0.0)
+            .depth_test_enable(true)
+            .depth_write_enable(true)
             .build();
 
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState::builder()

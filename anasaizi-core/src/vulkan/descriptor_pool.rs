@@ -1,4 +1,6 @@
-use crate::vulkan::{LogicalDevice, UniformBuffer, UniformBufferObject};
+use crate::vulkan::{
+    ImageView, LogicalDevice, UniformBuffer, UniformBufferObject, UniformBufferObjectTemplate,
+};
 use ash::{version::DeviceV1_0, vk};
 use std::{ops::Deref, ptr};
 
@@ -11,6 +13,8 @@ impl DescriptorSet {
         device: &LogicalDevice,
         descriptor_set: vk::DescriptorSet,
         uniform_buffer: vk::Buffer,
+        texture_sampler: vk::Sampler,
+        texture_image_view: vk::ImageView,
     ) -> DescriptorSet {
         let descriptor_buffer_info = [vk::DescriptorBufferInfo {
             buffer: uniform_buffer,
@@ -18,18 +22,28 @@ impl DescriptorSet {
             range: std::mem::size_of::<UniformBufferObject>() as u64,
         }];
 
-        let descriptor_write_sets = [vk::WriteDescriptorSet {
-            s_type: vk::StructureType::WRITE_DESCRIPTOR_SET,
-            p_next: ptr::null(),
-            dst_set: descriptor_set,
-            dst_binding: 0,
-            dst_array_element: 0,
-            descriptor_count: 1,
-            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            p_image_info: ptr::null(),
-            p_buffer_info: descriptor_buffer_info.as_ptr(),
-            p_texel_buffer_view: ptr::null(),
-        }];
+        let descriptor_image_info = [vk::DescriptorImageInfo::builder()
+            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .image_view(texture_image_view)
+            .sampler(texture_sampler)
+            .build()];
+
+        let descriptor_write_sets = [
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(0)
+                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .buffer_info(&descriptor_buffer_info)
+                .dst_array_element(0)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(1)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .image_info(&descriptor_image_info)
+                .dst_array_element(0)
+                .build(),
+        ];
 
         unsafe {
             device.update_descriptor_sets(&descriptor_write_sets, &[]);
@@ -56,15 +70,21 @@ pub struct DescriptorPool {
 
 impl DescriptorPool {
     pub fn new(device: &LogicalDevice, swap_chain_image_count: usize) -> DescriptorPool {
-        let descriptor_pool = vk::DescriptorPoolSize::builder()
-            .descriptor_count(swap_chain_image_count as u32)
-            .build();
-
-        let pool = &[descriptor_pool];
+        let descriptor_pool_sizes = [
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: swap_chain_image_count as u32,
+            },
+            vk::DescriptorPoolSize {
+                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: swap_chain_image_count as u32,
+            },
+        ];
 
         let pool_create_info = vk::DescriptorPoolCreateInfo::builder()
-            .pool_sizes(pool)
-            .max_sets(swap_chain_image_count as u32);
+            .pool_sizes(&descriptor_pool_sizes)
+            .max_sets(swap_chain_image_count as u32)
+            .build();
 
         let descriptor_pool = unsafe {
             device
@@ -78,13 +98,16 @@ impl DescriptorPool {
         }
     }
 
-    pub fn create_descriptor_sets(
+    pub fn create_descriptor_sets<U: UniformBufferObjectTemplate>(
         &self,
         device: &LogicalDevice,
-        uniforms_buffer: &UniformBuffer,
+        uniforms_buffer: &UniformBuffer<U>,
         descriptor_set_layout: vk::DescriptorSetLayout,
+        texture_sampler: vk::Sampler,
+        texture_image_view: ImageView,
     ) -> Vec<DescriptorSet> {
         let mut layouts: Vec<vk::DescriptorSetLayout> = vec![];
+
         for _ in 0..self.swap_chain_image_count {
             layouts.push(descriptor_set_layout);
         }
@@ -110,30 +133,12 @@ impl DescriptorPool {
                 device,
                 *descritptor_set,
                 uniforms_buffer.buffers(i),
+                texture_sampler,
+                *texture_image_view,
             ));
         }
 
         descriptor_set
-    }
-
-    pub fn descriptor_set_layout(device: &LogicalDevice) -> vk::DescriptorSetLayout {
-        let layout_binding = [vk::DescriptorSetLayoutBinding::builder()
-            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            .descriptor_count(1)
-            .stage_flags(vk::ShaderStageFlags::VERTEX)
-            .build()];
-
-        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(&layout_binding)
-            .build();
-
-        let descriptor_set_layout = unsafe {
-            device
-                .create_descriptor_set_layout(&layout_create_info, None)
-                .expect("failed to create descriptor set layout!")
-        };
-
-        descriptor_set_layout
     }
 
     pub fn cleanup(&self, device: &LogicalDevice) {

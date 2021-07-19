@@ -15,9 +15,10 @@ impl FrameBuffer {
         device: &LogicalDevice,
         render_pass: &RenderPass,
         image_view: ImageView,
+        depth_image_view: ImageView,
         swapchain_extent: &vk::Extent2D,
     ) -> FrameBuffer {
-        let attachments = [image_view];
+        let attachments = [image_view, depth_image_view];
 
         let framebuffer_create_info = vk::FramebufferCreateInfo::builder()
             .render_pass(**render_pass)
@@ -54,6 +55,7 @@ impl FrameBuffers {
         device: &LogicalDevice,
         render_pass: &RenderPass,
         image_views: &Vec<vk::ImageView>,
+        depth_image_view: vk::ImageView,
         swapchain_extent: &vk::Extent2D,
     ) -> FrameBuffers {
         let mut frame_buffers = vec![];
@@ -63,6 +65,7 @@ impl FrameBuffers {
                 device,
                 render_pass,
                 image_view,
+                depth_image_view,
                 swapchain_extent,
             ));
         }

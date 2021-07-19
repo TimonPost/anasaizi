@@ -8,6 +8,7 @@ use crate::{
         Extensions, Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
     },
 };
+use ash::vk::PhysicalDeviceMemoryProperties;
 use std::{fmt, ops::Deref, ptr};
 
 /// A Vulkan logical device.
@@ -19,6 +20,7 @@ pub struct LogicalDevice {
     device_properties: DeviceProperties,
     queue_family_indices: QueueFamilyIndices,
     logical_device: ash::Device,
+    device_mem_properties: vk::PhysicalDeviceMemoryProperties,
 }
 
 impl LogicalDevice {
@@ -47,6 +49,7 @@ impl LogicalDevice {
             driver_version: Version::decode(device_properties.driver_version),
             vendor_id: device_properties.vendor_id,
             device_id: device_properties.device_id,
+            limits: device_properties.limits,
         };
 
         let logical_device = Self::create_logical_device(
@@ -57,12 +60,16 @@ impl LogicalDevice {
             device_features,
         );
 
+        let device_mem_properties =
+            unsafe { instance.get_physical_device_memory_properties(physical_device) };
+
         LogicalDevice {
             physical_device,
             device_properties,
             device_features,
             queue_family_indices,
             logical_device,
+            device_mem_properties,
         }
     }
 
@@ -70,9 +77,8 @@ impl LogicalDevice {
         &self,
         type_filter: u32,
         required_properties: vk::MemoryPropertyFlags,
-        mem_properties: vk::PhysicalDeviceMemoryProperties,
     ) -> u32 {
-        for (i, memory_type) in mem_properties.memory_types.iter().enumerate() {
+        for (i, memory_type) in self.device_mem_properties.memory_types.iter().enumerate() {
             if (type_filter & (1 << i)) > 0
                 && memory_type.property_flags.contains(required_properties)
             {
@@ -81,6 +87,52 @@ impl LogicalDevice {
         }
 
         panic!("Failed to find suitable memory type!")
+    }
+
+    pub fn find_depth_format(&self, instance: &Instance) -> vk::Format {
+        self.find_supported_format(
+            instance,
+            &[
+                vk::Format::D32_SFLOAT,
+                vk::Format::D32_SFLOAT_S8_UINT,
+                vk::Format::D24_UNORM_S8_UINT,
+            ],
+            vk::ImageTiling::OPTIMAL,
+            vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT,
+        )
+    }
+
+    fn find_supported_format(
+        &self,
+        instance: &Instance,
+        candidate_formats: &[vk::Format],
+        tiling: vk::ImageTiling,
+        features: vk::FormatFeatureFlags,
+    ) -> vk::Format {
+        for &format in candidate_formats.iter() {
+            let format_properties = unsafe {
+                instance.get_physical_device_format_properties(self.physical_device, format)
+            };
+            if tiling == vk::ImageTiling::LINEAR
+                && format_properties.linear_tiling_features.contains(features)
+            {
+                return format.clone();
+            } else if tiling == vk::ImageTiling::OPTIMAL
+                && format_properties.optimal_tiling_features.contains(features)
+            {
+                return format.clone();
+            }
+        }
+
+        panic!("Failed to find supported format!")
+    }
+
+    pub fn device_properties(&self) -> &DeviceProperties {
+        &self.device_properties
+    }
+
+    pub fn device_memory_properties(&self) -> vk::PhysicalDeviceMemoryProperties {
+        self.device_mem_properties.clone()
     }
 
     pub fn physical_device(&self) -> &vk::PhysicalDevice {
@@ -266,7 +318,7 @@ impl fmt::Debug for LogicalDevice {
 }
 
 #[derive(Debug)]
-enum DeviceType {
+pub enum DeviceType {
     Other,
     IntegratedGPU,
     DiscreteGPU,
@@ -287,13 +339,14 @@ impl From<vk::PhysicalDeviceType> for DeviceType {
     }
 }
 
-struct DeviceProperties {
-    api_version: Version,
-    driver_version: Version,
-    vendor_id: u32,
-    device_id: u32,
-    device_type: DeviceType,
-    device_name: String,
+pub struct DeviceProperties {
+    pub api_version: Version,
+    pub driver_version: Version,
+    pub vendor_id: u32,
+    pub device_id: u32,
+    pub device_type: DeviceType,
+    pub device_name: String,
+    pub limits: vk::PhysicalDeviceLimits,
 }
 
 impl fmt::Debug for DeviceProperties {

@@ -1,47 +1,84 @@
-use crate::vulkan::LogicalDevice;
-use ash::{version::DeviceV1_0, vk};
+use crate::{
+    engine::image::Texture,
+    vulkan::{
+        DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer, UniformBufferObject,
+        UniformBufferObjectTemplate,
+    },
+};
+use ash::{
+    version::DeviceV1_0,
+    vk,
+    vk::{DescriptorSetLayout, ShaderModule},
+};
 use std::{collections::HashMap, ops::Deref, path::Path, ptr};
 
-pub struct Shaders {
-    shaders: HashMap<&'static str, Shader>,
+pub struct ShaderSet<U: UniformBufferObjectTemplate> {
+    vertex_shader_module: vk::ShaderModule,
+    uniform_buffer_object: U,
+    fragment_shader_module: ShaderModule,
+
+    pub descriptor_set_layout: DescriptorSetLayout,
+    pub descriptor_sets: Vec<DescriptorSet>,
+    pub uniform_buffer: UniformBuffer<U>,
+    pub descriptor_pool: DescriptorPool,
 }
 
-impl Shaders {
-    pub fn new() -> Shaders {
-        Shaders {
-            shaders: HashMap::new(),
+impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
+    pub fn new(
+        instance: &Instance,
+        device: &LogicalDevice,
+        vertex_shader_path: &'static str,
+        fragment_shader_path: &'static str,
+        descriptor_set_layout: DescriptorSetLayout,
+        swap_chain_image_count: usize,
+        texture_sampler: vk::Sampler,
+        texture: &Texture,
+    ) -> ShaderSet<U> {
+        let uniform_buffer_object = U::default();
+
+        let descriptor_pool = DescriptorPool::new(&device, swap_chain_image_count);
+
+        let uniform_buffer = UniformBuffer::<U>::new(&instance, &device, swap_chain_image_count);
+        let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
+            &device,
+            &uniform_buffer,
+            descriptor_set_layout,
+            texture_sampler,
+            texture.image_view.clone(),
+        );
+
+        let vertex_shader_code = Self::read_shader_code(Path::new(vertex_shader_path));
+        let vertex_shader_module = Self::create_shader_module(device, vertex_shader_code);
+
+        let fragment_shader_code = Self::read_shader_code(Path::new(fragment_shader_path));
+        let fragment_shader_module = Self::create_shader_module(device, fragment_shader_code);
+
+        ShaderSet {
+            vertex_shader_module,
+
+            fragment_shader_module,
+
+            uniform_buffer_object,
+            descriptor_set_layout,
+            descriptor_sets,
+            uniform_buffer,
+            descriptor_pool,
         }
     }
 
-    pub fn add_shader(&mut self, label: &'static str, shader: Shader) {
-        self.shaders.insert(label, shader);
+    pub fn fragment_shader(&self) -> vk::ShaderModule {
+        self.fragment_shader_module
     }
 
-    pub fn shader(&self, label: &'static str) -> &Shader {
-        self.shaders
-            .get(label)
-            .expect(format!("Could not find shader with label: {}", label).as_str())
-    }
-}
-
-pub struct Shader {
-    shader_path: &'static str,
-    shader_module: vk::ShaderModule,
-}
-
-impl Shader {
-    pub fn new(device: &LogicalDevice, shader_path: &'static str) -> Shader {
-        let shader_code = Self::read_shader_code(Path::new(shader_path));
-
-        let shader_module = Self::create_shader_module(device, shader_code);
-
-        Shader {
-            shader_path,
-            shader_module,
-        }
+    pub fn vertex_shader(&self) -> vk::ShaderModule {
+        self.vertex_shader_module
     }
 
-    pub fn create_shader_module(device: &LogicalDevice, code: Vec<u8>) -> vk::ShaderModule {
+    pub fn update_uniform(&mut self, uniform: U) {
+        self.uniform_buffer_object = uniform;
+    }
+
+    fn create_shader_module(device: &LogicalDevice, code: Vec<u8>) -> vk::ShaderModule {
         let shader_module_create_info = vk::ShaderModuleCreateInfo {
             s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,
             p_next: ptr::null(),
@@ -57,7 +94,7 @@ impl Shader {
         }
     }
 
-    pub fn read_shader_code(shader_path: &Path) -> Vec<u8> {
+    fn read_shader_code(shader_path: &Path) -> Vec<u8> {
         use std::{fs::File, io::Read};
 
         let spv_file = File::open(shader_path)
@@ -65,13 +102,5 @@ impl Shader {
         let bytes_code: Vec<u8> = spv_file.bytes().filter_map(|byte| byte.ok()).collect();
 
         bytes_code
-    }
-}
-
-impl Deref for Shader {
-    type Target = vk::ShaderModule;
-
-    fn deref(&self) -> &Self::Target {
-        &self.shader_module
     }
 }

@@ -29,10 +29,8 @@ pub fn create_buffer(
     };
 
     let mem_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-    let mem_properties =
-        unsafe { instance.get_physical_device_memory_properties(*device.physical_device()) };
-    let memory_type =
-        device.find_memory_type(mem_requirements.memory_type_bits, flags, mem_properties);
+
+    let memory_type = device.find_memory_type(mem_requirements.memory_type_bits, flags);
 
     let allocate_info = vk::MemoryAllocateInfo::builder()
         .allocation_size(mem_requirements.size)

@@ -5,6 +5,7 @@ mod command_pool;
 mod descriptor_pool;
 mod device;
 mod extensions;
+mod image_view;
 mod instance;
 mod layer;
 mod pipeline;
@@ -24,21 +25,21 @@ pub use device::LogicalDevice;
 pub use extensions::Extensions;
 
 pub use buffer_layout::BufferLayout;
+pub use buffers::{
+    create_buffer, CommandBuffers, FrameBuffer, FrameBuffers, IndexBuffer, UniformBuffer,
+    UniformBufferObject, UniformBufferObjectTemplate, VertexBuffer,
+};
+pub use image_view::ImageView;
 pub use instance::Instance;
 pub use layer::{ValidationLayerProperties, ValidationLayers};
 pub use pipeline::Pipeline;
 pub use queue::{Queue, QueueFamilyProperties};
 pub use render_pass::RenderPass;
-pub use shader::{Shader, Shaders};
+pub use shader::ShaderSet;
 pub use structures::QueueFamilyIndices;
 pub use surface::SurfaceData;
 pub use swapchain::{SwapChain, SwapChainSupportDetails};
 pub use version::Version;
 pub use window::Window;
-
-pub use buffers::{
-    CommandBuffers, FrameBuffer, FrameBuffers, IndexBuffer, UniformBuffer, UniformBufferObject,
-    VertexBuffer,
-};
 
 pub use descriptor_pool::{DescriptorPool, DescriptorSet};

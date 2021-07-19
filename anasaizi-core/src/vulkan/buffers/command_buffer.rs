@@ -1,5 +1,5 @@
 use crate::{
-    model::{triangle_vertices, Mesh},
+    model::Mesh,
     vulkan::{
         CommandPool, DescriptorSet, FrameBuffers, Instance, LogicalDevice, Pipeline, RenderPass,
         VertexBuffer,
@@ -51,11 +51,19 @@ impl CommandBuffers {
                     .expect("Failed to begin recording Command Buffer at beginning!");
             }
 
-            let clear_values = [vk::ClearValue {
-                color: vk::ClearColorValue {
-                    float32: [0.0, 0.0, 0.0, 1.0],
+            let clear_values = [
+                vk::ClearValue {
+                    color: vk::ClearColorValue {
+                        float32: [0.0, 0.0, 0.0, 1.0],
+                    },
                 },
-            }];
+                vk::ClearValue {
+                    depth_stencil: vk::ClearDepthStencilValue {
+                        depth: 1.0,
+                        stencil: 0,
+                    },
+                },
+            ];
 
             let render_pass_begin_info = vk::RenderPassBeginInfo::builder()
                 .render_area(vk::Rect2D {
@@ -90,7 +98,7 @@ impl CommandBuffers {
                     command_buffer,
                     index_buffer,
                     0,
-                    vk::IndexType::UINT16,
+                    vk::IndexType::UINT32,
                 );
 
                 device.cmd_bind_descriptor_sets(

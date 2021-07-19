@@ -23,11 +23,11 @@ impl IndexBuffer {
     pub fn create(
         instance: &Instance,
         device: &LogicalDevice,
-        indices: &Vec<u16>,
+        indices: &Vec<u32>,
         submit_queue: &Queue,
         command_pool: &CommandPool,
     ) -> IndexBuffer {
-        let buffer_size = (size_of::<u16>() * indices.len()) as u64;
+        let buffer_size = (size_of::<u32>() * indices.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_buffer(
             &instance,
@@ -45,7 +45,7 @@ impl IndexBuffer {
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
                 )
-                .expect("Failed to Map Memory") as *mut u16;
+                .expect("Failed to Map Memory") as *mut u32;
 
             data_ptr.copy_from_nonoverlapping(indices.as_ptr(), indices.len());
 

@@ -1,6 +1,10 @@
 use crate::vulkan::{buffers::buffer::create_buffer, Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
-use std::{mem::size_of, ptr};
+use std::{marker::PhantomData, mem::size_of, ptr};
+
+pub trait UniformBufferObjectTemplate: Default {
+    fn size(&self) -> usize;
+}
 
 #[derive(Copy, Clone)]
 pub struct UniformBufferObject {
@@ -9,8 +13,14 @@ pub struct UniformBufferObject {
     pub proj: nalgebra::Matrix4<f32>,
 }
 
-impl UniformBufferObject {
-    pub fn new() -> UniformBufferObject {
+impl UniformBufferObjectTemplate for UniformBufferObject {
+    fn size(&self) -> usize {
+        size_of::<UniformBufferObject>()
+    }
+}
+
+impl Default for UniformBufferObject {
+    fn default() -> Self {
         UniformBufferObject {
             model: nalgebra::Matrix::default(),
             view: nalgebra::Matrix::default(),
@@ -19,20 +29,22 @@ impl UniformBufferObject {
     }
 }
 
-pub struct UniformBuffer {
+pub struct UniformBuffer<U: UniformBufferObjectTemplate> {
     // because we can pregenerate frames and uniforms change per frame we want to have various buffers in our arsenal to use.
     buffers: Vec<vk::Buffer>,
     buffers_memory: Vec<vk::DeviceMemory>,
     swap_chain_image_count: usize,
+
+    _data: PhantomData<U>,
 }
 
-impl UniformBuffer {
+impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
     pub fn new(
         instance: &Instance,
         device: &LogicalDevice,
         swap_chain_image_count: usize,
-    ) -> UniformBuffer {
-        let buffer_size = size_of::<UniformBufferObject>() as u64;
+    ) -> UniformBuffer<U> {
+        let buffer_size = size_of::<U>() as u64;
 
         let mut buffers = vec![];
         let mut buffers_memory = vec![];
@@ -55,6 +67,8 @@ impl UniformBuffer {
             buffers,
             buffers_memory,
             swap_chain_image_count,
+
+            _data: PhantomData,
         }
     }
 

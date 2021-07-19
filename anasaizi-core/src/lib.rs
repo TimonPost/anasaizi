@@ -3,6 +3,7 @@
 #[macro_use]
 pub mod debug;
 
+pub mod engine;
 pub mod math;
 pub mod model;
 pub mod utils;
@@ -14,5 +15,9 @@ pub const WINDOW_HEIGHT: u32 = 600;
 pub mod reexports {
     pub mod nalgebra {
         pub use nalgebra::*;
+    }
+
+    pub mod cgmath {
+        pub use cgmath::*;
     }
 }

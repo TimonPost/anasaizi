@@ -1,10 +1,11 @@
 use ash::vk;
 
 use crate::{
-    vulkan::{Instance, LogicalDevice, SurfaceData},
+    engine::image::Texture,
+    vulkan::{CommandPool, ImageView, Instance, LogicalDevice, Queue, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
-use ash::{version::DeviceV1_0, vk::ImageView};
+use ash::{version::DeviceV1_0, vk::Image};
 use std::{ops::Deref, ptr};
 
 /// A Vulkan Swapchain.
@@ -18,9 +19,9 @@ pub struct SwapChain {
     pub images: Vec<vk::Image>,
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
-    pub image_views: Vec<vk::ImageView>,
-    // pub depth_image: vk::Image,
-    // pub depth_image_view: vk::ImageView,
+    pub image_views: Vec<ImageView>,
+    pub depth_image: vk::Image,
+    pub depth_image_view: vk::ImageView,
 }
 
 impl SwapChain {
@@ -138,7 +139,7 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-        // let depth_image = Self::create_depth_buffer(&device, extent);
+        let depth_image = Self::create_depth_resources(instance, &device, extent);
 
         let image_views =
             Self::create_image_views(&device, &swapchain_images, &surface_format.format);
@@ -150,8 +151,8 @@ impl SwapChain {
             extent,
             image_views,
             images: swapchain_images,
-            // depth_image: depth_image.0,
-            // depth_image_view: depth_image.1,
+            depth_image: depth_image.0,
+            depth_image_view: *depth_image.1,
         }
     }
 
@@ -160,112 +161,44 @@ impl SwapChain {
         device: &LogicalDevice,
         images: &Vec<vk::Image>,
         format: &vk::Format,
-    ) -> Vec<vk::ImageView> {
+    ) -> Vec<ImageView> {
         let mut swapchain_imageviews = vec![];
 
         for &image in images.iter() {
-            let imageview_create_info = vk::ImageViewCreateInfo::builder()
-                .view_type(vk::ImageViewType::TYPE_2D)
-                .format(*format)
-                .components(vk::ComponentMapping {
-                    r: vk::ComponentSwizzle::IDENTITY,
-                    g: vk::ComponentSwizzle::IDENTITY,
-                    b: vk::ComponentSwizzle::IDENTITY,
-                    a: vk::ComponentSwizzle::IDENTITY,
-                })
-                .subresource_range(vk::ImageSubresourceRange {
-                    aspect_mask: vk::ImageAspectFlags::COLOR,
-                    base_mip_level: 0,
-                    level_count: 1,
-                    base_array_layer: 0,
-                    layer_count: 1,
-                })
-                .image(image)
-                .build();
+            let image_view =
+                ImageView::create(&device, image, *format, vk::ImageAspectFlags::COLOR);
 
-            let imageview = unsafe {
-                device
-                    .create_image_view(&imageview_create_info, None)
-                    .expect("Failed to create Image View!")
-            };
-            swapchain_imageviews.push(imageview);
+            swapchain_imageviews.push(image_view);
         }
 
         swapchain_imageviews
     }
 
-    fn create_depth_buffer(
+    fn create_depth_resources(
+        instance: &Instance,
         device: &LogicalDevice,
-        extent: vk::Extent2D,
-    ) -> (vk::Image, vk::ImageView) {
-        let image_create_info = vk::ImageCreateInfo::builder()
-            .image_type(vk::ImageType::TYPE_2D)
-            .format(vk::Format::D16_UNORM)
-            .extent(vk::Extent3D {
-                width: extent.width,
-                height: extent.height,
-                depth: 1,
-            })
-            .mip_levels(1)
-            .array_layers(1)
-            .samples(vk::SampleCountFlags::TYPE_2)
-            .tiling(vk::ImageTiling::OPTIMAL)
-            .usage(vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT)
-            .sharing_mode(vk::SharingMode::EXCLUSIVE)
-            .initial_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-            .build();
+        swapchain_extent: vk::Extent2D,
+    ) -> (Image, ImageView, vk::DeviceMemory) {
+        let depth_format = device.find_depth_format(instance);
 
-        let depth_buffer_image = unsafe {
-            device
-                .create_image(&image_create_info, None)
-                .expect("Could not create depth buffer image.")
-        };
+        let (depth_image, depth_image_memory) = Texture::create_image(
+            device,
+            swapchain_extent.width,
+            swapchain_extent.height,
+            depth_format,
+            vk::ImageTiling::OPTIMAL,
+            vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        );
 
-        let memory_requirements =
-            unsafe { device.get_image_memory_requirements(depth_buffer_image) };
+        let depth_image_view = ImageView::create(
+            &device,
+            depth_image,
+            depth_format,
+            vk::ImageAspectFlags::DEPTH,
+        );
 
-        let allocate_info = vk::MemoryAllocateInfo::builder()
-            .allocation_size(memory_requirements.size)
-            .memory_type_index(0)
-            .build();
-
-        let allocation = unsafe {
-            device
-                .allocate_memory(&allocate_info, None)
-                .expect("Could not allocate memory for depth buffer image.")
-        };
-
-        unsafe {
-            device.bind_image_memory(depth_buffer_image, allocation, 0);
-        };
-
-        let imageview_create_info = vk::ImageViewCreateInfo::builder()
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .format(vk::Format::D16_UNORM)
-            .format(vk::Format::D16_UNORM)
-            .components(vk::ComponentMapping {
-                r: vk::ComponentSwizzle::IDENTITY,
-                g: vk::ComponentSwizzle::IDENTITY,
-                b: vk::ComponentSwizzle::IDENTITY,
-                a: vk::ComponentSwizzle::IDENTITY,
-            })
-            .subresource_range(vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                base_mip_level: 0,
-                level_count: 1,
-                base_array_layer: 0,
-                layer_count: 1,
-            })
-            .image(depth_buffer_image)
-            .build();
-
-        let imageview = unsafe {
-            device
-                .create_image_view(&imageview_create_info, None)
-                .expect("Failed to create Image View!")
-        };
-
-        (depth_buffer_image, imageview)
+        (depth_image, depth_image_view, depth_image_memory)
     }
 
     /// Pick a format to use for the swapchain.
