@@ -1,5 +1,4 @@
 use crate::{
-    math::Vertex,
     vulkan::{IndexBuffer, VertexBuffer},
 };
 use nalgebra::Matrix4;

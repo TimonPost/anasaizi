@@ -34,7 +34,7 @@ impl SurfaceData {
         window: &winit::window::Window,
     ) -> Result<vk::SurfaceKHR, vk::Result> {
         use std::{os::raw::c_void, ptr};
-        use winapi::{shared::windef::HWND, um::libloaderapi::GetModuleHandleW};
+        use winapi::{um::libloaderapi::GetModuleHandleW};
         use winit::platform::windows::WindowExtWindows;
 
         let hwnd = window.hwnd();

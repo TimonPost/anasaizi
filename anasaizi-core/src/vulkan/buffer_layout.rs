@@ -1,6 +1,6 @@
 use ash::vk;
 use nalgebra::{Vector2, Vector3};
-use std::{collections::HashMap, mem::size_of};
+use std::{mem::size_of};
 
 #[derive(PartialOrd, PartialEq, Eq, Debug)]
 pub struct BufferLayoutElement {
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn add_float_vec2_correct_size() {
-        let mut layout = BufferLayout::new().add_float_vec2(0);
+        let layout = BufferLayout::new().add_float_vec2(0);
 
         assert_eq!(
             layout.get(0),
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn add_float_vec3_correct_size() {
-        let mut layout = BufferLayout::new().add_float_vec3(0);
+        let layout = BufferLayout::new().add_float_vec3(0);
 
         assert_eq!(
             layout.get(0),
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn build_attrib_description() {
-        let mut buffer_layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
+        let buffer_layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
 
         let first_layout = buffer_layout.get(0).unwrap();
         let second_layout = buffer_layout.get(1).unwrap();

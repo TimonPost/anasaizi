@@ -1,6 +1,6 @@
 use crate::vulkan::{create_buffer, CommandPool, ImageView, Instance, LogicalDevice, Queue};
-use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
-use image::{io::Reader as ImageReader, DynamicImage, GenericImageView};
+use ash::{version::DeviceV1_0, vk};
+use image::{GenericImageView};
 use std::{path::Path, ptr};
 
 pub struct Texture {

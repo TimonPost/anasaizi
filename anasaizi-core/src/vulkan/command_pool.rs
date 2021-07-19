@@ -1,5 +1,5 @@
 use ash::{version::DeviceV1_0, vk};
-use std::ptr;
+
 
 use crate::vulkan::LogicalDevice;
 use std::ops::Deref;

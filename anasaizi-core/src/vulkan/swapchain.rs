@@ -2,11 +2,11 @@ use ash::vk;
 
 use crate::{
     engine::image::Texture,
-    vulkan::{CommandPool, ImageView, Instance, LogicalDevice, Queue, SurfaceData},
+    vulkan::{ImageView, Instance, LogicalDevice, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::{version::DeviceV1_0, vk::Image};
-use std::{ops::Deref, ptr};
+use std::{ops::Deref};
 
 /// A Vulkan Swapchain.
 ///
@@ -94,7 +94,7 @@ impl SwapChain {
 
         let queue_family = device.queue_family_indices();
 
-        let (image_sharing_mode, queue_family_index_count, queue_family_indices) =
+        let (image_sharing_mode, _queue_family_index_count, queue_family_indices) =
             if queue_family.graphics_family != queue_family.present_family {
                 (
                     vk::SharingMode::EXCLUSIVE,

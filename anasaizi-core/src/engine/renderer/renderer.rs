@@ -1,5 +1,4 @@
 use crate::{
-    engine,
     engine::{
         camera::{Camera, CameraMovement},
         image::Texture,
@@ -7,21 +6,17 @@ use crate::{
     },
     model::Mesh,
     profile_fn,
-    reexports::{cgmath, nalgebra as math},
     vulkan::{
-        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, DescriptorPool,
-        DescriptorSet, FrameBuffers, ImageView, Instance, LogicalDevice, Pipeline, Queue,
-        RenderPass, ShaderSet, SwapChain, UniformBuffer, UniformBufferObject,
+        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, LogicalDevice, Pipeline, Queue,
+        RenderPass, ShaderSet, SwapChain,
         UniformBufferObjectTemplate,
     },
-    WINDOW_HEIGHT, WINDOW_WIDTH,
 };
-use anasaizi_profile::profile;
-use ash::{version::DeviceV1_0, vk, vk::DescriptorSetLayout};
+
+use ash::{version::DeviceV1_0, vk};
 use std::{ptr, time::Instant};
 use winit::{
     event::{ElementState, VirtualKeyCode},
-    event_loop::ControlFlow,
 };
 
 pub static FRAGMENT_SHADER: &str = "frag.spv";
@@ -120,7 +115,7 @@ impl VulkanRenderer {
 
         let camera = Camera::new(
             16.0 / 9.0,
-            ((swapchain.extent.width / swapchain.extent.height) as f32),
+            (swapchain.extent.width / swapchain.extent.height) as f32,
             0.1,
             10.0,
         );
@@ -301,8 +296,8 @@ impl VulkanRenderer {
     pub fn handle_event(&mut self, event: Event) {
         match event {
             Event::MouseMove(position) => {
-                let mut xoffset = position.x - self.last_x;
-                let mut yoffset = self.last_y - position.y;
+                let xoffset = position.x - self.last_x;
+                let yoffset = self.last_y - position.y;
 
                 self.last_x = position.x;
                 self.last_y = position.y;
@@ -328,7 +323,7 @@ impl VulkanRenderer {
                 }
                 _ => {}
             },
-            Event::MouseScroll(xoffset, yoffset) => {}
+            Event::MouseScroll(_xoffset, _yoffset) => {}
             _ => {}
         }
     }

@@ -1,5 +1,5 @@
-use crate::reexports::nalgebra::{ArrayStorage, Const, Matrix};
-use nalgebra::{RealField, Vector3};
+
+
 
 pub enum CameraMovement {
     FORWARD,
@@ -118,7 +118,7 @@ impl Camera {
         self.reload_matrix();
     }
 
-    pub fn process_mouse(&mut self, delta_time: f32, mut xoffset: f64, mut yoffset: f64) {
+    pub fn process_mouse(&mut self, _delta_time: f32, mut xoffset: f64, mut yoffset: f64) {
         let sensitivity = 0.1;
         xoffset *= sensitivity;
         yoffset *= sensitivity;

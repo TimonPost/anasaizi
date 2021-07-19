@@ -1,6 +1,6 @@
 use crate::vulkan::{buffers::buffer::create_buffer, Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
-use std::{marker::PhantomData, mem::size_of, ptr};
+use std::{marker::PhantomData, mem::size_of};
 
 pub trait UniformBufferObjectTemplate: Default {
     fn size(&self) -> usize;
@@ -49,7 +49,7 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
         let mut buffers = vec![];
         let mut buffers_memory = vec![];
 
-        for i in 0..swap_chain_image_count {
+        for _i in 0..swap_chain_image_count {
             unsafe {
                 let (buffer, memory) = create_buffer(
                     instance,

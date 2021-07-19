@@ -1,6 +1,6 @@
 use crate::vulkan::{structures::ValidationInfo, Application, Extensions, ValidationLayers};
 use ash::{version::EntryV1_0, vk};
-use std::{ffi::CString, fmt, ops::Deref, ptr};
+use std::{ffi::CString, fmt, ops::Deref};
 
 pub struct Instance {
     entry: ash::Entry,

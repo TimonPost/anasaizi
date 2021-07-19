@@ -1,16 +1,15 @@
 use crate::{
-    math::Vertex,
     vulkan::{CommandPool, Instance, LogicalDevice, Queue},
 };
 use ash::{
-    version::{DeviceV1_0, InstanceV1_0},
+    version::{DeviceV1_0},
     vk,
-    vk::{Buffer, DeviceMemory, StructureType},
+    vk::{Buffer, DeviceMemory},
 };
-use std::{mem::size_of, ops::Deref, ptr};
+
 
 pub fn create_buffer(
-    instance: &Instance,
+    _instance: &Instance,
     device: &LogicalDevice,
     size: u64,
     usage: vk::BufferUsageFlags,

@@ -1,7 +1,7 @@
 use crate::{
     engine::image::Texture,
     vulkan::{
-        DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer, UniformBufferObject,
+        DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer,
         UniformBufferObjectTemplate,
     },
 };
@@ -10,7 +10,7 @@ use ash::{
     vk,
     vk::{DescriptorSetLayout, ShaderModule},
 };
-use std::{collections::HashMap, ops::Deref, path::Path, ptr};
+use std::{path::Path, ptr};
 
 pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     vertex_shader_module: vk::ShaderModule,

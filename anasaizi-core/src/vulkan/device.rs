@@ -8,8 +8,8 @@ use crate::{
         Extensions, Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
     },
 };
-use ash::vk::PhysicalDeviceMemoryProperties;
-use std::{fmt, ops::Deref, ptr};
+
+use std::{fmt, ops::Deref};
 
 /// A Vulkan logical device.
 ///

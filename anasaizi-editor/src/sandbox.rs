@@ -1,19 +1,14 @@
 use anasaizi_core::vulkan::{
-    structures::{SyncObjects, ValidationInfo},
-    Application, CommandBuffers, CommandPool, DescriptorPool, DescriptorSet, Extensions,
-    FrameBuffers, IndexBuffer, Instance, LogicalDevice, Pipeline, Queue, RenderPass, ShaderSet,
-    SwapChain, UniformBuffer, UniformBufferObject, Version, VertexBuffer, Window,
+    IndexBuffer, LogicalDevice, ShaderSet, UniformBufferObject, VertexBuffer,
 };
 use ash::vk;
 use winit::{
-    event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
 
 use anasaizi_core::{
-    engine, profile_fn,
-    reexports::{cgmath, nalgebra as math},
-    WINDOW_HEIGHT, WINDOW_WIDTH,
+    engine,
 };
 use anasaizi_profile::profile;
 
@@ -21,18 +16,12 @@ use anasaizi_core::{
     debug::{start_profiler, stop_profiler},
     engine::{image::Texture, VulkanApplication, VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER},
     math::Vertex,
-    model::{square_indices, square_vertices, Mesh, Object},
-    reexports::{
-        cgmath::Deg,
-        nalgebra::{Matrix3, Matrix4, Orthographic3},
-    },
+    model::{Mesh, Object},
 };
 use ash::{
-    extensions::{ext::DebugUtils, khr},
     version::DeviceV1_0,
-    vk::DescriptorSetLayout,
 };
-use std::{path::Path, ptr};
+use std::{path::Path};
 use winit::event::MouseScrollDelta;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
@@ -133,7 +122,7 @@ impl VulkanApp {
         descriptor_set_layout
     }
 
-    fn update_uniform(&mut self, current_image: usize) {
+    fn update_uniform(&mut self, _current_image: usize) {
         // let rotation = cgmath::Matrix4::<f32>::from_axis_angle(cgmath::Vector3::new(0.0, 0.0, 1.0), Deg(90.0) * 0.0001);
         //
         // let ubos = [self.uniform_buffer_object.clone()];

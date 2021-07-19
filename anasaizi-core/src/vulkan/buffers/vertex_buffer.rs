@@ -6,12 +6,11 @@ use crate::{
     },
 };
 use ash::{
-    version::{DeviceV1_0, InstanceV1_0},
+    version::{DeviceV1_0},
     vk,
-    vk::{SharingMode, StructureType},
 };
 use core::ops::Deref;
-use std::{mem::size_of, ptr};
+use std::{mem::size_of};
 
 pub struct VertexBuffer {
     vertex_buffer: vk::Buffer,

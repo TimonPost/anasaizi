@@ -1,5 +1,5 @@
 use crate::vulkan::{
-    BufferLayout, DescriptorPool, LogicalDevice, RenderPass, ShaderSet, UniformBufferObject,
+    BufferLayout, LogicalDevice, RenderPass, ShaderSet,
     UniformBufferObjectTemplate,
 };
 use ash::{version::DeviceV1_0, vk};
