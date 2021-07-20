@@ -1,6 +1,5 @@
 use crate::vulkan::{
-    BufferLayout, LogicalDevice, RenderPass, ShaderSet,
-    UniformBufferObjectTemplate,
+    BufferLayout, LogicalDevice, RenderPass, ShaderSet, UniformBufferObjectTemplate,
 };
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, ops::Deref, ptr};

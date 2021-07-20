@@ -7,9 +7,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::{
-    engine,
-};
+use anasaizi_core::{engine, reexports::nalgebra as math, WINDOW_HEIGHT, WINDOW_WIDTH};
 use anasaizi_profile::profile;
 
 use anasaizi_core::{
@@ -18,10 +16,8 @@ use anasaizi_core::{
     math::Vertex,
     model::{Mesh, Object},
 };
-use ash::{
-    version::DeviceV1_0,
-};
-use std::{path::Path};
+use ash::version::DeviceV1_0;
+use std::path::Path;
 use winit::event::MouseScrollDelta;
 
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
@@ -30,9 +26,14 @@ pub struct VulkanApp {
     vulkan_renderer: VulkanRenderer,
     application: VulkanApplication,
 
+    shader: ShaderSet<UniformBufferObject>,
+    mesh: Mesh,
+
     pub viking_indices: Vec<u32>,
     pub viking_vertices: Vec<Vertex>,
     pub viking_room_texture: Texture,
+
+    count: f32,
 }
 
 impl VulkanApp {
@@ -90,6 +91,11 @@ impl VulkanApp {
             viking_room_texture,
             viking_vertices,
             viking_indices,
+
+            mesh,
+            shader: shaders,
+
+            count: 0.0,
         }
     }
 
@@ -123,32 +129,38 @@ impl VulkanApp {
     }
 
     fn update_uniform(&mut self, _current_image: usize) {
-        // let rotation = cgmath::Matrix4::<f32>::from_axis_angle(cgmath::Vector3::new(0.0, 0.0, 1.0), Deg(90.0) * 0.0001);
-        //
-        // let ubos = [self.uniform_buffer_object.clone()];
-        //
-        // let buffer_size = (std::mem::size_of::<UniformBufferObject>() * ubos.len()) as u64;
-        //
-        // unsafe {
-        //     let data_ptr =
-        //         self.device
-        //             .map_memory(
-        //                 self.uniform_buffer.buffers_memory(current_image),
-        //                 0,
-        //                 buffer_size,
-        //                 vk::MemoryMapFlags::empty(),
-        //             )
-        //             .expect("Failed to Map Memory") as *mut UniformBufferObject;
-        //
-        //     data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
-        //
-        //     self.device
-        //         .unmap_memory(self.uniform_buffer.buffers_memory(current_image));
-        // }
+        self.count += 1.0 / 10000.0;
+
+        let camera = self.vulkan_renderer.camera();
+
+        let view = camera.view();
+        let perspective = camera.projection();
+
+        let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, 0.0, self.count));
+        // let view = math::Matrix4::look_at_rh(
+        //     &math::Point3::new(2.0, 2.0, 2.0),
+        //     &math::Point3::new(0.0, 0.0, 0.0),
+        //     &math::Vector3::new(0.0, 0.0, 1.0),
+        // );
+        // let perspective = math::Perspective3::new(
+        //     16.0 / 9.0,
+        //     (WINDOW_WIDTH / WINDOW_HEIGHT) as f32,
+        //     1.0,
+        //     10.0,
+        // );
+
+        let uniform_mut = self.shader.uniform_mut();
+        uniform_mut.model = rotation;
+        uniform_mut.view = view;
+        uniform_mut.proj = perspective;
+
+        self.shader
+            .update_uniform(&self.application.device, _current_image);
     }
 
     #[profile(Sandbox)]
     fn draw_frame(&mut self) {
+        self.update_uniform(self.vulkan_renderer.current_frame());
         self.vulkan_renderer.draw(&self.application);
     }
 

@@ -1,6 +1,6 @@
 use ash::vk;
 use nalgebra::{Vector2, Vector3};
-use std::{mem::size_of};
+use std::mem::size_of;
 
 #[derive(PartialOrd, PartialEq, Eq, Debug)]
 pub struct BufferLayoutElement {

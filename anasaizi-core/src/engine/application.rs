@@ -47,6 +47,9 @@ impl VulkanApplication {
 
         let device = LogicalDevice::new(&instance, device_extensions, window.surface_data());
 
+        println!("{:?}", application);
+        println!("{:?}", device);
+
         VulkanApplication {
             application,
             instance,

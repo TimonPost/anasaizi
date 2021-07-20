@@ -7,17 +7,15 @@ use crate::{
     model::Mesh,
     profile_fn,
     vulkan::{
-        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, LogicalDevice, Pipeline, Queue,
-        RenderPass, ShaderSet, SwapChain,
+        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers,
+        LogicalDevice, Pipeline, Queue, RenderPass, ShaderSet, SwapChain,
         UniformBufferObjectTemplate,
     },
 };
 
 use ash::{version::DeviceV1_0, vk};
 use std::{ptr, time::Instant};
-use winit::{
-    event::{ElementState, VirtualKeyCode},
-};
+use winit::event::{ElementState, VirtualKeyCode};
 
 pub static FRAGMENT_SHADER: &str = "frag.spv";
 pub static VERTEX_SHADER: &str = "vert.spv";
@@ -149,6 +147,14 @@ impl VulkanRenderer {
             last_x: 400.0,
             last_y: 300.0,
         }
+    }
+
+    pub fn camera(&mut self) -> &mut Camera {
+        &mut self.camera
+    }
+
+    pub fn current_frame(&self) -> usize {
+        self.current_frame
     }
 
     pub fn setup_test<U: UniformBufferObjectTemplate>(
@@ -323,7 +329,9 @@ impl VulkanRenderer {
                 }
                 _ => {}
             },
-            Event::MouseScroll(_xoffset, _yoffset) => {}
+            Event::MouseScroll(_xoffset, yoffset) => {
+                self.camera.process_mouse_scroll(yoffset);
+            }
             _ => {}
         }
     }

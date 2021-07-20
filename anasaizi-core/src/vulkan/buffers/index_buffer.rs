@@ -1,15 +1,10 @@
-use crate::{
-    vulkan::{
-        buffers::buffer::{copy_buffer, create_buffer},
-        CommandPool, Instance, LogicalDevice, Queue,
-    },
+use crate::vulkan::{
+    buffers::buffer::{copy_buffer, create_buffer},
+    CommandPool, Instance, LogicalDevice, Queue,
 };
-use ash::{
-    version::{DeviceV1_0},
-    vk,
-};
+use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
-use std::{mem::size_of};
+use std::mem::size_of;
 
 pub struct IndexBuffer {
     index_buffer: vk::Buffer,

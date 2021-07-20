@@ -74,8 +74,29 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         self.vertex_shader_module
     }
 
-    pub fn update_uniform(&mut self, uniform: U) {
-        self.uniform_buffer_object = uniform;
+    pub fn uniform_mut(&mut self) -> &mut U {
+        &mut self.uniform_buffer_object
+    }
+
+    pub fn update_uniform(&mut self, device: &LogicalDevice, current_image: usize) {
+        let ubos = [self.uniform_buffer_object.clone()];
+
+        let buffer_size = (std::mem::size_of::<U>() * ubos.len()) as u64;
+
+        unsafe {
+            let data_ptr = device
+                .map_memory(
+                    self.uniform_buffer.buffers_memory(current_image),
+                    0,
+                    buffer_size,
+                    vk::MemoryMapFlags::empty(),
+                )
+                .expect("Failed to Map Memory") as *mut U;
+
+            data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
+
+            device.unmap_memory(self.uniform_buffer.buffers_memory(current_image));
+        }
     }
 
     fn create_shader_module(device: &LogicalDevice, code: Vec<u8>) -> vk::ShaderModule {

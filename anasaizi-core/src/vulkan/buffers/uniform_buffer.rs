@@ -2,7 +2,7 @@ use crate::vulkan::{buffers::buffer::create_buffer, Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
 use std::{marker::PhantomData, mem::size_of};
 
-pub trait UniformBufferObjectTemplate: Default {
+pub trait UniformBufferObjectTemplate: Default + Clone {
     fn size(&self) -> usize;
 }
 

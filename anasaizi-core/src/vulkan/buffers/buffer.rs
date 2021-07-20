@@ -1,12 +1,9 @@
-use crate::{
-    vulkan::{CommandPool, Instance, LogicalDevice, Queue},
-};
+use crate::vulkan::{CommandPool, Instance, LogicalDevice, Queue};
 use ash::{
-    version::{DeviceV1_0},
+    version::DeviceV1_0,
     vk,
     vk::{Buffer, DeviceMemory},
 };
-
 
 pub fn create_buffer(
     _instance: &Instance,

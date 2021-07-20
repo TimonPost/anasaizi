@@ -5,12 +5,9 @@ use crate::{
         CommandPool, Instance, LogicalDevice, Queue,
     },
 };
-use ash::{
-    version::{DeviceV1_0},
-    vk,
-};
+use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
-use std::{mem::size_of};
+use std::mem::size_of;
 
 pub struct VertexBuffer {
     vertex_buffer: vk::Buffer,

@@ -1,11 +1,9 @@
 use crate::{
     model::Mesh,
-    vulkan::{
-        CommandPool, DescriptorSet, FrameBuffers, LogicalDevice, Pipeline, RenderPass,
-    },
+    vulkan::{CommandPool, DescriptorSet, FrameBuffers, LogicalDevice, Pipeline, RenderPass},
 };
 use ash::{version::DeviceV1_0, vk};
-use std::{ops::Deref};
+use std::ops::Deref;
 
 /// A Vulkan command buffer.
 ///

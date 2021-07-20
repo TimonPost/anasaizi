@@ -1,6 +1,6 @@
 use crate::vulkan::{Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
-use std::{ops::Deref};
+use std::ops::Deref;
 
 pub struct RenderPass {
     render_pass: vk::RenderPass,

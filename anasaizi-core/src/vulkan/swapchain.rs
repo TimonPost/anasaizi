@@ -6,7 +6,7 @@ use crate::{
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::{version::DeviceV1_0, vk::Image};
-use std::{ops::Deref};
+use std::ops::Deref;
 
 /// A Vulkan Swapchain.
 ///

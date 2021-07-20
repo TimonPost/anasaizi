@@ -1,6 +1,4 @@
-use crate::{
-    vulkan::{IndexBuffer, VertexBuffer},
-};
+use crate::vulkan::{IndexBuffer, VertexBuffer};
 use nalgebra::Matrix4;
 
 pub struct Mesh {

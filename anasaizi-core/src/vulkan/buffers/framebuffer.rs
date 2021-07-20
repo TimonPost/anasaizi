@@ -1,6 +1,6 @@
 use crate::vulkan::{LogicalDevice, RenderPass};
 use ash::{version::DeviceV1_0, vk, vk::ImageView};
-use std::{ops::Deref};
+use std::ops::Deref;
 
 /// A Vulkan Framebuffer.
 ///
