@@ -17,6 +17,11 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
+lazy_static! {
+    /// This is an example for using doc comment attributes
+    pub static ref PROFILER: Mutex<Profiler> = Mutex::new(Profiler::new());
+}
+
 #[macro_export]
 macro_rules! profile_fn {
     ($profile:expr, $to_profile:expr) => {{
@@ -260,11 +265,6 @@ impl ProfileObject {
         lock.end_profile(self);
         drop(lock)
     }
-}
-
-lazy_static! {
-    /// This is an example for using doc comment attributes
-    pub static ref PROFILER: Mutex<Profiler> = Mutex::new(Profiler::new());
 }
 
 fn get_current_time_ns() -> Instant {

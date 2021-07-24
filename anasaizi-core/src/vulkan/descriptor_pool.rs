@@ -1,7 +1,7 @@
 use crate::vulkan::{
     ImageView, LogicalDevice, UniformBuffer, UniformBufferObject, UniformBufferObjectTemplate,
 };
-use ash::{version::DeviceV1_0, vk};
+use ash::{version::DeviceV1_0, vk, vk::WriteDescriptorSet};
 use std::{ops::Deref, ptr};
 
 pub struct DescriptorSet {
@@ -12,38 +12,14 @@ impl DescriptorSet {
     pub fn new(
         device: &LogicalDevice,
         descriptor_set: vk::DescriptorSet,
-        uniform_buffer: vk::Buffer,
-        texture_sampler: vk::Sampler,
-        texture_image_view: vk::ImageView,
+        descriptor_write_sets: &mut Vec<vk::WriteDescriptorSet>,
+        descriptor_info: &[vk::DescriptorBufferInfo],
     ) -> DescriptorSet {
-        let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-            buffer: uniform_buffer,
-            offset: 0,
-            range: std::mem::size_of::<UniformBufferObject>() as u64,
-        }];
-
-        let descriptor_image_info = [vk::DescriptorImageInfo::builder()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .image_view(texture_image_view)
-            .sampler(texture_sampler)
-            .build()];
-
-        let descriptor_write_sets = [
-            vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_set)
-                .dst_binding(0)
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .buffer_info(&descriptor_buffer_info)
-                .dst_array_element(0)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_set)
-                .dst_binding(1)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&descriptor_image_info)
-                .dst_array_element(0)
-                .build(),
-        ];
+        for mut descriptor in descriptor_write_sets.iter_mut() {
+            descriptor.dst_set = descriptor_set;
+            descriptor.p_buffer_info = descriptor_info.as_ptr();
+            descriptor.descriptor_count = descriptor_info.len() as u32
+        }
 
         unsafe {
             device.update_descriptor_sets(&descriptor_write_sets, &[]);
@@ -69,17 +45,19 @@ pub struct DescriptorPool {
 }
 
 impl DescriptorPool {
-    pub fn new(device: &LogicalDevice, swap_chain_image_count: usize) -> DescriptorPool {
-        let descriptor_pool_sizes = [
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::UNIFORM_BUFFER,
+    pub fn new(
+        device: &LogicalDevice,
+        descriptor_types: &[vk::DescriptorType],
+        swap_chain_image_count: usize,
+    ) -> DescriptorPool {
+        let mut descriptor_pool_sizes = vec![];
+
+        for descriptor_type in descriptor_types {
+            descriptor_pool_sizes.push(vk::DescriptorPoolSize {
+                ty: *descriptor_type,
                 descriptor_count: swap_chain_image_count as u32,
-            },
-            vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: swap_chain_image_count as u32,
-            },
-        ];
+            });
+        }
 
         let pool_create_info = vk::DescriptorPoolCreateInfo::builder()
             .pool_sizes(&descriptor_pool_sizes)
@@ -101,10 +79,9 @@ impl DescriptorPool {
     pub fn create_descriptor_sets<U: UniformBufferObjectTemplate>(
         &self,
         device: &LogicalDevice,
-        uniforms_buffer: &UniformBuffer<U>,
         descriptor_set_layout: vk::DescriptorSetLayout,
-        texture_sampler: vk::Sampler,
-        texture_image_view: ImageView,
+        mut descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
+        uniform_buffer: &UniformBuffer<U>,
     ) -> Vec<DescriptorSet> {
         let mut layouts: Vec<vk::DescriptorSetLayout> = vec![];
 
@@ -129,12 +106,17 @@ impl DescriptorPool {
         let mut descriptor_set = vec![];
 
         for (i, descritptor_set) in descriptor_sets.iter().enumerate() {
+            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
+                buffer: uniform_buffer.buffers(i),
+                offset: 0,
+                range: std::mem::size_of::<U>() as u64,
+            }];
+
             descriptor_set.push(DescriptorSet::new(
                 device,
                 *descritptor_set,
-                uniforms_buffer.buffers(i),
-                texture_sampler,
-                *texture_image_view,
+                &mut descriptor_write_sets,
+                &descriptor_buffer_info,
             ));
         }
 

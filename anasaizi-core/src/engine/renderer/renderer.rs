@@ -1,4 +1,5 @@
 use crate::{
+    debug::*,
     engine::{
         camera::{Camera, CameraMovement},
         image::Texture,
@@ -8,18 +9,26 @@ use crate::{
     profile_fn,
     vulkan::{
         structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers,
-        LogicalDevice, Pipeline, Queue, RenderPass, ShaderSet, SwapChain,
-        UniformBufferObjectTemplate,
+        LogicalDevice, Queue, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
 
+use anasaizi_profile::profile;
+
+use crate::{
+    math::PosOnlyVertex,
+    model::{square_indices, square_vertices},
+    vulkan::{
+        Application, IndexBuffer, Pipeline, ShaderBuilder, UniformBufferObject, VertexBuffer,
+    },
+};
 use ash::{version::DeviceV1_0, vk};
-use std::{ptr, time::Instant};
+use std::{path::Path, ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
 
-pub static FRAGMENT_SHADER: &str = "frag.spv";
-pub static VERTEX_SHADER: &str = "vert.spv";
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
+pub static FRAGMENT_SHADER: &str = "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\frag.spv";
+pub static VERTEX_SHADER: &str = "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\vert.spv";
+const MAX_FRAMES_IN_FLIGHT: usize = 3;
 
 pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     let mut sync_objects = SyncObjects {
@@ -65,7 +74,13 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     sync_objects
 }
 
-pub struct VulkanRenderer {
+pub struct RenderObject<U: UniformBufferObjectTemplate> {
+    pub pipeline: Pipeline,
+    pub mesh: Mesh,
+    pub shader: ShaderSet<U>,
+}
+
+pub struct VulkanRenderer<U: UniformBufferObjectTemplate> {
     swapchain: SwapChain,
     render_pass: RenderPass,
     pub graphics_queue: Queue,
@@ -75,7 +90,7 @@ pub struct VulkanRenderer {
     frame_buffers: Option<FrameBuffers>,
     buffers: Option<CommandBuffers>,
     pub texture_sampler: Option<vk::Sampler>,
-    pipeline: Option<Pipeline>,
+    pub render_objects: Vec<RenderObject<U>>,
 
     sync_object: SyncObjects,
 
@@ -89,7 +104,7 @@ pub struct VulkanRenderer {
     pub last_x: f64,
 }
 
-impl VulkanRenderer {
+impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
     pub fn new(application: &VulkanApplication) -> Self {
         let device = &application.device;
         let instance = &application.instance;
@@ -115,7 +130,7 @@ impl VulkanRenderer {
             16.0 / 9.0,
             (swapchain.extent.width / swapchain.extent.height) as f32,
             0.1,
-            10.0,
+            100.0,
         );
 
         let texture_sampler = Texture::create_texture_sampler(&device);
@@ -131,7 +146,7 @@ impl VulkanRenderer {
 
             frame_buffers: None,
             buffers: None,
-            pipeline: None,
+            render_objects: vec![],
             texture_sampler: Some(texture_sampler),
 
             sync_object,
@@ -157,46 +172,44 @@ impl VulkanRenderer {
         self.current_frame
     }
 
-    pub fn setup_test<U: UniformBufferObjectTemplate>(
+    pub fn push_render_object(
         &mut self,
-        device: &LogicalDevice,
-        shaders: &ShaderSet<U>,
-        mesh: &Mesh,
+        application: &VulkanApplication,
+        shader: ShaderSet<U>,
+        mesh: Mesh,
     ) {
-        let layout = BufferLayout::new()
-            .add_float_vec3(0)
-            .add_float_vec3(1)
-            .add_float_vec2(2);
-
         let pipeline = Pipeline::create(
-            &device,
+            &application.device,
             self.swapchain.extent,
             &self.render_pass,
-            shaders,
-            &[shaders.descriptor_set_layout],
-            layout,
+            &shader,
         );
 
+        self.render_objects.push(RenderObject {
+            pipeline,
+            shader,
+            mesh,
+        });
+
         let frame_buffers = FrameBuffers::create(
-            &device,
+            &application.device,
             &self.render_pass,
             &self.swapchain.image_views.iter().map(|i| **i).collect(),
             self.swapchain.depth_image_view,
             &self.swapchain.extent,
         );
 
+        self.render_objects.push(self.load_grid_mesh(application));
+
         let buffers = CommandBuffers::create(
-            &device,
+            &application.device,
             &self.command_pool,
-            &pipeline,
+            &self.render_objects,
             &frame_buffers,
             &self.render_pass,
             self.swapchain.extent,
-            &mesh,
-            &shaders.descriptor_sets,
         );
 
-        self.pipeline = Some(pipeline);
         self.buffers = Some(buffers);
         self.frame_buffers = Some(frame_buffers);
     }
@@ -210,6 +223,7 @@ impl VulkanRenderer {
         self.last_frame = current_frame;
     }
 
+    #[profile(VulkanRenderer)]
     pub fn draw(&mut self, application: &VulkanApplication) {
         let device = &application.device;
 
@@ -233,7 +247,7 @@ impl VulkanRenderer {
             })
         };
 
-        profile_fn!("Wrapper Queues...", {
+        profile_fn!("Queues...", {
             let wait_semaphores = [self.sync_object.image_available_semaphores[self.current_frame]];
             let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
             let signal_semaphores =
@@ -333,6 +347,69 @@ impl VulkanRenderer {
                 self.camera.process_mouse_scroll(yoffset);
             }
             _ => {}
+        }
+    }
+
+    fn load_grid_mesh(&self, application: &VulkanApplication) -> RenderObject<U> {
+        let (square_vertices, square_indices) =
+            (square_vertices().to_vec(), square_indices().to_vec());
+
+        let grid_vertex_buffer = VertexBuffer::create::<PosOnlyVertex>(
+            &application.instance,
+            &application.device,
+            &square_vertices,
+            &self.graphics_queue,
+            &self.command_pool,
+        );
+
+        let grid_index_buffer = IndexBuffer::create(
+            &application.instance,
+            &application.device,
+            &square_indices,
+            &self.graphics_queue,
+            &self.command_pool,
+        );
+
+        let mut descriptor_write_sets = vec![vk::WriteDescriptorSet::builder()
+            .dst_binding(0)
+            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+            .dst_array_element(0)
+            .build()];
+
+        let layout_binding = [vk::DescriptorSetLayoutBinding::builder()
+            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+            .descriptor_count(1)
+            .stage_flags(vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT)
+            .binding(0)
+            .build()];
+
+        let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
+
+        let mut builder = ShaderBuilder::builder(
+            application,
+            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_vert.spv",
+            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_frag.spv",
+            3,
+        );
+        builder
+            .with_input_buffer_layout(input_buffer_layout)
+            .with_write_descriptor_layout(&layout_binding)
+            .with_descriptor_pool(&[vk::DescriptorType::UNIFORM_BUFFER])
+            .with_write_descriptor_sets(descriptor_write_sets);
+
+        let build: ShaderSet<U> = builder.build();
+
+        let pipeline = Pipeline::create(
+            &application.device,
+            self.swapchain.extent,
+            &self.render_pass,
+            &build,
+        );
+
+        RenderObject {
+            pipeline,
+            mesh: Mesh::new(grid_vertex_buffer, grid_index_buffer),
+            shader: build,
         }
     }
 }

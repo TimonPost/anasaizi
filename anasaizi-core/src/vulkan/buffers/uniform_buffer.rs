@@ -21,10 +21,13 @@ impl UniformBufferObjectTemplate for UniformBufferObject {
 
 impl Default for UniformBufferObject {
     fn default() -> Self {
+        let mut identity = nalgebra::Matrix4::default();
+        identity.fill_with_identity();
+
         UniformBufferObject {
-            model: nalgebra::Matrix::default(),
-            view: nalgebra::Matrix::default(),
-            proj: nalgebra::Matrix::default(),
+            model: identity,
+            view: identity,
+            proj: identity,
         }
     }
 }

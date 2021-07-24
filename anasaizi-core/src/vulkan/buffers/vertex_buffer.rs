@@ -16,14 +16,14 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-    pub fn create(
+    pub fn create<U>(
         instance: &Instance,
         device: &LogicalDevice,
-        vertices: &Vec<Vertex>,
+        vertices: &Vec<U>,
         submit_queue: &Queue,
         command_pool: &CommandPool,
     ) -> VertexBuffer {
-        let buffer_size = (size_of::<Vertex>() * vertices.len()) as u64;
+        let buffer_size = (size_of::<U>() * vertices.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_buffer(
             &instance,
@@ -41,7 +41,7 @@ impl VertexBuffer {
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
                 )
-                .expect("Failed to Map Memory") as *mut Vertex;
+                .expect("Failed to Map Memory") as *mut U;
 
             data_ptr.copy_from_nonoverlapping(vertices.as_ptr(), vertices.len());
 

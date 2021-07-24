@@ -1,16 +1,162 @@
 use crate::{
-    engine::image::Texture,
+    engine::{image::Texture, VulkanApplication},
     vulkan::{
-        DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer,
-        UniformBufferObjectTemplate,
+        BufferLayout, DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer,
+        UniformBufferObject, UniformBufferObjectTemplate,
     },
 };
 use ash::{
     version::DeviceV1_0,
     vk,
-    vk::{DescriptorSetLayout, ShaderModule},
+    vk::{DescriptorSetLayout, Sampler, ShaderModule, WriteDescriptorSet},
 };
 use std::{path::Path, ptr};
+use winapi::um::wingdi::wglSwapLayerBuffers;
+
+pub struct ShaderBuilder<'a> {
+    textures: Option<&'a [Texture]>,
+    sampler: Option<Sampler>,
+
+    input_buffer_layout: Option<BufferLayout>,
+    descriptor_set_layout: Option<DescriptorSetLayout>,
+    descriptor_pool: Option<DescriptorPool>,
+    write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
+    uniform_buffer: Option<UniformBuffer<UniformBufferObject>>,
+    vertex_shader: &'static str,
+    fragment_shader: &'static str,
+    swapchain_images: usize,
+
+    application: &'a VulkanApplication,
+}
+
+impl<'a> ShaderBuilder<'a> {
+    pub fn builder(
+        application: &'a VulkanApplication,
+        vertex_shader: &'static str,
+        fragment_shader: &'static str,
+        swapchain_images: usize,
+    ) -> Self {
+        ShaderBuilder {
+            vertex_shader,
+            fragment_shader,
+            swapchain_images,
+            application,
+
+            textures: None,
+            sampler: None,
+            input_buffer_layout: None,
+            descriptor_set_layout: None,
+            descriptor_pool: None,
+            write_descriptor_sets: vec![],
+            uniform_buffer: None,
+        }
+    }
+
+    pub fn with_input_buffer_layout(
+        &mut self,
+        input_buffer_layout: BufferLayout,
+    ) -> &mut ShaderBuilder<'a> {
+        self.input_buffer_layout = Some(input_buffer_layout);
+        self
+    }
+
+    pub fn with_textures(
+        &mut self,
+        textures: &'a [Texture],
+        sampler: Sampler,
+    ) -> &mut ShaderBuilder<'a> {
+        self.textures = Some(textures);
+        self.sampler = Some(sampler);
+        self
+    }
+
+    pub fn with_descriptor_pool(
+        &mut self,
+        descriptor_types: &[vk::DescriptorType],
+    ) -> &mut ShaderBuilder<'a> {
+        self.descriptor_pool = Some(DescriptorPool::new(
+            &self.application.device,
+            descriptor_types,
+            self.swapchain_images,
+        ));
+        self
+    }
+
+    pub fn with_write_descriptor_sets(
+        &mut self,
+        mut write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
+    ) -> &mut ShaderBuilder<'a> {
+        self.write_descriptor_sets = write_descriptor_sets;
+
+        self
+    }
+
+    pub fn with_write_descriptor_layout(
+        &mut self,
+        layout_binding: &[vk::DescriptorSetLayoutBinding],
+    ) -> &mut ShaderBuilder<'a> {
+        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
+            .bindings(layout_binding)
+            .build();
+
+        self.descriptor_set_layout = Some(unsafe {
+            self.application
+                .device
+                .create_descriptor_set_layout(&layout_create_info, None)
+                .expect("failed to create descriptor set layout!")
+        });
+
+        self
+    }
+
+    pub fn build<U: UniformBufferObjectTemplate>(mut self) -> ShaderSet<U> {
+        let uniform_buffer_object = U::default();
+
+        if let None = self.descriptor_pool {
+            self.with_descriptor_pool(&[]);
+        }
+
+        if let None = self.descriptor_set_layout {
+            self.with_write_descriptor_layout(&[]);
+        }
+
+        let uniform_buffer = UniformBuffer::<U>::new(
+            &self.application.instance,
+            &self.application.device,
+            self.swapchain_images,
+        );
+
+        let descriptor_pool = self.descriptor_pool.unwrap();
+        let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
+            &self.application.device,
+            self.descriptor_set_layout.unwrap(),
+            self.write_descriptor_sets,
+            &uniform_buffer,
+        );
+
+        let vertex_shader_code = ShaderSet::<U>::read_shader_code(Path::new(self.vertex_shader));
+        let vertex_shader_module =
+            ShaderSet::<U>::create_shader_module(&self.application.device, vertex_shader_code);
+
+        let fragment_shader_code =
+            ShaderSet::<U>::read_shader_code(Path::new(self.fragment_shader));
+        let fragment_shader_module =
+            ShaderSet::<U>::create_shader_module(&self.application.device, fragment_shader_code);
+
+        ShaderSet {
+            vertex_shader_module,
+            fragment_shader_module,
+
+            uniform_buffer,
+            uniform_buffer_object,
+
+            descriptor_sets,
+            descriptor_pool,
+            descriptor_set_layout: self.descriptor_set_layout.unwrap(),
+            input_buffer_layout: self.input_buffer_layout.unwrap(),
+        }
+    }
+}
 
 pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     vertex_shader_module: vk::ShaderModule,
@@ -21,51 +167,10 @@ pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     pub descriptor_sets: Vec<DescriptorSet>,
     pub uniform_buffer: UniformBuffer<U>,
     pub descriptor_pool: DescriptorPool,
+    pub input_buffer_layout: BufferLayout,
 }
 
 impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
-    pub fn new(
-        instance: &Instance,
-        device: &LogicalDevice,
-        vertex_shader_path: &'static str,
-        fragment_shader_path: &'static str,
-        descriptor_set_layout: DescriptorSetLayout,
-        swap_chain_image_count: usize,
-        texture_sampler: vk::Sampler,
-        texture: &Texture,
-    ) -> ShaderSet<U> {
-        let uniform_buffer_object = U::default();
-
-        let descriptor_pool = DescriptorPool::new(&device, swap_chain_image_count);
-
-        let uniform_buffer = UniformBuffer::<U>::new(&instance, &device, swap_chain_image_count);
-        let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
-            &device,
-            &uniform_buffer,
-            descriptor_set_layout,
-            texture_sampler,
-            texture.image_view.clone(),
-        );
-
-        let vertex_shader_code = Self::read_shader_code(Path::new(vertex_shader_path));
-        let vertex_shader_module = Self::create_shader_module(device, vertex_shader_code);
-
-        let fragment_shader_code = Self::read_shader_code(Path::new(fragment_shader_path));
-        let fragment_shader_module = Self::create_shader_module(device, fragment_shader_code);
-
-        ShaderSet {
-            vertex_shader_module,
-
-            fragment_shader_module,
-
-            uniform_buffer_object,
-            descriptor_set_layout,
-            descriptor_sets,
-            uniform_buffer,
-            descriptor_pool,
-        }
-    }
-
     pub fn fragment_shader(&self) -> vk::ShaderModule {
         self.fragment_shader_module
     }

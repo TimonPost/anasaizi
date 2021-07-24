@@ -32,17 +32,19 @@ pub struct Camera {
     aspect_ratio: f32,
     znear: f32,
     zfar: f32,
+
+    is_dirty: bool,
 }
 
 impl Camera {
     pub fn new(aspect_ratio: f32, field_of_view: f32, znear: f32, zfar: f32) -> Self {
-        let position: nalgebra::Point3<f32> = nalgebra::Point3::<f32>::new(0.0, 0.0, 3.0);
+        let position: nalgebra::Point3<f32> = nalgebra::Point3::<f32>::new(0.0, 1.0, 3.0);
         let camera_front: nalgebra::Vector3<f32> = nalgebra::Vector3::<f32>::new(0.0, 0.0, -1.0);
         let camera_up: nalgebra::Vector3<f32> = nalgebra::Vector3::<f32>::new(0.0, 1.0, 0.0);
 
         let camera_target: nalgebra::Point3<f32> = Self::add_vector(&position, &camera_front);
 
-        let view_matrix = nalgebra::Matrix4::look_at_rh(&position, &camera_target, &camera_up);
+        let view_matrix = nalgebra::Matrix4::look_at_lh(&position, &camera_target, &camera_up);
 
         let mut projection_matrix: nalgebra::Matrix4<f32> =
             nalgebra::Perspective3::new(aspect_ratio, field_of_view, znear, zfar).to_homogeneous();
@@ -68,6 +70,8 @@ impl Camera {
 
             znear,
             zfar,
+
+            is_dirty: true,
         }
     }
 
@@ -97,7 +101,21 @@ impl Camera {
             }
         }
 
+        self.mark_dirty();
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty
+    }
+
+    fn mark_dirty(&mut self) {
+        self.is_dirty = true;
+    }
+
+    pub fn reload(&mut self) {
+        self.reload_perspective();
         self.reload_matrix();
+        self.is_dirty = false;
     }
 
     pub fn process_mouse_scroll(&mut self, mut yoffset: f32) {
@@ -110,7 +128,7 @@ impl Camera {
             self.field_of_view = 45.0;
         }
 
-        self.reload_perspective();
+        self.mark_dirty();
     }
 
     pub fn process_mouse(&mut self, _delta_time: f32, mut xoffset: f64, mut yoffset: f64) {
@@ -130,7 +148,7 @@ impl Camera {
 
         self.camera_front = direction.normalize().into();
 
-        self.reload_matrix();
+        self.mark_dirty();
     }
 
     fn reload_matrix(&mut self) {

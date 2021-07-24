@@ -16,8 +16,6 @@ impl Pipeline {
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
         shader_set: &ShaderSet<U>,
-        descriptor_layout: &[vk::DescriptorSetLayout],
-        layout: BufferLayout,
     ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -34,8 +32,8 @@ impl Pipeline {
                 .build(),
         ];
 
-        let attrib_descriptions = layout.build_attrib_description();
-        let binding_descriptions = layout.build_binding_description();
+        let attrib_descriptions = shader_set.input_buffer_layout.build_attrib_description();
+        let binding_descriptions = shader_set.input_buffer_layout.build_binding_description();
 
         let vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo::builder()
             .vertex_attribute_descriptions(&attrib_descriptions)
@@ -66,18 +64,21 @@ impl Pipeline {
             .viewports(&viewports)
             .build();
 
-        let rasterization_statue_create_info = vk::PipelineRasterizationStateCreateInfo::builder()
-            .depth_clamp_enable(false)
-            .cull_mode(vk::CullModeFlags::BACK)
-            .front_face(vk::FrontFace::CLOCKWISE)
-            .line_width(1.0)
-            .polygon_mode(vk::PolygonMode::FILL)
-            .rasterizer_discard_enable(false)
-            .depth_bias_clamp(0.0)
-            .depth_bias_constant_factor(0.0)
-            .depth_bias_enable(false)
-            .depth_bias_slope_factor(0.0)
-            .build();
+        let rasterization_statue_create_info = vk::PipelineRasterizationStateCreateInfo {
+            s_type: vk::StructureType::PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            p_next: ptr::null(),
+            flags: vk::PipelineRasterizationStateCreateFlags::empty(),
+            depth_clamp_enable: vk::FALSE,
+            cull_mode: vk::CullModeFlags::NONE,
+            front_face: vk::FrontFace::COUNTER_CLOCKWISE,
+            line_width: 1.0,
+            polygon_mode: vk::PolygonMode::FILL,
+            rasterizer_discard_enable: vk::FALSE,
+            depth_bias_clamp: 0.0,
+            depth_bias_constant_factor: 0.0,
+            depth_bias_enable: vk::FALSE,
+            depth_bias_slope_factor: 0.0,
+        };
 
         let multisample_state_create_info = vk::PipelineMultisampleStateCreateInfo::builder()
             .rasterization_samples(vk::SampleCountFlags::TYPE_1)
@@ -95,7 +96,7 @@ impl Pipeline {
 
         let depth_state_create_info = vk::PipelineDepthStencilStateCreateInfo::builder()
             .depth_compare_op(vk::CompareOp::LESS)
-            .stencil_test_enable(false) // can be enabled
+            .stencil_test_enable(true) // can be enabled
             .front(stencil_state)
             .back(stencil_state)
             .depth_bounds_test_enable(false) // can be enabled
@@ -106,12 +107,13 @@ impl Pipeline {
             .build();
 
         let color_blend_attachment_states = [vk::PipelineColorBlendAttachmentState::builder()
-            .src_color_blend_factor(vk::BlendFactor::ONE)
-            .dst_color_blend_factor(vk::BlendFactor::ZERO)
+            .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+            .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
             .color_blend_op(vk::BlendOp::ADD)
-            .src_alpha_blend_factor(vk::BlendFactor::ONE)
-            .dst_alpha_blend_factor(vk::BlendFactor::ZERO)
-            .blend_enable(false)
+            .src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
+            .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+            .blend_enable(true)
+            .alpha_blend_op(vk::BlendOp::SUBTRACT)
             .color_write_mask(vk::ColorComponentFlags::all())
             .build()];
 
@@ -121,12 +123,13 @@ impl Pipeline {
             .blend_constants([0.0, 0.0, 0.0, 0.0])
             .build();
 
+        let descriptor_layouts = [shader_set.descriptor_set_layout];
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
             s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::PipelineLayoutCreateFlags::empty(),
             set_layout_count: 1,
-            p_set_layouts: descriptor_layout.as_ptr(),
+            p_set_layouts: descriptor_layouts.as_ptr(),
             push_constant_range_count: 0,
             p_push_constant_ranges: ptr::null(),
         };

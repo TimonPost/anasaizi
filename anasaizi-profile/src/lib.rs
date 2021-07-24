@@ -44,7 +44,7 @@ pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
     input.block.stmts.insert(0, syn::parse(lock_inj.into()).unwrap());
     input.block.stmts.insert(1, syn::parse(profile_inj.into()).unwrap());
     input.block.stmts.insert(2, syn::parse(lock_drop_inj.into()).unwrap());
-    input.block.stmts.insert(input.block.stmts.len() -1, syn::parse(drop_profile.into()).unwrap());
+    input.block.stmts.insert(input.block.stmts.len(), syn::parse(drop_profile.into()).unwrap());
 
     let output = quote::quote! {
         #input

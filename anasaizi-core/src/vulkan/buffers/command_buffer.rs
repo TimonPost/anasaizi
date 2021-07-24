@@ -1,6 +1,10 @@
 use crate::{
-    model::Mesh,
-    vulkan::{CommandPool, DescriptorSet, FrameBuffers, LogicalDevice, Pipeline, RenderPass},
+    engine::RenderObject,
+    model::{square_indices, square_vertices, Mesh},
+    vulkan::{
+        CommandPool, DescriptorSet, FrameBuffers, IndexBuffer, LogicalDevice, Pipeline, RenderPass,
+        UniformBufferObjectTemplate, VertexBuffer,
+    },
 };
 use ash::{version::DeviceV1_0, vk};
 use std::ops::Deref;
@@ -16,15 +20,13 @@ pub struct CommandBuffers {
 }
 
 impl CommandBuffers {
-    pub fn create(
+    pub fn create<U: UniformBufferObjectTemplate>(
         device: &LogicalDevice,
         command_pool: &CommandPool,
-        graphics_pipeline: &Pipeline,
+        render_objects: &Vec<RenderObject<U>>,
         framebuffers: &FrameBuffers,
         render_pass: &RenderPass,
         surface_extent: vk::Extent2D,
-        mesh: &Mesh,
-        descriptor_sets: &Vec<DescriptorSet>,
     ) -> CommandBuffers {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(**command_pool)
@@ -51,7 +53,7 @@ impl CommandBuffers {
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {
-                        float32: [0.0, 0.0, 0.0, 1.0],
+                        float32: [0.1, 0.1, 0.1, 1.0],
                     },
                 },
                 vk::ClearValue {
@@ -73,7 +75,6 @@ impl CommandBuffers {
                 .build();
 
             let offsets = [0 as u64];
-            let descriptor_sets_to_bind = [*descriptor_sets[i]];
 
             unsafe {
                 device.cmd_begin_render_pass(
@@ -81,36 +82,50 @@ impl CommandBuffers {
                     &render_pass_begin_info,
                     vk::SubpassContents::INLINE,
                 );
-                device.cmd_bind_pipeline(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    **graphics_pipeline,
-                );
+            }
 
-                let vertex_buffer = *mesh.vertex_buffer().deref();
-                let index_buffer = *mesh.index_buffer().deref();
+            for render_object in render_objects {
+                unsafe {
+                    device.cmd_bind_pipeline(
+                        command_buffer,
+                        vk::PipelineBindPoint::GRAPHICS,
+                        *render_object.pipeline,
+                    );
 
-                device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &offsets);
-                device.cmd_bind_index_buffer(
-                    command_buffer,
-                    index_buffer,
-                    0,
-                    vk::IndexType::UINT32,
-                );
+                    let vertex_buffer = *render_object.mesh.vertex_buffer().deref();
+                    let index_buffer = *render_object.mesh.index_buffer().deref();
 
-                device.cmd_bind_descriptor_sets(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    graphics_pipeline.layout(),
-                    0,
-                    &descriptor_sets_to_bind,
-                    &[],
-                );
+                    device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &offsets);
+                    device.cmd_bind_index_buffer(
+                        command_buffer,
+                        index_buffer,
+                        0,
+                        vk::IndexType::UINT32,
+                    );
 
-                device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
+                    let sets = [*render_object.shader.descriptor_sets[i]];
+                    device.cmd_bind_descriptor_sets(
+                        command_buffer,
+                        vk::PipelineBindPoint::GRAPHICS,
+                        render_object.pipeline.layout(),
+                        0,
+                        &sets,
+                        &[],
+                    );
 
+                    device.cmd_draw_indexed(
+                        command_buffer,
+                        render_object.mesh.indices_count() as u32,
+                        1,
+                        0,
+                        0,
+                        0,
+                    );
+                }
+            }
+
+            unsafe {
                 device.cmd_end_render_pass(command_buffer);
-
                 device
                     .end_command_buffer(command_buffer)
                     .expect("Failed to record Command Buffer at Ending!");

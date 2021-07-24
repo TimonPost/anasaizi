@@ -1,3 +1,3 @@
 mod vertex;
 
-pub use vertex::Vertex;
+pub use vertex::{PosOnlyVertex, Vertex};

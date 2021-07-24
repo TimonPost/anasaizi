@@ -35,7 +35,7 @@ pub use layer::{ValidationLayerProperties, ValidationLayers};
 pub use pipeline::Pipeline;
 pub use queue::{Queue, QueueFamilyProperties};
 pub use render_pass::RenderPass;
-pub use shader::ShaderSet;
+pub use shader::{ShaderBuilder, ShaderSet};
 pub use structures::QueueFamilyIndices;
 pub use surface::SurfaceData;
 pub use swapchain::{SwapChain, SwapChainSupportDetails};

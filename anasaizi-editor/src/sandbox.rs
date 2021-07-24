@@ -1,5 +1,6 @@
 use anasaizi_core::vulkan::{
-    IndexBuffer, LogicalDevice, ShaderSet, UniformBufferObject, VertexBuffer,
+    BufferLayout, IndexBuffer, LogicalDevice, ShaderBuilder, ShaderSet, UniformBufferObject,
+    VertexBuffer,
 };
 use ash::vk;
 use winit::{
@@ -8,13 +9,15 @@ use winit::{
 };
 
 use anasaizi_core::{engine, reexports::nalgebra as math, WINDOW_HEIGHT, WINDOW_WIDTH};
+
+use anasaizi_core::debug::*;
 use anasaizi_profile::profile;
 
 use anasaizi_core::{
     debug::{start_profiler, stop_profiler},
     engine::{image::Texture, VulkanApplication, VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER},
     math::Vertex,
-    model::{Mesh, Object},
+    model::{square_indices, square_vertices, Mesh, Object},
 };
 use ash::version::DeviceV1_0;
 use std::path::Path;
@@ -23,15 +26,12 @@ use winit::event::MouseScrollDelta;
 const MAX_FRAMES_IN_FLIGHT: usize = 2;
 
 pub struct VulkanApp {
-    vulkan_renderer: VulkanRenderer,
+    vulkan_renderer: VulkanRenderer<UniformBufferObject>,
     application: VulkanApplication,
-
-    shader: ShaderSet<UniformBufferObject>,
-    mesh: Mesh,
 
     pub viking_indices: Vec<u32>,
     pub viking_vertices: Vec<Vertex>,
-    pub viking_room_texture: Texture,
+    pub viking_room_texture: [Texture; 1],
 
     count: f32,
 }
@@ -42,27 +42,7 @@ impl VulkanApp {
 
         let mut vulkan_renderer = VulkanRenderer::new(&application);
 
-        let viking_room_texture = Texture::create(
-            &application.instance,
-            &application.device,
-            &vulkan_renderer.command_pool,
-            &vulkan_renderer.graphics_queue,
-            &Path::new("viking_room.png"),
-        );
         let (viking_vertices, viking_indices) = Object::load_model(Path::new("viking_room.obj"));
-
-        let descriptor_layout = Self::descriptor_set_layout(&application.device);
-
-        let shaders = ShaderSet::<UniformBufferObject>::new(
-            &application.instance,
-            &application.device,
-            VERTEX_SHADER,
-            FRAGMENT_SHADER,
-            descriptor_layout,
-            3,
-            vulkan_renderer.texture_sampler.unwrap(),
-            &viking_room_texture,
-        );
 
         let vertex_buffer = VertexBuffer::create(
             &application.instance,
@@ -80,7 +60,17 @@ impl VulkanApp {
         );
         let mesh = Mesh::new(vertex_buffer, index_buffer);
 
-        vulkan_renderer.setup_test(&application.device, &shaders, &mesh);
+        let viking_room_texture = [Texture::create(
+            &application.instance,
+            &application.device,
+            &vulkan_renderer.command_pool,
+            &vulkan_renderer.graphics_queue,
+            &Path::new("viking_room.png"),
+        )];
+
+        let shader_set = Self::setup_shader(&application, &vulkan_renderer, &viking_room_texture);
+
+        vulkan_renderer.push_render_object(&application, shader_set, mesh);
 
         start_profiler();
 
@@ -91,15 +81,55 @@ impl VulkanApp {
             viking_room_texture,
             viking_vertices,
             viking_indices,
-
-            mesh,
-            shader: shaders,
-
             count: 0.0,
         }
     }
 
-    pub fn descriptor_set_layout(device: &LogicalDevice) -> vk::DescriptorSetLayout {
+    pub fn setup_shader(
+        application: &VulkanApplication,
+        vulkan_renderer: &VulkanRenderer<UniformBufferObject>,
+        texture: &[Texture],
+    ) -> ShaderSet<UniformBufferObject> {
+        let input_buffer_layout = BufferLayout::new()
+            .add_float_vec3(0)
+            .add_float_vec3(1)
+            .add_float_vec2(2);
+
+        let descriptor_image_info = [vk::DescriptorImageInfo::builder()
+            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+            .image_view(*texture[0].image_view)
+            .sampler(vulkan_renderer.texture_sampler.unwrap())
+            .build()];
+
+        let mut descriptor_write_sets = vec![
+            vk::WriteDescriptorSet::builder()
+                .dst_binding(0)
+                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .dst_array_element(0)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_binding(1)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .dst_array_element(0)
+                .image_info(&descriptor_image_info)
+                .build(),
+        ];
+
+        let mut builder = ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER, 3);
+        builder
+            .with_textures(&texture, vulkan_renderer.texture_sampler.unwrap())
+            .with_input_buffer_layout(input_buffer_layout)
+            .with_write_descriptor_layout(&Self::descriptor_set_layout(&application.device))
+            .with_descriptor_pool(&[
+                vk::DescriptorType::UNIFORM_BUFFER,
+                vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            ])
+            .with_write_descriptor_sets(descriptor_write_sets);
+
+        builder.build()
+    }
+
+    pub fn descriptor_set_layout(device: &LogicalDevice) -> [vk::DescriptorSetLayoutBinding; 2] {
         let layout_binding = [
             vk::DescriptorSetLayoutBinding::builder()
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
@@ -115,47 +145,35 @@ impl VulkanApp {
                 .build(),
         ];
 
-        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(&layout_binding)
-            .build();
-
-        let descriptor_set_layout = unsafe {
-            device
-                .create_descriptor_set_layout(&layout_create_info, None)
-                .expect("failed to create descriptor set layout!")
-        };
-
-        descriptor_set_layout
+        layout_binding
     }
 
+    #[profile(Sandbox)]
     fn update_uniform(&mut self, _current_image: usize) {
-        self.count += 1.0 / 10000.0;
+        self.count += 1.0 / 1000.0;
 
-        let camera = self.vulkan_renderer.camera();
+        let (view, perspective) = {
+            let camera = self.vulkan_renderer.camera();
+            camera.reload();
+            (camera.view(), camera.projection())
+        };
 
-        let view = camera.view();
-        let perspective = camera.projection();
+        for render_object in self.vulkan_renderer.render_objects.iter_mut() {
+            let uniform_mut = render_object.shader.uniform_mut();
 
-        let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, 0.0, self.count));
-        // let view = math::Matrix4::look_at_rh(
-        //     &math::Point3::new(2.0, 2.0, 2.0),
-        //     &math::Point3::new(0.0, 0.0, 0.0),
-        //     &math::Vector3::new(0.0, 0.0, 1.0),
-        // );
-        // let perspective = math::Perspective3::new(
-        //     16.0 / 9.0,
-        //     (WINDOW_WIDTH / WINDOW_HEIGHT) as f32,
-        //     1.0,
-        //     10.0,
-        // );
+            //if camera.is_dirty() {
 
-        let uniform_mut = self.shader.uniform_mut();
-        uniform_mut.model = rotation;
-        uniform_mut.view = view;
-        uniform_mut.proj = perspective;
+            let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, self.count, 0.0));
 
-        self.shader
-            .update_uniform(&self.application.device, _current_image);
+            uniform_mut.view = view;
+            uniform_mut.proj = perspective;
+            // }
+            uniform_mut.model = rotation;
+
+            render_object
+                .shader
+                .update_uniform(&self.application.device, _current_image);
+        }
     }
 
     #[profile(Sandbox)]

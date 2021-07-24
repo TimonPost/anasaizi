@@ -27,13 +27,36 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/anasaizi-editor/assets/grid.frag" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/anasaizi-editor/assets/grid.vert" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/anasaizi-editor/assets/vertex.vert" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/application.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/application.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.MD" beforeDir="false" afterPath="$PROJECT_DIR$/README.MD" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/debug/profile_enabled.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/debug/profile_enabled.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/camera.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/camera.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/math.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/math.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/math/vertex.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/math/vertex.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/model.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/model.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/uniform_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/uniform_buffer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/vertex_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/vertex_buffer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/descriptor_pool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/descriptor_pool.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/pipeline.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/pipeline.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/shader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/shader.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/build-shaders.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/frag.spv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/fragment.frag" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/fragment.frag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/output.json" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/output.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/vert.spv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/vertex.vert" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/viking_room.obj" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/viking_room.obj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-profile/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-profile/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -66,25 +89,25 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/anasaizi-core/src" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/anasaizi-editor/assets" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\programming\Anasazi\anasaizi-editor\assets" />
+      <recent name="E:\programming\Anasazi\anasaizi-core\src" />
+      <recent name="E:\programming\Anasazi\anasaizi-editor" />
+      <recent name="E:\programming\Anasazi\anasaizi-editor\src" />
+      <recent name="E:\programming\Anasazi\anasaizi-core" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="E:\programming\Anasazi\anasaizi-editor" />
       <recent name="E:\programming\Anasazi\anasaizi-core\src\vulkan\buffers" />
       <recent name="E:\programming\Anasazi\anasaizi-core\src\vulkan" />
       <recent name="E:\programming\Anasazi\anasaizi-core" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="E:\programming\Anasazi\anasaizi-core\src" />
-      <recent name="E:\programming\Anasazi\anasaizi-editor" />
-      <recent name="E:\programming\Anasazi\anasaizi-editor\src" />
-      <recent name="E:\programming\Anasazi\anasaizi-core" />
-      <recent name="E:\programming\Anasazi\anasaizi-editor\assets" />
     </key>
   </component>
   <component name="RunManager" selected="Cargo.Run">
@@ -227,7 +250,11 @@
       <workItem from="1626519080846" duration="20752000" />
       <workItem from="1626610284860" duration="8974000" />
       <workItem from="1626694742126" duration="10122000" />
-      <workItem from="1626783166916" duration="2782000" />
+      <workItem from="1626783166916" duration="18149000" />
+      <workItem from="1626871481359" duration="13600000" />
+      <workItem from="1626957588328" duration="11930000" />
+      <workItem from="1627038461582" duration="17995000" />
+      <workItem from="1627114321460" duration="15567000" />
     </task>
     <servers />
   </component>
@@ -255,10 +282,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="1038" y="327" key="#com.intellij.fileTypes.FileTypeChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626356077007" />
-    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser" timestamp="1626547097634">
+    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser" timestamp="1627114545369">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626547097634" />
+    <state x="1085" y="241" key="#com.intellij.ide.util.MemberChooser/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627114545369" />
     <state x="1010" y="272" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1626527773903">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -267,10 +294,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="1027" y="390" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625580455040" />
-    <state width="406" height="466" key="DebuggerActiveHint" timestamp="1625834113197">
+    <state width="454" height="466" key="DebuggerActiveHint" timestamp="1627132612567">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="406" height="466" key="DebuggerActiveHint/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625834113197" />
+    <state width="454" height="466" key="DebuggerActiveHint/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627132612567" />
     <state x="92" y="92" width="2376" height="866" key="DiffContextDialog" timestamp="1626097891461">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -280,38 +307,38 @@
     </state>
     <state x="-1500" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1624536012235" />
     <state x="1060" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625594174190" />
-    <state width="2517" height="199" key="GridCell.Tab.0.bottom" timestamp="1626785947349">
+    <state width="2517" height="257" key="GridCell.Tab.0.bottom" timestamp="1627140170419">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="199" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785947349" />
-    <state width="2517" height="199" key="GridCell.Tab.0.center" timestamp="1626785947349">
+    <state width="2517" height="257" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627140170419" />
+    <state width="2517" height="257" key="GridCell.Tab.0.center" timestamp="1627140170419">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="199" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785947349" />
-    <state width="2517" height="199" key="GridCell.Tab.0.left" timestamp="1626785947349">
+    <state width="2517" height="257" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627140170419" />
+    <state width="2517" height="257" key="GridCell.Tab.0.left" timestamp="1627140170419">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="199" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785947349" />
-    <state width="2517" height="199" key="GridCell.Tab.0.right" timestamp="1626785947349">
+    <state width="2517" height="257" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627140170419" />
+    <state width="2517" height="257" key="GridCell.Tab.0.right" timestamp="1627140170419">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="199" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785947349" />
-    <state width="2517" height="223" key="GridCell.Tab.1.bottom" timestamp="1626785907355">
+    <state width="2517" height="257" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627140170419" />
+    <state width="2517" height="418" key="GridCell.Tab.1.bottom" timestamp="1627132735996">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="223" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785907355" />
-    <state width="2517" height="223" key="GridCell.Tab.1.center" timestamp="1626785907355">
+    <state width="2517" height="418" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627132735996" />
+    <state width="2517" height="418" key="GridCell.Tab.1.center" timestamp="1627132735996">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="223" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785907355" />
-    <state width="2517" height="223" key="GridCell.Tab.1.left" timestamp="1626785907355">
+    <state width="2517" height="418" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627132735996" />
+    <state width="2517" height="418" key="GridCell.Tab.1.left" timestamp="1627132735996">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="223" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785907355" />
-    <state width="2517" height="223" key="GridCell.Tab.1.right" timestamp="1626785907355">
+    <state width="2517" height="418" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627132735996" />
+    <state width="2517" height="418" key="GridCell.Tab.1.right" timestamp="1627132735996">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state width="2517" height="223" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626785907355" />
+    <state width="2517" height="418" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627132735996" />
     <state x="781" y="170" key="SettingsEditor" timestamp="1625578990031">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -324,10 +351,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="92" y="92" width="2376" height="866" key="com.intellij.history.integration.ui.views.FileHistoryDialog/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626548984052" />
-    <state x="-1983" y="0" width="1999" height="724" maximized="true" key="dock-window-1" timestamp="1626462982174">
+    <state x="-2185" y="0" width="1750" height="908" maximized="true" key="dock-window-1" timestamp="1627114389602">
       <screen x="-2560" y="0" width="2560" height="1050" />
     </state>
-    <state x="-1983" y="0" width="1999" height="724" maximized="true" key="dock-window-1/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626462982174" />
+    <state x="-2185" y="0" width="1750" height="908" maximized="true" key="dock-window-1/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627114389602" />
     <state x="-2414" y="0" width="2083" height="700" maximized="true" key="dock-window-2" timestamp="1625579498651">
       <screen x="-2560" y="0" width="2560" height="1050" />
     </state>
@@ -336,27 +363,41 @@
       <screen x="-2560" y="0" width="2560" height="1050" />
     </state>
     <state x="-2082" y="0" width="2083" height="700" maximized="true" key="dock-window-3/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625585545782" />
+    <state x="987" y="124" width="585" height="801" key="find.popup" timestamp="1626885892929">
+      <screen x="0" y="0" width="2560" height="1050" />
+    </state>
+    <state x="987" y="124" width="585" height="801" key="find.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626885892929" />
     <state x="936" y="243" key="run.anything.popup" timestamp="1625835479146">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="936" y="243" key="run.anything.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1625835479146" />
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1626536296159">
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1627114635083">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1626536296159" />
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1627114635083" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/anasaizi-core/src/debug/profile_enabled.rs</url>
-          <line>69</line>
+          <line>74</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/anasaizi-core/src/vulkan/buffer_layout.rs</url>
           <line>95</line>
           <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs</url>
+          <line>106</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs</url>
+          <line>86</line>
+          <option name="timeStamp" value="32" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
