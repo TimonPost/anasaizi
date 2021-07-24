@@ -1,8 +1,8 @@
 mod mesh;
 mod object;
 
-use crate::math::{PosOnlyVertex, Vertex};
-use nalgebra::{Vector2, Vector3};
+use crate::math::{PosOnlyVertex};
+use nalgebra::{Vector3};
 
 pub use mesh::Mesh;
 pub use object::Object;

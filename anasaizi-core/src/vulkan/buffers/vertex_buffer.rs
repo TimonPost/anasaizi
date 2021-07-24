@@ -1,5 +1,4 @@
 use crate::{
-    math::Vertex,
     vulkan::{
         buffers::buffer::{copy_buffer, create_buffer},
         CommandPool, Instance, LogicalDevice, Queue,

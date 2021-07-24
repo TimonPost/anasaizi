@@ -1,7 +1,7 @@
 use crate::vulkan::{
-    ImageView, LogicalDevice, UniformBuffer, UniformBufferObject, UniformBufferObjectTemplate,
+    LogicalDevice, UniformBuffer, UniformBufferObjectTemplate,
 };
-use ash::{version::DeviceV1_0, vk, vk::WriteDescriptorSet};
+use ash::{version::DeviceV1_0, vk};
 use std::{ops::Deref, ptr};
 
 pub struct DescriptorSet {

@@ -1,5 +1,4 @@
 use crate::{
-    debug::*,
     engine::{
         camera::{Camera, CameraMovement},
         image::Texture,
@@ -8,8 +7,7 @@ use crate::{
     model::Mesh,
     profile_fn,
     vulkan::{
-        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers,
-        LogicalDevice, Queue, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
+        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
 
@@ -19,11 +17,11 @@ use crate::{
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
     vulkan::{
-        Application, IndexBuffer, Pipeline, ShaderBuilder, UniformBufferObject, VertexBuffer,
+        IndexBuffer, Pipeline, ShaderBuilder, VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk};
-use std::{path::Path, ptr, time::Instant};
+use std::{ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
 
 pub static FRAGMENT_SHADER: &str = "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\frag.spv";
@@ -370,7 +368,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             &self.command_pool,
         );
 
-        let mut descriptor_write_sets = vec![vk::WriteDescriptorSet::builder()
+        let descriptor_write_sets = vec![vk::WriteDescriptorSet::builder()
             .dst_binding(0)
             .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
             .dst_array_element(0)

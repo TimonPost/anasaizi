@@ -1,9 +1,8 @@
 use crate::{
     engine::RenderObject,
-    model::{square_indices, square_vertices, Mesh},
     vulkan::{
-        CommandPool, DescriptorSet, FrameBuffers, IndexBuffer, LogicalDevice, Pipeline, RenderPass,
-        UniformBufferObjectTemplate, VertexBuffer,
+        CommandPool, FrameBuffers, LogicalDevice, RenderPass,
+        UniformBufferObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk};

@@ -8,16 +8,16 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-use anasaizi_core::{engine, reexports::nalgebra as math, WINDOW_HEIGHT, WINDOW_WIDTH};
+use anasaizi_core::{engine, reexports::nalgebra as math};
 
-use anasaizi_core::debug::*;
+
 use anasaizi_profile::profile;
 
 use anasaizi_core::{
     debug::{start_profiler, stop_profiler},
     engine::{image::Texture, VulkanApplication, VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER},
     math::Vertex,
-    model::{square_indices, square_vertices, Mesh, Object},
+    model::{Mesh, Object},
 };
 use ash::version::DeviceV1_0;
 use std::path::Path;
@@ -101,7 +101,7 @@ impl VulkanApp {
             .sampler(vulkan_renderer.texture_sampler.unwrap())
             .build()];
 
-        let mut descriptor_write_sets = vec![
+        let descriptor_write_sets = vec![
             vk::WriteDescriptorSet::builder()
                 .dst_binding(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
@@ -129,7 +129,7 @@ impl VulkanApp {
         builder.build()
     }
 
-    pub fn descriptor_set_layout(device: &LogicalDevice) -> [vk::DescriptorSetLayoutBinding; 2] {
+    pub fn descriptor_set_layout(_device: &LogicalDevice) -> [vk::DescriptorSetLayoutBinding; 2] {
         let layout_binding = [
             vk::DescriptorSetLayoutBinding::builder()
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)

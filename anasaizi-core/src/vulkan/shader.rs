@@ -1,17 +1,17 @@
 use crate::{
     engine::{image::Texture, VulkanApplication},
     vulkan::{
-        BufferLayout, DescriptorPool, DescriptorSet, Instance, LogicalDevice, UniformBuffer,
+        BufferLayout, DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer,
         UniformBufferObject, UniformBufferObjectTemplate,
     },
 };
 use ash::{
     version::DeviceV1_0,
     vk,
-    vk::{DescriptorSetLayout, Sampler, ShaderModule, WriteDescriptorSet},
+    vk::{DescriptorSetLayout, Sampler, ShaderModule},
 };
 use std::{path::Path, ptr};
-use winapi::um::wingdi::wglSwapLayerBuffers;
+
 
 pub struct ShaderBuilder<'a> {
     textures: Option<&'a [Texture]>,
@@ -84,7 +84,7 @@ impl<'a> ShaderBuilder<'a> {
 
     pub fn with_write_descriptor_sets(
         &mut self,
-        mut write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
+        write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
     ) -> &mut ShaderBuilder<'a> {
         self.write_descriptor_sets = write_descriptor_sets;
 

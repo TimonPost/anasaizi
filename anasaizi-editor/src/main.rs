@@ -1,6 +1,6 @@
 use crate::sandbox::VulkanApp;
 
-use anasaizi_core::debug::*;
+
 use anasaizi_profile::profile;
 
 use winit::event_loop::EventLoop;

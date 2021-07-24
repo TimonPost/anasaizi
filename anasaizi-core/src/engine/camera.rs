@@ -1,4 +1,4 @@
-use crate::{WINDOW_HEIGHT, WINDOW_WIDTH};
+
 
 pub enum CameraMovement {
     FORWARD,
@@ -83,7 +83,7 @@ impl Camera {
         self.view_matrix
     }
 
-    pub fn process_key(&mut self, direction: CameraMovement, delta_time: f32) {
+    pub fn process_key(&mut self, direction: CameraMovement, _delta_time: f32) {
         let velocity = self.speed;
 
         match direction {
@@ -118,7 +118,7 @@ impl Camera {
         self.is_dirty = false;
     }
 
-    pub fn process_mouse_scroll(&mut self, mut yoffset: f32) {
+    pub fn process_mouse_scroll(&mut self, yoffset: f32) {
         self.field_of_view -= yoffset;
 
         if self.field_of_view < 1.0 {
