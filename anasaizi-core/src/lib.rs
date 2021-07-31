@@ -17,7 +17,11 @@ pub mod reexports {
         pub use nalgebra::*;
     }
 
-    pub mod cgmath {
-        pub use cgmath::*;
+    pub mod imgui {
+        pub use imgui::*;
+    }
+
+    pub mod imgui_winit_support {
+        pub use imgui_winit_support::*;
     }
 }

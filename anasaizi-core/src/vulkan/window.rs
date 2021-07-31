@@ -1,13 +1,18 @@
-use crate::vulkan::{Instance, SurfaceData};
-use std::ops::Deref;
+use crate::{
+    engine::{image::Texture, VulkanApplication},
+    vulkan::{CommandPool, Instance, LogicalDevice, Queue, SurfaceData},
+};
+use ash::version::InstanceV1_0;
+use imgui::{Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId, Textures, Ui};
+use imgui_winit_support::{HiDpiMode, WinitPlatform};
+use std::{ops::Deref, time::Instant};
 use winit::event_loop::EventLoop;
 
 /// A Vulkan winit window.
 pub struct Window {
     surface: SurfaceData,
-    window: winit::window::Window,
+    pub window: winit::window::Window,
 }
-
 impl Window {
     pub fn new(
         window_title: &str,
@@ -22,7 +27,7 @@ impl Window {
             .build(event_loop)
             .expect("Failed to create window.");
 
-        let surface = SurfaceData::new(instance, &window);
+        let surface = SurfaceData::new(&instance, &window);
 
         Window { window, surface }
     }

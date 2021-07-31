@@ -4,7 +4,7 @@ use crate::vulkan::{
 };
 use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
-use std::mem::size_of;
+use std::{mem, mem::size_of};
 
 pub struct IndexBuffer {
     index_buffer: vk::Buffer,
@@ -50,7 +50,7 @@ impl IndexBuffer {
             &device,
             buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
         copy_buffer(
@@ -84,6 +84,24 @@ impl IndexBuffer {
 
     pub fn indices_count(&self) -> usize {
         self.indices_count
+    }
+
+    pub fn update_buffer_content<T: Copy>(&self, device: &LogicalDevice, data: &[T]) {
+        unsafe {
+            let size = (data.len() * mem::size_of::<T>()) as _;
+
+            let data_ptr = device
+                .map_memory(
+                    self.index_buffer_memory,
+                    0,
+                    size,
+                    vk::MemoryMapFlags::empty(),
+                )
+                .unwrap();
+            let mut align = ash::util::Align::new(data_ptr, mem::align_of::<T>() as _, size);
+            align.copy_from_slice(&data);
+            device.unmap_memory(self.index_buffer_memory);
+        };
     }
 }
 

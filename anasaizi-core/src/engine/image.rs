@@ -1,8 +1,11 @@
-use crate::vulkan::{create_buffer, CommandPool, ImageView, Instance, LogicalDevice, Queue};
-use ash::{version::DeviceV1_0, vk};
+use crate::vulkan::{
+    create_buffer, CommandBuffers, CommandPool, ImageView, Instance, LogicalDevice, Queue,
+};
+use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use image::GenericImageView;
 use std::{path::Path, ptr};
 
+#[derive(Clone)]
 pub struct Texture {
     pub image: vk::Image,
     pub device_memory: vk::DeviceMemory,
@@ -17,11 +20,21 @@ impl Texture {
         submit_queue: &Queue,
         image_path: &Path,
     ) -> Texture {
+        Self::from_path(instance, device, command_pool, submit_queue, image_path)
+    }
+
+    /// Creates a texture from a path to the rgba image.
+    pub fn from_path(
+        instance: &Instance,
+        device: &LogicalDevice,
+        command_pool: &CommandPool,
+        submit_queue: &Queue,
+        image_path: &Path,
+    ) -> Texture {
         let mut image_object = image::open(image_path).unwrap(); // this function is slow in debug mode.
         image_object = image_object.flipv();
         let (image_width, image_height) = (image_object.width(), image_object.height());
-        let image_size =
-            (std::mem::size_of::<u8>() as u32 * image_width * image_height * 4) as vk::DeviceSize;
+
         let image_data = match &image_object {
             image::DynamicImage::ImageLuma8(_)
             | image::DynamicImage::ImageBgr8(_)
@@ -33,6 +46,38 @@ impl Texture {
                 vec![]
             }
         };
+
+        Self::from_bytes(
+            instance,
+            device,
+            command_pool,
+            submit_queue,
+            &image_data,
+            image_width,
+            image_height,
+        )
+    }
+
+    /// Creates a texture from an `u8` array containing an rgba image.
+    ///
+    /// The image data is device local and it's format is R8G8B8A8_UNORM.
+    ///
+    /// # Arguments
+    ///
+    /// * `width` - The width of the image.
+    /// * `height` - The height of the image.
+    /// * `data` - The image data.
+    pub fn from_bytes(
+        instance: &Instance,
+        device: &LogicalDevice,
+        command_pool: &CommandPool,
+        submit_queue: &Queue,
+        texture_data: &[u8],
+        image_width: u32,
+        image_height: u32,
+    ) -> Texture {
+        let image_size =
+            (std::mem::size_of::<u8>() as u32 * image_width * image_height * 4) as vk::DeviceSize;
 
         if image_size <= 0 {
             panic!("Failed to load texture image!")
@@ -56,7 +101,7 @@ impl Texture {
                 )
                 .expect("Failed to Map Memory") as *mut u8;
 
-            data_ptr.copy_from_nonoverlapping(image_data.as_ptr(), image_data.len());
+            data_ptr.copy_from_nonoverlapping(texture_data.as_ptr(), texture_data.len());
 
             device.unmap_memory(staging_buffer_memory);
         }
@@ -73,32 +118,32 @@ impl Texture {
 
         Self::transition_image_layout(
             device,
-            command_pool,
-            submit_queue,
             texture_image,
             vk::Format::R8G8B8A8_UNORM,
             vk::ImageLayout::UNDEFINED,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            command_pool,
+            submit_queue,
         );
 
         Self::copy_buffer_to_image(
             device,
-            command_pool,
-            submit_queue,
             staging_buffer,
             texture_image,
             image_width,
             image_height,
+            command_pool,
+            submit_queue,
         );
 
         Self::transition_image_layout(
             device,
-            command_pool,
-            submit_queue,
             texture_image,
             vk::Format::R8G8B8A8_UNORM,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+            command_pool,
+            submit_queue,
         );
 
         unsafe {
@@ -186,12 +231,12 @@ impl Texture {
 
     fn transition_image_layout(
         device: &LogicalDevice,
-        command_pool: &CommandPool,
-        submit_queue: &Queue,
         image: vk::Image,
         _format: vk::Format,
         old_layout: vk::ImageLayout,
         new_layout: vk::ImageLayout,
+        command_pool: &CommandPool,
+        submit_queue: &Queue,
     ) {
         let command_buffer = Self::begin_single_time_command(device, command_pool);
 
@@ -214,6 +259,14 @@ impl Texture {
             dst_access_mask = vk::AccessFlags::SHADER_READ;
             source_stage = vk::PipelineStageFlags::TRANSFER;
             destination_stage = vk::PipelineStageFlags::FRAGMENT_SHADER;
+        } else if old_layout == vk::ImageLayout::UNDEFINED
+            && new_layout == vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL
+        {
+            src_access_mask = vk::AccessFlags::empty();
+            dst_access_mask =
+                vk::AccessFlags::COLOR_ATTACHMENT_READ | vk::AccessFlags::COLOR_ATTACHMENT_WRITE;
+            source_stage = vk::PipelineStageFlags::TOP_OF_PIPE;
+            destination_stage = vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT;
         } else {
             panic!("Unsupported layout transition!")
         }
@@ -254,12 +307,12 @@ impl Texture {
 
     fn copy_buffer_to_image(
         device: &LogicalDevice,
-        command_pool: &CommandPool,
-        submit_queue: &Queue,
         buffer: vk::Buffer,
         image: vk::Image,
         width: u32,
         height: u32,
+        command_pool: &CommandPool,
+        submit_queue: &Queue,
     ) {
         let command_buffer = Self::begin_single_time_command(device, command_pool);
 

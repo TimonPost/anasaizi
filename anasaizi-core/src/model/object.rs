@@ -1,5 +1,5 @@
 use crate::math::Vertex;
-use nalgebra::{Vector2, Vector3};
+use nalgebra::{Vector2, Vector3, Vector4};
 use std::path::Path;
 use tobj::LoadOptions;
 
@@ -29,7 +29,7 @@ impl Object {
                         mesh.positions[i * 3 + 1],
                         mesh.positions[i * 3 + 2],
                     ),
-                    color: Vector3::new(1.0, 1.0, 1.0),
+                    color: Vector4::new(1.0, 1.0, 1.0, 0.0),
                     tex_coord: Vector2::new(mesh.texcoords[i * 2], mesh.texcoords[i * 2 + 1]),
                 };
                 vertices.push(vertex);

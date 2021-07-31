@@ -1,5 +1,5 @@
 use ash::vk;
-use nalgebra::{Vector2, Vector3};
+use nalgebra::{Vector2, Vector3, Vector4};
 use std::mem::size_of;
 
 #[derive(PartialOrd, PartialEq, Eq, Debug)]
@@ -46,6 +46,16 @@ impl BufferLayout {
             layout_id,
             stride,
             vk::Format::R32G32B32_SFLOAT,
+        ));
+        self
+    }
+
+    pub fn add_float_vec4(mut self, layout_id: u8) -> Self {
+        let stride = size_of::<Vector4<f32>>();
+        self.layouts.push(BufferLayoutElement::new(
+            layout_id,
+            stride,
+            vk::Format::R32G32B32A32_SFLOAT,
         ));
         self
     }

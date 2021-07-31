@@ -12,7 +12,6 @@ use ash::{
 };
 use std::{path::Path, ptr};
 
-
 pub struct ShaderBuilder<'a> {
     textures: Option<&'a [Texture]>,
     sampler: Option<Sampler>,

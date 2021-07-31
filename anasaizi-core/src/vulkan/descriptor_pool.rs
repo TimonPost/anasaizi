@@ -1,6 +1,4 @@
-use crate::vulkan::{
-    LogicalDevice, UniformBuffer, UniformBufferObjectTemplate,
-};
+use crate::vulkan::{LogicalDevice, UniformBuffer, UniformBufferObjectTemplate};
 use ash::{version::DeviceV1_0, vk};
 use std::{ops::Deref, ptr};
 

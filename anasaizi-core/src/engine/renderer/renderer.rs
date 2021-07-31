@@ -7,17 +7,21 @@ use crate::{
     model::Mesh,
     profile_fn,
     vulkan::{
-        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
+        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, Queue,
+        RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
+use ultraviolet::projection::orthographic_vk;
 
 use anasaizi_profile::profile;
 
 use crate::{
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
+    reexports::imgui::{DrawCmd, DrawCmdParams, DrawData, TextureId},
     vulkan::{
-        IndexBuffer, Pipeline, ShaderBuilder, VertexBuffer,
+        IndexBuffer, Instance, LogicalDevice, Pipeline, ShaderBuilder, UniformBufferObject,
+        VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk};
@@ -72,23 +76,20 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     sync_objects
 }
 
-pub struct RenderObject<U: UniformBufferObjectTemplate> {
-    pub pipeline: Pipeline,
-    pub mesh: Mesh,
-    pub shader: ShaderSet<U>,
-}
-
 pub struct VulkanRenderer<U: UniformBufferObjectTemplate> {
-    swapchain: SwapChain,
-    render_pass: RenderPass,
+    pub swapchain: SwapChain,
+    pub render_pass: RenderPass,
     pub graphics_queue: Queue,
     present_queue: Queue,
     pub command_pool: CommandPool,
 
-    frame_buffers: Option<FrameBuffers>,
-    buffers: Option<CommandBuffers>,
+    frame_buffers: FrameBuffers,
+    command_buffers: CommandBuffers,
+
+    pub pipelines: Vec<Pipeline<U>>,
+    pub ui_pipeline: Option<Pipeline<U>>,
+
     pub texture_sampler: Option<vk::Sampler>,
-    pub render_objects: Vec<RenderObject<U>>,
 
     sync_object: SyncObjects,
 
@@ -100,6 +101,8 @@ pub struct VulkanRenderer<U: UniformBufferObjectTemplate> {
     pub camera: Camera,
     pub last_y: f64,
     pub last_x: f64,
+
+    ui_mesh: Option<Mesh>,
 }
 
 impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
@@ -122,6 +125,14 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let render_pass = RenderPass::create(&instance, &device, swapchain.image_format);
 
+        let frame_buffers = FrameBuffers::create(
+            &application.device,
+            &render_pass,
+            &swapchain.image_views.iter().map(|i| **i).collect(),
+            swapchain.depth_image_view,
+            &swapchain.extent,
+        );
+
         let sync_object = create_sync_objects(device.logical_device());
 
         let camera = Camera::new(
@@ -133,6 +144,9 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let texture_sampler = Texture::create_texture_sampler(&device);
 
+        let static_command_buffer =
+            CommandBuffers::create::<U>(&application.device, &command_pool, frame_buffers.len());
+
         VulkanRenderer {
             swapchain,
             render_pass,
@@ -142,9 +156,11 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             graphics_queue,
             present_queue,
 
-            frame_buffers: None,
-            buffers: None,
-            render_objects: vec![],
+            frame_buffers,
+            command_buffers: static_command_buffer,
+            pipelines: vec![],
+            ui_pipeline: None,
+
             texture_sampler: Some(texture_sampler),
 
             sync_object,
@@ -159,6 +175,8 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
             last_x: 400.0,
             last_y: 300.0,
+
+            ui_mesh: None,
         }
     }
 
@@ -170,46 +188,21 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         self.current_frame
     }
 
-    pub fn push_render_object(
+    pub fn create_pipeline(
         &mut self,
         application: &VulkanApplication,
         shader: ShaderSet<U>,
-        mesh: Mesh,
+        meshes: Vec<Mesh>,
     ) {
-        let pipeline = Pipeline::create(
+        let mut pipeline = Pipeline::create(
             &application.device,
             self.swapchain.extent,
             &self.render_pass,
-            &shader,
-        );
-
-        self.render_objects.push(RenderObject {
-            pipeline,
             shader,
-            mesh,
-        });
-
-        let frame_buffers = FrameBuffers::create(
-            &application.device,
-            &self.render_pass,
-            &self.swapchain.image_views.iter().map(|i| **i).collect(),
-            self.swapchain.depth_image_view,
-            &self.swapchain.extent,
         );
+        pipeline.meshes = meshes;
 
-        self.render_objects.push(self.load_grid_mesh(application));
-
-        let buffers = CommandBuffers::create(
-            &application.device,
-            &self.command_pool,
-            &self.render_objects,
-            &frame_buffers,
-            &self.render_pass,
-            self.swapchain.extent,
-        );
-
-        self.buffers = Some(buffers);
-        self.frame_buffers = Some(frame_buffers);
+        self.pipelines.push(pipeline);
     }
 
     pub fn initialize_resources() {}
@@ -222,16 +215,17 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
     }
 
     #[profile(VulkanRenderer)]
-    pub fn draw(&mut self, application: &VulkanApplication) {
+    pub fn draw(&mut self, application: &VulkanApplication, draw_data: &DrawData) {
         let device = &application.device;
 
         let wait_fences = [self.sync_object.inflight_fences[self.current_frame]];
 
         let (image_index, _is_sub_optimal) = unsafe {
             profile_fn!("Acquire Next Image...", {
-                device
-                    .wait_for_fences(&wait_fences, true, u64::MAX)
-                    .expect("Failed to wait for Fence!");
+                unsafe {
+                    device
+                        .reset_command_pool(*self.command_pool, vk::CommandPoolResetFlags::empty());
+                }
 
                 self.swapchain
                     .loader
@@ -245,13 +239,32 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             })
         };
 
+        profile_fn!("Recording Commands...", {
+            self.command_buffers.begin_session(
+                device,
+                &self.render_pass,
+                self.swapchain.extent,
+                &self.frame_buffers,
+                self.current_frame,
+            );
+
+            self.render_meshes(&application);
+
+            unsafe {
+                device
+                    .cmd_next_subpass(self.command_buffers.current(), vk::SubpassContents::INLINE);
+            };
+
+            self.render_ui(&application, draw_data, self.current_frame);
+
+            self.command_buffers.end_session(device);
+        });
+
         profile_fn!("Queues...", {
             let wait_semaphores = [self.sync_object.image_available_semaphores[self.current_frame]];
             let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
             let signal_semaphores =
                 [self.sync_object.render_finished_semaphores[self.current_frame]];
-
-            let command_buffer = self.buffers.as_ref().unwrap();
 
             let submit_infos = [vk::SubmitInfo {
                 s_type: vk::StructureType::SUBMIT_INFO,
@@ -260,7 +273,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                 p_wait_semaphores: wait_semaphores.as_ptr(),
                 p_wait_dst_stage_mask: wait_stages.as_ptr(),
                 command_buffer_count: 1,
-                p_command_buffers: [command_buffer.get(image_index as usize)].as_ptr(),
+                p_command_buffers: [self.command_buffers.current()].as_ptr(),
                 signal_semaphore_count: signal_semaphores.len() as u32,
                 p_signal_semaphores: signal_semaphores.as_ptr(),
             }];
@@ -301,10 +314,194 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                         .queue_present(*self.present_queue, &present_info)
                         .expect("Failed to execute queue present.");
                 });
+
+                device
+                    .wait_for_fences(&wait_fences, true, u64::MAX)
+                    .expect("Failed to wait for Fence!");
             }
         });
 
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    pub fn render_meshes(&self, application: &VulkanApplication) {
+        unsafe {
+            let viewports = [vk::Viewport {
+                x: 0.0,
+                y: 0.0,
+                width: self.swapchain.extent.width as f32,
+                height: self.swapchain.extent.height as f32,
+                min_depth: 0.0,
+                max_depth: 1.0,
+            }];
+
+            application
+                .device
+                .cmd_set_viewport(self.command_buffers.current(), 0, &viewports);
+
+            let scissors = [vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent: self.swapchain.extent,
+            }];
+
+            application
+                .device
+                .cmd_set_scissor(self.command_buffers.current(), 0, &scissors);
+        };
+
+        for pipeline in self.pipelines.iter() {
+            self.command_buffers
+                .begin_pipeline(&application.device, pipeline);
+
+            for mesh in pipeline.meshes.iter() {
+                self.command_buffers
+                    .render_mesh(&application.device, pipeline, &mesh);
+            }
+        }
+    }
+
+    pub fn render_ui(
+        &mut self,
+        application: &VulkanApplication,
+        draw_data: &DrawData,
+        image_index: usize,
+    ) {
+        if let Some(ui_pipeline) = &self.ui_pipeline {
+            self.command_buffers
+                .begin_pipeline(&application.device, ui_pipeline);
+            let current_command_buffer = self.command_buffers.current();
+
+            if let None = self.ui_mesh {
+                self.ui_mesh = Some(Mesh::from_draw_data(
+                    &application.instance,
+                    &application.device,
+                    &self.graphics_queue,
+                    &self.command_pool,
+                    &draw_data,
+                ));
+            } else {
+                let mut mesh = self.ui_mesh.as_mut().unwrap();
+                mesh.update_from_draw_data(
+                    &application.instance,
+                    &application.device,
+                    &self.graphics_queue,
+                    &self.command_pool,
+                    draw_data,
+                );
+            }
+            let mesh = self.ui_mesh.as_ref().unwrap();
+
+            let device = &application.device;
+
+            let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
+            let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
+            let viewports = [vk::Viewport {
+                width: framebuffer_width,
+                height: framebuffer_height,
+                max_depth: 1.0,
+                ..Default::default()
+            }];
+
+            unsafe { device.cmd_set_viewport(current_command_buffer, 0, &viewports) };
+
+            // Ortho projection
+            let projection = orthographic_vk(
+                0.0,
+                draw_data.display_size[0],
+                0.0,
+                -draw_data.display_size[1],
+                -1.0,
+                1.0,
+            );
+
+            unsafe {
+                let push = any_as_u8_slice(&projection);
+                device.cmd_push_constants(
+                    current_command_buffer,
+                    ui_pipeline.layout(),
+                    vk::ShaderStageFlags::VERTEX,
+                    0,
+                    push,
+                )
+            };
+
+            unsafe {
+                device.cmd_bind_index_buffer(
+                    current_command_buffer,
+                    **mesh.index_buffer(),
+                    0,
+                    vk::IndexType::UINT32,
+                )
+            };
+
+            unsafe {
+                device.cmd_bind_vertex_buffers(
+                    current_command_buffer,
+                    0,
+                    &[**mesh.vertex_buffer()],
+                    &[0],
+                )
+            };
+
+            let mut index_offset = 0;
+            let mut vertex_offset = 0;
+
+            let clip_offset = draw_data.display_pos;
+            let clip_scale = draw_data.framebuffer_scale;
+
+            for draw_list in draw_data.draw_lists() {
+                for command in draw_list.commands() {
+                    if let DrawCmd::Elements {
+                        count,
+                        cmd_params:
+                            DrawCmdParams {
+                                clip_rect,
+                                texture_id,
+                                vtx_offset,
+                                idx_offset,
+                            },
+                    } = command
+                    {
+                        unsafe {
+                            let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
+                            let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
+                            let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
+                            let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
+
+                            let scissors = [vk::Rect2D {
+                                offset: vk::Offset2D {
+                                    x: clip_x as _,
+                                    y: clip_y as _,
+                                },
+                                extent: vk::Extent2D {
+                                    width: clip_w as _,
+                                    height: clip_h as _,
+                                },
+                            }];
+                            device.cmd_set_scissor(current_command_buffer, 0, &scissors);
+                            let sets = [*ui_pipeline.shader.descriptor_sets[image_index]];
+                            device.cmd_bind_descriptor_sets(
+                                current_command_buffer,
+                                vk::PipelineBindPoint::GRAPHICS,
+                                ui_pipeline.layout(),
+                                0,
+                                &sets,
+                                &[],
+                            );
+
+                            device.cmd_draw_indexed(
+                                current_command_buffer,
+                                count as _,
+                                1,
+                                index_offset + idx_offset as u32,
+                                vertex_offset + vtx_offset as i32,
+                                0,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn end_frame() {}
@@ -348,7 +545,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         }
     }
 
-    fn load_grid_mesh(&self, application: &VulkanApplication) -> RenderObject<U> {
+    pub fn grid_mesh(&self, application: &VulkanApplication) -> (ShaderSet<U>, Mesh) {
         let (square_vertices, square_indices) =
             (square_vertices().to_vec(), square_indices().to_vec());
 
@@ -387,7 +584,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             application,
             "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_vert.spv",
             "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_frag.spv",
-            3,
+            self.swapchain.images.len(),
         );
         builder
             .with_input_buffer_layout(input_buffer_layout)
@@ -397,17 +594,12 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let build: ShaderSet<U> = builder.build();
 
-        let pipeline = Pipeline::create(
-            &application.device,
-            self.swapchain.extent,
-            &self.render_pass,
-            &build,
-        );
-
-        RenderObject {
-            pipeline,
-            mesh: Mesh::new(grid_vertex_buffer, grid_index_buffer),
-            shader: build,
-        }
+        (build, Mesh::new(grid_vertex_buffer, grid_index_buffer))
     }
+}
+
+/// Return a `&[u8]` for any sized object passed in.
+pub(crate) unsafe fn any_as_u8_slice<T: Sized>(any: &T) -> &[u8] {
+    let ptr = (any as *const T) as *const u8;
+    std::slice::from_raw_parts(ptr, std::mem::size_of::<T>())
 }

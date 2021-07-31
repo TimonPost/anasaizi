@@ -1,9 +1,9 @@
-use nalgebra::{Vector2, Vector3};
+use nalgebra::{Vector2, Vector3, Vector4};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Vertex {
     pub pos: Vector3<f32>,
-    pub color: Vector3<f32>,
+    pub color: Vector4<f32>,
     pub tex_coord: Vector2<f32>,
 }
 

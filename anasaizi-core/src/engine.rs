@@ -8,4 +8,4 @@ mod renderer;
 pub use application::VulkanApplication;
 pub use camera::{Camera, CameraMovement};
 pub use keycode::Event;
-pub use renderer::{RenderObject, VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER};
+pub use renderer::{VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER};
