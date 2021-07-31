@@ -19,12 +19,12 @@ use anasaizi_core::{
     model::{Mesh, Object},
     reexports::{
         imgui::{
-            im_str, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId, Ui,
+            Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId,
         },
         imgui_winit_support::{HiDpiMode, WinitPlatform},
     },
 };
-use ash::version::DeviceV1_0;
+
 use std::{path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
 
@@ -43,7 +43,7 @@ pub struct VulkanApp {
 
 impl VulkanApp {
     pub fn new(event_loop: &EventLoop<()>) -> VulkanApp {
-        let mut application = VulkanApplication::new("Vulkan Engine", event_loop);
+        let application = VulkanApplication::new("Vulkan Engine", event_loop);
 
         let mut vulkan_renderer = VulkanRenderer::new(&application);
 
@@ -245,7 +245,7 @@ impl VulkanApp {
         );
 
         let ui_shader = Self::setup_ui_shader(&self.application, &self.vulkan_renderer, &context);
-        let mut pipeline = Pipeline::ui_pipeline(
+        let pipeline = Pipeline::ui_pipeline(
             &self.application.device,
             self.vulkan_renderer.swapchain.extent,
             &self.vulkan_renderer.render_pass,
@@ -289,7 +289,7 @@ impl VulkanApp {
 
             context.update(&self.application.window);
 
-            let mut ui = context.imgui_context.frame();
+            let ui = context.imgui_context.frame();
             let mut opened = false;
             ui.show_demo_window(&mut opened);
             //     .text(im_str!("Hello world!"));
@@ -422,7 +422,7 @@ impl ImguiContext {
             .expect("Failed to start frame");
     }
 
-    pub fn update(&mut self, window: &Window) {
+    pub fn update(&mut self, _window: &Window) {
         let io = self.imgui_context.io_mut();
         let now = Instant::now();
         io.update_delta_time(now - self.last_frame);
