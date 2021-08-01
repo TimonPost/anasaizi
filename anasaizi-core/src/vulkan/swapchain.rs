@@ -21,7 +21,22 @@ pub struct SwapChain {
     pub extent: vk::Extent2D,
     pub image_views: Vec<ImageView>,
     pub depth_image: vk::Image,
-    pub depth_image_view: vk::ImageView,
+    pub depth_image_view: ImageView,
+}
+
+impl SwapChain {
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        // device.destroy_image(self.depth_image, None);
+        // for &image in self.images.iter() {
+        //     device.destroy_image(image, None);
+        // }
+
+        self.depth_image_view.destroy(device);
+        for image_view in self.image_views.iter() {
+            image_view.destroy(device);
+        }
+        self.loader.destroy_swapchain(self.swapchain, None);
+    }
 }
 
 impl SwapChain {
@@ -152,7 +167,7 @@ impl SwapChain {
             image_views,
             images: swapchain_images,
             depth_image: depth_image.0,
-            depth_image_view: *depth_image.1,
+            depth_image_view: depth_image.1,
         }
     }
 

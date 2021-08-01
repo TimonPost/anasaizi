@@ -22,6 +22,10 @@ impl CommandPool {
 
         CommandPool { pool: command_pool }
     }
+
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_command_pool(self.pool, None);
+    }
 }
 
 impl Deref for CommandPool {

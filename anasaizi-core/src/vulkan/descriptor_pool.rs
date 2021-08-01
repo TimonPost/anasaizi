@@ -121,7 +121,7 @@ impl DescriptorPool {
         descriptor_set
     }
 
-    pub fn cleanup(&self, device: &LogicalDevice) {
+    pub fn destroy(&self, device: &LogicalDevice) {
         unsafe {
             device.destroy_descriptor_pool(self.descriptor_pool, None);
         };

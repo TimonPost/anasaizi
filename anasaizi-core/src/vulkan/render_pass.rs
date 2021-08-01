@@ -90,6 +90,10 @@ impl RenderPass {
 
         RenderPass { render_pass }
     }
+
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_render_pass(self.render_pass, None);
+    }
 }
 
 impl Deref for RenderPass {

@@ -1,4 +1,6 @@
-use crate::vulkan::{structures::ValidationInfo, Application, Extensions, ValidationLayers};
+use crate::vulkan::{
+    structures::ValidationInfo, Application, Extensions, LogicalDevice, ValidationLayers,
+};
 use ash::{version::EntryV1_0, vk};
 use std::{ffi::CString, fmt, ops::Deref};
 

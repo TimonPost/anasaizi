@@ -70,6 +70,10 @@ impl ImageView {
                 .expect("Failed to create Sampler!")
         }
     }
+
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_image_view(self.image_view, None);
+    }
 }
 
 impl Deref for ImageView {

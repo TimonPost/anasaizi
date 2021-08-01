@@ -203,6 +203,16 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         }
     }
 
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_shader_module(self.fragment_shader(), None);
+        device.destroy_shader_module(self.vertex_shader(), None);
+        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+
+        self.uniform_buffer.destroy(device);
+
+        self.descriptor_pool.destroy(device);
+    }
+
     fn create_shader_module(device: &LogicalDevice, code: Vec<u8>) -> vk::ShaderModule {
         let shader_module_create_info = vk::ShaderModuleCreateInfo {
             s_type: vk::StructureType::SHADER_MODULE_CREATE_INFO,

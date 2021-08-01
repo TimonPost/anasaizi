@@ -75,7 +75,7 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
         }
     }
 
-    pub fn cleanup(&self, device: &LogicalDevice) {
+    pub fn destroy(&self, device: &LogicalDevice) {
         for i in 0..self.swap_chain_image_count {
             unsafe {
                 device.destroy_buffer(self.buffers[i], None);

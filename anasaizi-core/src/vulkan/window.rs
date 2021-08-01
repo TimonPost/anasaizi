@@ -13,6 +13,7 @@ pub struct Window {
     surface: SurfaceData,
     pub window: winit::window::Window,
 }
+
 impl Window {
     pub fn new(
         window_title: &str,

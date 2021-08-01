@@ -318,6 +318,17 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
     pub fn layout(&self) -> vk::PipelineLayout {
         self.layout
     }
+
+    pub unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_pipeline(self.pipeline, None);
+        device.destroy_pipeline_layout(self.layout, None);
+
+        self.shader.destroy(device);
+
+        for mesh in self.meshes.iter() {
+            mesh.destroy(device)
+        }
+    }
 }
 
 impl<U: UniformBufferObjectTemplate> Deref for Pipeline<U> {

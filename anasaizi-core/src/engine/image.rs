@@ -446,4 +446,10 @@ impl Texture {
                 .expect("Failed to create Sampler!")
         }
     }
+
+    pub unsafe fn destroy(&self, device: &LogicalDevice) {
+        self.image_view.destroy(device);
+        device.destroy_image(self.image, None);
+        device.free_memory(self.device_memory, None);
+    }
 }

@@ -1,5 +1,5 @@
-use crate::vulkan::{LogicalDevice, RenderPass};
-use ash::{version::DeviceV1_0, vk, vk::ImageView};
+use crate::vulkan::{ImageView, LogicalDevice, RenderPass};
+use ash::{version::DeviceV1_0, vk};
 use std::ops::Deref;
 
 /// A Vulkan Framebuffer.
@@ -14,11 +14,11 @@ impl FrameBuffer {
     pub fn create(
         device: &LogicalDevice,
         render_pass: &RenderPass,
-        image_view: ImageView,
+        image_view: vk::ImageView,
         depth_image_view: ImageView,
         swapchain_extent: &vk::Extent2D,
     ) -> FrameBuffer {
-        let attachments = [image_view, depth_image_view];
+        let attachments = [image_view, *depth_image_view];
 
         let framebuffer_create_info = vk::FramebufferCreateInfo::builder()
             .render_pass(**render_pass)
@@ -55,7 +55,7 @@ impl FrameBuffers {
         device: &LogicalDevice,
         render_pass: &RenderPass,
         image_views: &Vec<vk::ImageView>,
-        depth_image_view: vk::ImageView,
+        depth_image_view: ImageView,
         swapchain_extent: &vk::Extent2D,
     ) -> FrameBuffers {
         let mut frame_buffers = vec![];
@@ -65,7 +65,7 @@ impl FrameBuffers {
                 device,
                 render_pass,
                 image_view,
-                depth_image_view,
+                depth_image_view.clone(),
                 swapchain_extent,
             ));
         }
@@ -79,5 +79,11 @@ impl FrameBuffers {
 
     pub fn get(&self, index: usize) -> vk::Framebuffer {
         *self.frame_buffers[index]
+    }
+
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        for framebuffer in self.frame_buffers.iter() {
+            device.destroy_framebuffer(**framebuffer, None);
+        }
     }
 }

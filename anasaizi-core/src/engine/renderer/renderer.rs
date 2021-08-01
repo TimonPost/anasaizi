@@ -28,8 +28,8 @@ use ash::{version::DeviceV1_0, vk};
 use std::{ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
 
-pub static FRAGMENT_SHADER: &str = "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\frag.spv";
-pub static VERTEX_SHADER: &str = "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\vert.spv";
+pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
+pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
 const MAX_FRAMES_IN_FLIGHT: usize = 3;
 
 pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
@@ -129,7 +129,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             &application.device,
             &render_pass,
             &swapchain.image_views.iter().map(|i| **i).collect(),
-            swapchain.depth_image_view,
+            swapchain.depth_image_view.clone(),
             &swapchain.extent,
         );
 
@@ -506,7 +506,26 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
     pub fn end_frame() {}
 
-    pub fn clean_resources() {}
+    pub fn destroy(&self, device: &LogicalDevice) {
+        unsafe {
+            self.swapchain.destroy(&device);
+            self.render_pass.destroy(&device);
+            self.command_pool.destroy(&device);
+            self.frame_buffers.destroy(&device);
+
+            self.ui_pipeline.as_ref().unwrap().destroy(&device);
+
+            for pipeline in self.pipelines.iter() {
+                pipeline.destroy(&device);
+            }
+
+            device.destroy_sampler(self.texture_sampler.unwrap(), None);
+
+            self.sync_object.destroy(&device);
+
+            self.ui_mesh.as_ref().unwrap().destroy(&device);
+        }
+    }
 
     pub fn handle_event(&mut self, event: Event) {
         match event {
@@ -582,8 +601,8 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let mut builder = ShaderBuilder::builder(
             application,
-            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_vert.spv",
-            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\grid_frag.spv",
+            "assets\\shaders\\build\\grid_vert.spv",
+            "assets\\shaders\\build\\grid_frag.spv",
             self.swapchain.images.len(),
         );
         builder

@@ -18,9 +18,7 @@ use anasaizi_core::{
     math::Vertex,
     model::{Mesh, Object},
     reexports::{
-        imgui::{
-            Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId,
-        },
+        imgui::{Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId},
         imgui_winit_support::{HiDpiMode, WinitPlatform},
     },
 };
@@ -166,8 +164,8 @@ impl VulkanApp {
 
         let mut builder = ShaderBuilder::builder(
             application,
-            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\ui_vert.spv",
-            "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\ui_frag.spv",
+            "assets\\shaders\\build\\ui_vert.spv",
+            "assets\\shaders\\build\\ui_frag.spv",
             3,
         );
         builder
@@ -263,6 +261,7 @@ impl VulkanApp {
                         WindowEvent::CloseRequested => {
                             *control_flow = ControlFlow::Exit;
                             run = false;
+                            self.destroy();
                             stop_profiler();
                         }
                         WindowEvent::CursorMoved { position, .. } => self
@@ -284,6 +283,10 @@ impl VulkanApp {
                 }
                 *control_flow = ControlFlow::Exit;
             });
+
+            if !run {
+                break;
+            }
 
             context.start_frame(&self.application.window);
 
@@ -311,32 +314,9 @@ impl VulkanApp {
             self.draw_frame(draw_data)
         }
     }
-}
 
-impl Drop for VulkanApp {
-    fn drop(&mut self) {
-        // unsafe {
-        //     // self.device.destroy_shader_module(vert_shader_module, None);
-        //     // self.device.destroy_shader_module(frag_shader_module, None);
-        //
-        //     for &imageview in self.image_views.iter() {
-        //         self.device.destroy_image_view(imageview, None);
-        //     }
-        //
-        //     self.swapchain_data
-        //         .swapchain_loader
-        //         .destroy_swapchain(self.swapchain_data.swapchain, None);
-        //     self.device.destroy_device(None);
-        //     self.surface_data
-        //         .surface_loader
-        //         .destroy_surface(self.surface_data.surface, None);
-        //
-        //     if VALIDATION.is_enable {
-        //         self.debug_utils_loader
-        //             .destroy_debug_utils_messenger(self.debug_merssager, None);
-        //     }
-        //     self.instance.destroy_instance(None);
-        // }
+    fn destroy(&self) {
+        self.vulkan_renderer.destroy(&self.application.device);
     }
 }
 

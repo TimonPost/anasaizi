@@ -1,4 +1,5 @@
-use ash::vk;
+use crate::vulkan::LogicalDevice;
+use ash::{version::DeviceV1_0, vk};
 use std::ffi::CString;
 
 pub struct QueueFamilyIndices {
@@ -16,6 +17,16 @@ pub struct SyncObjects {
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub inflight_fences: Vec<vk::Fence>,
+}
+
+impl SyncObjects {
+    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+        for i in 0..self.image_available_semaphores.len() {
+            device.destroy_semaphore(self.image_available_semaphores[i], None);
+            device.destroy_semaphore(self.render_finished_semaphores[i], None);
+            device.destroy_fence(self.inflight_fences[i], None);
+        }
+    }
 }
 
 pub struct ValidationInfo {
