@@ -26,15 +26,12 @@ pub struct SwapChain {
 
 impl SwapChain {
     pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
-        // device.destroy_image(self.depth_image, None);
-        // for &image in self.images.iter() {
-        //     device.destroy_image(image, None);
-        // }
 
         self.depth_image_view.destroy(device);
         for image_view in self.image_views.iter() {
             image_view.destroy(device);
         }
+
         self.loader.destroy_swapchain(self.swapchain, None);
     }
 }
@@ -170,6 +167,7 @@ impl SwapChain {
             depth_image_view: depth_image.1,
         }
     }
+
 
     /// An image view defines how the swapchain is going to use an image.
     fn create_image_views(

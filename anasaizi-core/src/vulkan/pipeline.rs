@@ -5,6 +5,8 @@ use crate::{
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, mem, ops::Deref, ptr};
 use ultraviolet::Mat4;
+use crate::vulkan::SwapChain;
+use ash::vk::PipelineLayout;
 
 pub struct Pipeline<U: UniformBufferObjectTemplate> {
     pipeline: vk::Pipeline,
@@ -21,6 +23,22 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         render_pass: &RenderPass,
         shader_set: ShaderSet<U>,
     ) -> Pipeline<U> {
+      let (pipeline, layout) = Self::build_pipeline(device,swapchain_extent, render_pass, &shader_set);
+
+        Pipeline {
+            layout,
+            pipeline,
+            shader: shader_set,
+            meshes: vec![],
+        }
+    }
+
+    fn build_pipeline(
+        device: &LogicalDevice,
+        swapchain_extent: vk::Extent2D,
+        render_pass: &RenderPass,
+        shader_set: &ShaderSet<U>) -> (ash::vk::Pipeline, PipelineLayout)
+    {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
         let shader_stages = [
@@ -177,12 +195,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
                 .expect("Failed to create Graphics Pipeline!.")
         };
 
-        Pipeline {
-            layout: pipeline_layout,
-            pipeline: graphics_pipelines[0],
-            shader: shader_set,
-            meshes: vec![],
-        }
+        (graphics_pipelines[0], pipeline_layout)
     }
 
     pub fn ui_pipeline(
@@ -319,6 +332,14 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         self.layout
     }
 
+    pub unsafe fn refresh(&mut self, device: &LogicalDevice, swapchain: &SwapChain, render_pass: &RenderPass) {
+        device.destroy_pipeline(self.pipeline, None);
+        device.destroy_pipeline_layout(self.layout, None);
+
+        let (pipeline, layout) = Self::build_pipeline(device,swapchain.extent, render_pass, &self.shader);
+        self.pipeline = pipeline;
+        self.layout = layout;
+    }
     pub unsafe fn destroy(&self, device: &LogicalDevice) {
         device.destroy_pipeline(self.pipeline, None);
         device.destroy_pipeline_layout(self.layout, None);

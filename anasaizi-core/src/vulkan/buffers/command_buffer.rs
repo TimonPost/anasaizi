@@ -21,6 +21,12 @@ pub struct CommandBuffers {
 }
 
 impl CommandBuffers {
+    pub(crate) unsafe fn free(&self, device: &LogicalDevice, command_pool: &CommandPool) {
+        device.free_command_buffers(**command_pool, &self.command_buffers)
+    }
+}
+
+impl CommandBuffers {
     pub fn begin_session(
         &mut self,
         device: &LogicalDevice,
