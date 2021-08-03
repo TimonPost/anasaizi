@@ -1,3 +1,4 @@
+/// Defines in which direction a camera should move.
 pub enum CameraMovement {
     FORWARD,
     BACKWARD,
@@ -5,12 +6,7 @@ pub enum CameraMovement {
     RIGHT,
 }
 
-const YAW: f32 = -90.0;
-const PITCH: f32 = 0.0;
-const SPEED: f32 = 40.5;
-const SENSITIVITY: f32 = 0.4;
-const ZOOM: f32 = 45.0;
-
+/// Perspective camera.
 pub struct Camera {
     camera_up: nalgebra::Vector3<f32>,
     camera_front: nalgebra::Vector3<f32>,
@@ -35,6 +31,7 @@ pub struct Camera {
 }
 
 impl Camera {
+    /// Creates a new camera with the given aspect ratio, field of view, and near/far planes.
     pub fn new(aspect_ratio: f32, field_of_view: f32, znear: f32, zfar: f32) -> Self {
         let position: nalgebra::Point3<f32> = nalgebra::Point3::<f32>::new(0.0, 1.0, 3.0);
         let camera_front: nalgebra::Vector3<f32> = nalgebra::Vector3::<f32>::new(0.0, 0.0, -1.0);
@@ -73,15 +70,18 @@ impl Camera {
         }
     }
 
+    /// Returns the projection matrix.
     pub fn projection(&self) -> nalgebra::Matrix4<f32> {
         self.projection_matrix
     }
 
+    /// Returns the view matrix.
     pub fn view(&self) -> nalgebra::Matrix4<f32> {
         self.view_matrix
     }
 
-    pub fn process_key(&mut self, direction: CameraMovement, _delta_time: f32) {
+    /// Process movement slowly updating the camera position with delta time.
+    pub fn process_movement(&mut self, direction: CameraMovement, _delta_time: f32) {
         let velocity = self.speed;
 
         match direction {
@@ -102,20 +102,21 @@ impl Camera {
         self.mark_dirty();
     }
 
-    pub fn is_dirty(&self) -> bool {
+    /// Returns if the camera needs to be recalculated.
+    pub fn needs_recalculation(&self) -> bool {
         self.is_dirty
     }
 
-    fn mark_dirty(&mut self) {
-        self.is_dirty = true;
-    }
-
+    /// Reloads the camera matrices, vectors, and angle properties.
     pub fn reload(&mut self) {
         self.reload_perspective();
         self.reload_matrix();
         self.is_dirty = false;
     }
 
+    /// Processes mouse scroll.
+    ///
+    /// This updates the camera field of view and therefore simulates a zoom action.
     pub fn process_mouse_scroll(&mut self, yoffset: f32) {
         self.field_of_view -= yoffset;
 
@@ -129,6 +130,8 @@ impl Camera {
         self.mark_dirty();
     }
 
+    /// Processes mouse movement.
+    /// This function will update the direction based on mouse, yaw, pitch values.
     pub fn process_mouse(&mut self, _delta_time: f32, mut xoffset: f64, mut yoffset: f64) {
         let sensitivity = 0.1;
         xoffset *= sensitivity;
@@ -147,6 +150,29 @@ impl Camera {
         self.camera_front = direction.normalize().into();
 
         self.mark_dirty();
+    }
+
+    /// Adds a pitch value to the current pitch.
+    /// Pitch has can not be more then 89 or less then -89 degrees.
+    pub fn add_pitch(&mut self, pitch: f64) {
+        let new_pitch = self.pitch + pitch;
+
+        if new_pitch > 89.0 {
+            self.pitch = 89.0;
+        } else if new_pitch < -89.0 {
+            self.pitch = -89.0;
+        } else {
+            self.pitch = new_pitch;
+        }
+    }
+
+    /// Adds the given amount of yaw to the camera yaw value.
+    pub fn add_yaw(&mut self, yaw: f64) {
+        self.yaw += yaw;
+    }
+
+    fn mark_dirty(&mut self) {
+        self.is_dirty = true;
     }
 
     fn reload_matrix(&mut self) {
@@ -181,22 +207,6 @@ impl Camera {
             position[1] + direction[1],
             position[2] + direction[2],
         )
-    }
-
-    pub(crate) fn add_pitch(&mut self, pitch: f64) {
-        let new_pitch = self.pitch + pitch;
-
-        if new_pitch > 89.0 {
-            self.pitch = 89.0;
-        } else if new_pitch < -89.0 {
-            self.pitch = -89.0;
-        } else {
-            self.pitch = new_pitch;
-        }
-    }
-
-    pub(crate) fn add_yaw(&mut self, yaw: f64) {
-        self.yaw += yaw;
     }
 
     fn get_radians(degrees: f32) -> f32 {

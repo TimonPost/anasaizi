@@ -1,7 +1,7 @@
 use crate::{
     math::Vertex,
     vulkan::{
-        buffers::buffer::{copy_buffer, create_buffer},
+        buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
         CommandPool, Instance, LogicalDevice, Queue,
     },
 };
@@ -9,13 +9,15 @@ use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
 use std::{mem, mem::size_of};
 
+/// An allocated vulkan buffer containing vertices.
 pub struct VertexBuffer {
-    vertex_buffer: vk::Buffer,
-    vertex_buffer_memory: vk::DeviceMemory,
-    vertices_count: usize,
+    buffer: vk::Buffer,
+    buffer_memory: vk::DeviceMemory,
+    count: usize,
 }
 
 impl VertexBuffer {
+    /// Creates a new vertex buffer from the given vertices.
     pub fn create<U>(
         instance: &Instance,
         device: &LogicalDevice,
@@ -23,9 +25,10 @@ impl VertexBuffer {
         submit_queue: &Queue,
         command_pool: &CommandPool,
     ) -> VertexBuffer {
+        // Allocate the staging buffer.
         let buffer_size = (size_of::<U>() * vertices.len()) as u64;
 
-        let (staging_buffer, staging_buffer_memory) = create_buffer(
+        let (staging_buffer, staging_buffer_memory) = create_allocate_vk_buffer(
             &instance,
             &device,
             buffer_size,
@@ -33,6 +36,7 @@ impl VertexBuffer {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         );
 
+        // Copy the indices into the allocated buffer.
         unsafe {
             let data_ptr = device
                 .map_memory(
@@ -48,7 +52,8 @@ impl VertexBuffer {
             device.unmap_memory(staging_buffer_memory);
         }
 
-        let (vertex_buffer, vertex_buffer_memory) = create_buffer(
+        // Create new buffer on the GPU.
+        let (vertex_buffer, vertex_buffer_memory) = create_allocate_vk_buffer(
             &instance,
             &device,
             buffer_size,
@@ -56,6 +61,7 @@ impl VertexBuffer {
             vk::MemoryPropertyFlags::DEVICE_LOCAL | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
+        // Copy data from CPU staging buffer to GPU
         copy_buffer(
             device,
             submit_queue,
@@ -72,38 +78,38 @@ impl VertexBuffer {
         }
 
         VertexBuffer {
-            vertex_buffer,
-            vertex_buffer_memory,
-            vertices_count: vertices.len() as usize,
+            buffer: vertex_buffer,
+            buffer_memory: vertex_buffer_memory,
+            count: vertices.len() as usize,
         }
     }
 
+    /// Destroys the buffer and its memory.
     pub fn destroy(&self, device: &LogicalDevice) {
         unsafe {
-            device.destroy_buffer(self.vertex_buffer, None);
-            device.free_memory(self.vertex_buffer_memory, None)
+            device.destroy_buffer(self.buffer, None);
+            device.free_memory(self.buffer_memory, None)
         }
     }
 
+    /// Returns the number of indices.
     pub fn vertices_count(&self) -> usize {
-        self.vertices_count
+        self.count
     }
 
+    /// Updates the buffer contents with the given data.
+    ///
+    /// Make sure that the given data is the same as what is stored in the buffer.
     pub fn update_buffer_content<T: Copy>(&self, device: &LogicalDevice, data: &[T]) {
         unsafe {
             let size = (data.len() * mem::size_of::<T>()) as _;
 
             let data_ptr = device
-                .map_memory(
-                    self.vertex_buffer_memory,
-                    0,
-                    size,
-                    vk::MemoryMapFlags::empty(),
-                )
+                .map_memory(self.buffer_memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
             let mut align = ash::util::Align::new(data_ptr, mem::align_of::<T>() as _, size);
             align.copy_from_slice(&data);
-            device.unmap_memory(self.vertex_buffer_memory);
+            device.unmap_memory(self.buffer_memory);
         };
     }
 }
@@ -112,6 +118,6 @@ impl Deref for VertexBuffer {
     type Target = vk::Buffer;
 
     fn deref(&self) -> &Self::Target {
-        &self.vertex_buffer
+        &self.buffer
     }
 }

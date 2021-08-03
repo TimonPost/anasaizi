@@ -11,4 +11,9 @@ cleanup resources:
 
 Features:
 - Reresh logic for uniform buffers, make sure to provide newest data too all images in swapchain.
- But dont update uniform buffers if not required. 
+ But dont update uniform buffers if not required.
+- Staging to GPU buffer abstraction.
+- Single command operation abstraction
+- Combine index/vertex buffer into one structure
+- create to new
+- Make pipeline more generic. 

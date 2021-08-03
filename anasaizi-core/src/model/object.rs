@@ -3,9 +3,15 @@ use nalgebra::{Vector2, Vector3, Vector4};
 use std::path::Path;
 use tobj::LoadOptions;
 
-pub struct Object {}
+/// Wavefront .obj file loader.
+pub struct Object;
 
 impl Object {
+    /// Loads an `.obj` file from the given path and returns its contents.
+    ///
+    /// Object file must contain:
+    /// - Position (x, y, z)
+    /// - Texture Coordinates (u, v)
     pub fn load_model(model_path: &Path) -> (Vec<Vertex>, Vec<u32>) {
         let model_obj = tobj::load_obj(model_path, &LoadOptions::default())
             .expect("Failed to load model object!");

@@ -1,15 +1,16 @@
-use ash::{version::InstanceV1_0, vk, vk::PhysicalDeviceFeatures};
+use ash::{version::InstanceV1_0, vk};
 
 use std::fmt::Formatter;
 
 use crate::{
     utils::vk_to_string,
     vulkan::{
-        Extensions, Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
+        Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
     },
 };
 
 use std::{fmt, ops::Deref};
+use crate::engine::Extensions;
 
 /// A Vulkan logical device.
 ///
@@ -152,7 +153,7 @@ impl LogicalDevice {
         physical_device: vk::PhysicalDevice,
         surface_data: &SurfaceData,
         extensions: &Extensions,
-        features: PhysicalDeviceFeatures,
+        features: vk::PhysicalDeviceFeatures,
     ) -> ash::Device {
         // Setup the queues to use
         let indices = Self::find_queue_family(instance, physical_device, surface_data);

@@ -2,6 +2,10 @@ use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{ops::Deref, ptr};
 
+/// Vulkan Image View.
+///
+/// An image view is a view into an image.
+/// It describes how to access the image and which part of the image to access.
 #[derive(Clone)]
 pub struct ImageView {
     image_view: vk::ImageView,

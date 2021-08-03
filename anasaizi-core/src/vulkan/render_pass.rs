@@ -2,11 +2,19 @@ use crate::vulkan::{Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
 use std::ops::Deref;
 
+/// A Vulkan Renderpass.
+///
+/// A render pass describes the scope of a rendering operation by specifying the collection of attachments,
+/// subpasses, and dependencies used during the rendering operation.
+/// A render pass consists of at least one subpass.
+/// The communication of this information to the driver allows the driver to know what to
+/// expect when rendering begins and to set up the hardware optimally for the rendering operation.
 pub struct RenderPass {
     render_pass: vk::RenderPass,
 }
 
 impl RenderPass {
+    /// Creates a `RenderPass`.
     pub fn create(
         instance: &Instance,
         device: &LogicalDevice,
@@ -91,7 +99,8 @@ impl RenderPass {
         RenderPass { render_pass }
     }
 
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+    /// Destroys the render pass.
+    pub unsafe fn destroy(&self, device: &LogicalDevice) {
         device.destroy_render_pass(self.render_pass, None);
     }
 }

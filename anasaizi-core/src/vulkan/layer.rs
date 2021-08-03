@@ -9,12 +9,14 @@ pub struct ValidationLayerProperties {
     pub implementation_version: u32,
 }
 
+/// Validation layers are optional components that hook into Vulkan function calls to apply additional operations.
 pub struct ValidationLayers {
     supported_layers: Vec<ValidationLayerProperties>,
     required_layers: Vec<String>,
 }
 
 impl ValidationLayers {
+    /// Creates a new validation layer.
     pub fn new(entry: &ash::Entry, required_layers: Vec<String>) -> ValidationLayers {
         ValidationLayers {
             supported_layers: Self::initialize_validation_layers(entry),
@@ -22,7 +24,22 @@ impl ValidationLayers {
         }
     }
 
-    pub fn initialize_validation_layers(entry: &ash::Entry) -> Vec<ValidationLayerProperties> {
+    pub fn has_required_layers(&self) -> bool {
+        for required_layer in self.required_layers.iter() {
+            let contains_layer = self
+                .supported_layers
+                .iter()
+                .any(|l| l.name == *required_layer);
+
+            if !contains_layer {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn initialize_validation_layers(entry: &ash::Entry) -> Vec<ValidationLayerProperties> {
         let layer_properties = entry
             .enumerate_instance_layer_properties()
             .expect("Failed to enumerate Instance Layers Properties!");
@@ -44,21 +61,6 @@ impl ValidationLayers {
         }
 
         supported_layers
-    }
-
-    pub fn has_required_layers(&self) -> bool {
-        for required_layer in self.required_layers.iter() {
-            let contains_layer = self
-                .supported_layers
-                .iter()
-                .any(|l| l.name == *required_layer);
-
-            if !contains_layer {
-                return false;
-            }
-        }
-
-        true
     }
 }
 

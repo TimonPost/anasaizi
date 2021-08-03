@@ -1,29 +1,31 @@
 use crate::{
     model::Mesh,
-    vulkan::{LogicalDevice, RenderPass, ShaderSet, UniformBufferObjectTemplate},
+    vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate},
 };
-use ash::{version::DeviceV1_0, vk};
+use ash::{version::DeviceV1_0, vk, vk::PipelineLayout};
 use std::{ffi::CString, mem, ops::Deref, ptr};
 use ultraviolet::Mat4;
-use crate::vulkan::SwapChain;
-use ash::vk::PipelineLayout;
 
+/// A Vulkan Pipeline.
+///
+/// A pipeline is a definition of how the GPU processes a vertices and textures all the way to the pixels in the render targets.
 pub struct Pipeline<U: UniformBufferObjectTemplate> {
     pipeline: vk::Pipeline,
     layout: vk::PipelineLayout,
     pub shader: ShaderSet<U>,
-    pub(crate) meshes: Vec<Mesh>,
+    pub meshes: Vec<Mesh>,
 }
 
 impl<U: UniformBufferObjectTemplate> Pipeline<U> {
-    // TODO: Make this pipeline more dynamic.
+    /// Creates a new `Pipeline`.
     pub fn create(
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
         shader_set: ShaderSet<U>,
     ) -> Pipeline<U> {
-      let (pipeline, layout) = Self::build_pipeline(device,swapchain_extent, render_pass, &shader_set);
+        let (pipeline, layout) =
+            Self::build_pipeline(device, swapchain_extent, render_pass, &shader_set);
 
         Pipeline {
             layout,
@@ -37,8 +39,8 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        shader_set: &ShaderSet<U>) -> (ash::vk::Pipeline, PipelineLayout)
-    {
+        shader_set: &ShaderSet<U>,
+    ) -> (ash::vk::Pipeline, PipelineLayout) {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
         let shader_stages = [
@@ -332,14 +334,28 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         self.layout
     }
 
-    pub unsafe fn refresh(&mut self, device: &LogicalDevice, swapchain: &SwapChain, render_pass: &RenderPass) {
+    /// Refreshes the pipeline.
+    /// This will destroy the pipeline and layout but will keep the shaders and meshes.
+    pub unsafe fn refresh(
+        &mut self,
+        device: &LogicalDevice,
+        swapchain: &SwapChain,
+        render_pass: &RenderPass,
+    ) {
         device.destroy_pipeline(self.pipeline, None);
         device.destroy_pipeline_layout(self.layout, None);
 
-        let (pipeline, layout) = Self::build_pipeline(device,swapchain.extent, render_pass, &self.shader);
+        let (pipeline, layout) =
+            Self::build_pipeline(device, swapchain.extent, render_pass, &self.shader);
         self.pipeline = pipeline;
         self.layout = layout;
     }
+
+    /// Destroys the pipeline and its contents:
+    /// - Pipeline
+    /// - Pipeline layout
+    /// - Shaders
+    /// - Meshes
     pub unsafe fn destroy(&self, device: &LogicalDevice) {
         device.destroy_pipeline(self.pipeline, None);
         device.destroy_pipeline_layout(self.layout, None);

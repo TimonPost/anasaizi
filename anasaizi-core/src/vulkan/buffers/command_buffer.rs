@@ -21,12 +21,10 @@ pub struct CommandBuffers {
 }
 
 impl CommandBuffers {
-    pub(crate) unsafe fn free(&self, device: &LogicalDevice, command_pool: &CommandPool) {
-        device.free_command_buffers(**command_pool, &self.command_buffers)
-    }
-}
-
-impl CommandBuffers {
+    /// Begins the render session.
+    ///
+    /// 1. Begins the renderpass.
+    /// 2. Begins the commandbuffer recording.
     pub fn begin_session(
         &mut self,
         device: &LogicalDevice,
@@ -80,7 +78,8 @@ impl CommandBuffers {
         }
     }
 
-    pub fn begin_pipeline<U: UniformBufferObjectTemplate>(
+    /// Binds a pipeline to the current render session.
+    pub fn bind_pipeline<U: UniformBufferObjectTemplate>(
         &self,
         device: &LogicalDevice,
         pipeline: &Pipeline<U>,
@@ -92,6 +91,7 @@ impl CommandBuffers {
         };
     }
 
+    /// Records draw commands, required for this mesh, into the current activated command buffer.
     pub fn render_mesh<U: UniformBufferObjectTemplate>(
         &self,
         device: &LogicalDevice,
@@ -121,6 +121,10 @@ impl CommandBuffers {
         }
     }
 
+    /// Ends the render session.
+    ///
+    /// 1. Ends the renderpass.
+    /// 2. Ends the commandbuffer recording.
     pub fn end_session(&self, device: &LogicalDevice) {
         let command_buffer = self.current();
 
@@ -154,12 +158,18 @@ impl CommandBuffers {
         };
 
         CommandBuffers {
-            command_buffers,
+            command_buffers: command_buffers,
             active_buffer: 0,
         }
     }
 
+    /// Gets an allocated command buffer for the given index.
     pub fn get(&self, index: usize) -> vk::CommandBuffer {
         self.command_buffers[index]
+    }
+
+    /// Frees the command buffer memory.
+    pub unsafe fn free(&self, device: &LogicalDevice, command_pool: &CommandPool) {
+        device.free_command_buffers(**command_pool, &self.command_buffers)
     }
 }

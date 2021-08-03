@@ -1,7 +1,7 @@
 use crate::{
-    engine::{image::Texture, VulkanApplication},
+    engine::{image::Texture, BufferLayout, VulkanApplication},
     vulkan::{
-        BufferLayout, DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer,
+        DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer,
         UniformBufferObject, UniformBufferObjectTemplate,
     },
 };
@@ -29,6 +29,7 @@ pub struct ShaderBuilder<'a> {
 }
 
 impl<'a> ShaderBuilder<'a> {
+    /// Creates a new shader builder.
     pub fn builder(
         application: &'a VulkanApplication,
         vertex_shader: &'static str,
@@ -51,6 +52,7 @@ impl<'a> ShaderBuilder<'a> {
         }
     }
 
+    /// Shader with the given input buffer.
     pub fn with_input_buffer_layout(
         &mut self,
         input_buffer_layout: BufferLayout,
@@ -59,6 +61,7 @@ impl<'a> ShaderBuilder<'a> {
         self
     }
 
+    /// Shader with the given textures.
     pub fn with_textures(
         &mut self,
         textures: &'a [Texture],
@@ -69,6 +72,7 @@ impl<'a> ShaderBuilder<'a> {
         self
     }
 
+    /// Shader with a descriptor pool and given descriptor types.
     pub fn with_descriptor_pool(
         &mut self,
         descriptor_types: &[vk::DescriptorType],
@@ -81,6 +85,7 @@ impl<'a> ShaderBuilder<'a> {
         self
     }
 
+    /// Shader wit descriptor sets.
     pub fn with_write_descriptor_sets(
         &mut self,
         write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
@@ -90,6 +95,7 @@ impl<'a> ShaderBuilder<'a> {
         self
     }
 
+    /// Shader wit descriptor layout.
     pub fn with_write_descriptor_layout(
         &mut self,
         layout_binding: &[vk::DescriptorSetLayoutBinding],
@@ -108,6 +114,7 @@ impl<'a> ShaderBuilder<'a> {
         self
     }
 
+    /// Build shader.
     pub fn build<U: UniformBufferObjectTemplate>(mut self) -> ShaderSet<U> {
         let uniform_buffer_object = U::default();
 
@@ -157,6 +164,12 @@ impl<'a> ShaderBuilder<'a> {
     }
 }
 
+/// A Vulkan Shader.
+///
+/// This shader contains the following data:
+/// - Uniform buffer and object.
+/// - Input buffer layout
+/// - Descriptor pool, set, layout
 pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     vertex_shader_module: vk::ShaderModule,
     uniform_buffer_object: U,
@@ -182,6 +195,7 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         &mut self.uniform_buffer_object
     }
 
+    /// Write the uniform buffer object to shader memory.
     pub fn update_uniform(&mut self, device: &LogicalDevice, current_image: usize) {
         let ubos = [self.uniform_buffer_object.clone()];
 
@@ -203,7 +217,14 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         }
     }
 
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+    /// Destroy the shader and its components:
+    ///
+    /// - Fragment shader module
+    /// - Vertex shader module
+    /// - Description set layout
+    /// - Uniform buffer
+    /// - Descriptor pool
+    pub unsafe fn destroy(&self, device: &LogicalDevice) {
         device.destroy_shader_module(self.fragment_shader(), None);
         device.destroy_shader_module(self.vertex_shader(), None);
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);

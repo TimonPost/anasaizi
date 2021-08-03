@@ -11,6 +11,7 @@ pub struct Queue {
 }
 
 impl Queue {
+    /// Creates a a queue.
     pub fn create(device: &LogicalDevice, queue_index: u32) -> Queue {
         let queue = unsafe { device.get_device_queue(queue_index, 0) };
 

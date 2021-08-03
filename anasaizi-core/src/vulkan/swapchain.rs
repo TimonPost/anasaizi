@@ -12,7 +12,6 @@ use std::ops::Deref;
 ///
 /// The swap chain is essentially a queue of images that are waiting to be presented to the screen.
 /// The general purpose of the swap chain is to synchronize the presentation of images with the refresh rate of the screen.
-///
 pub struct SwapChain {
     pub loader: ash::extensions::khr::Swapchain,
     pub swapchain: vk::SwapchainKHR,
@@ -26,7 +25,6 @@ pub struct SwapChain {
 
 impl SwapChain {
     pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
-
         self.depth_image_view.destroy(device);
         for image_view in self.image_views.iter() {
             image_view.destroy(device);
@@ -167,7 +165,6 @@ impl SwapChain {
             depth_image_view: depth_image.1,
         }
     }
-
 
     /// An image view defines how the swapchain is going to use an image.
     fn create_image_views(

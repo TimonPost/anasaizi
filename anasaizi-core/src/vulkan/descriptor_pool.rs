@@ -43,6 +43,7 @@ pub struct DescriptorPool {
 }
 
 impl DescriptorPool {
+    /// Creates a new `DescriptorPool`.
     pub fn new(
         device: &LogicalDevice,
         descriptor_types: &[vk::DescriptorType],
@@ -74,6 +75,7 @@ impl DescriptorPool {
         }
     }
 
+    /// Creates descriptor sets.
     pub fn create_descriptor_sets<U: UniformBufferObjectTemplate>(
         &self,
         device: &LogicalDevice,
@@ -87,6 +89,7 @@ impl DescriptorPool {
             layouts.push(descriptor_set_layout);
         }
 
+        // Allocate descriptor sets
         let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo {
             s_type: vk::StructureType::DESCRIPTOR_SET_ALLOCATE_INFO,
             p_next: ptr::null(),
@@ -101,6 +104,7 @@ impl DescriptorPool {
                 .expect("Failed to allocate descriptor sets!")
         };
 
+        // Create descriptor sets.
         let mut descriptor_set = vec![];
 
         for (i, descritptor_set) in descriptor_sets.iter().enumerate() {
@@ -121,6 +125,7 @@ impl DescriptorPool {
         descriptor_set
     }
 
+    /// Destroys the descriptor pool and the associated descriptor set memory.
     pub fn destroy(&self, device: &LogicalDevice) {
         unsafe {
             device.destroy_descriptor_pool(self.descriptor_pool, None);

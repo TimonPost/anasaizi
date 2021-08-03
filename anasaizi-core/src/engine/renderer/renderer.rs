@@ -7,7 +7,7 @@ use crate::{
     model::Mesh,
     profile_fn,
     vulkan::{
-        structures::SyncObjects, BufferLayout, CommandBuffers, CommandPool, FrameBuffers, Queue,
+        structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue,
         RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
@@ -27,6 +27,7 @@ use crate::{
 use ash::{version::DeviceV1_0, vk};
 use std::{ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
+use crate::engine::BufferLayout;
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -234,7 +235,8 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                         u64::MAX,
                         self.sync_object.image_available_semaphores[self.current_frame],
                         vk::Fence::null(),
-                    ).expect("Failed to acquire next image!")
+                    )
+                    .expect("Failed to acquire next image!")
             })
         };
 
@@ -308,12 +310,14 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
             unsafe {
                 profile_fn!("Present Queue...", {
-                    let result = self.swapchain
+                    let result = self
+                        .swapchain
                         .loader
                         .queue_present(*self.present_queue, &present_info);
 
                     match result {
-                        Err(vk::Result::ERROR_OUT_OF_DATE_KHR) | Err(vk::Result::SUBOPTIMAL_KHR) => {
+                        Err(vk::Result::ERROR_OUT_OF_DATE_KHR)
+                        | Err(vk::Result::SUBOPTIMAL_KHR) => {
                             self.recreate_swapchain(application);
                         }
                         Err(_) => {
@@ -359,7 +363,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         for pipeline in self.pipelines.iter() {
             self.command_buffers
-                .begin_pipeline(&application.device, pipeline);
+                .bind_pipeline(&application.device, pipeline);
 
             for mesh in pipeline.meshes.iter() {
                 self.command_buffers
@@ -376,7 +380,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
     ) {
         if let Some(ui_pipeline) = &self.ui_pipeline {
             self.command_buffers
-                .begin_pipeline(&application.device, ui_pipeline);
+                .bind_pipeline(&application.device, ui_pipeline);
             let current_command_buffer = self.command_buffers.current();
 
             if let None = self.ui_mesh {
@@ -514,10 +518,10 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
     pub fn end_frame() {}
 
-
     pub fn recreate_swapchain(&mut self, application: &VulkanApplication) {
         unsafe {
-            application.device
+            application
+                .device
                 .device_wait_idle()
                 .expect("Failed to wait device idle!");
 
@@ -526,8 +530,12 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let surface_data = application.window.surface_data();
 
-        self.swapchain  = SwapChain::new(&application.instance, &application.device, surface_data);
-        self.render_pass = RenderPass::create(&application.instance, &application.device, self.swapchain.image_format);
+        self.swapchain = SwapChain::new(&application.instance, &application.device, surface_data);
+        self.render_pass = RenderPass::create(
+            &application.instance,
+            &application.device,
+            self.swapchain.image_format,
+        );
         self.frame_buffers = FrameBuffers::create(
             &application.device,
             &self.render_pass,
@@ -535,7 +543,11 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             self.swapchain.depth_image_view.clone(),
             &self.swapchain.extent,
         );
-        self.command_buffers = CommandBuffers::create::<U>(&application.device, &self.command_pool, self.frame_buffers.len());
+        self.command_buffers = CommandBuffers::create::<U>(
+            &application.device,
+            &self.command_pool,
+            self.frame_buffers.len(),
+        );
 
         unsafe {
             //self.ui_pipeline.as_mut().unwrap().refresh(&application.device, &self.swapchain, &self.render_pass);
@@ -544,6 +556,8 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                 pipeline.refresh(&application.device, &self.swapchain, &self.render_pass);
             }
         }
+
+        self.current_frame = 0;
     }
 
     unsafe fn destroy_swapchain(&self, device: &LogicalDevice) {
@@ -583,19 +597,19 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             Event::Keyboard(input) => match (input.virtual_keycode, input.state) {
                 (Some(VirtualKeyCode::W), ElementState::Pressed) => {
                     self.camera
-                        .process_key(CameraMovement::FORWARD, self.delta_time);
+                        .process_movement(CameraMovement::FORWARD, self.delta_time);
                 }
                 (Some(VirtualKeyCode::A), ElementState::Pressed) => {
                     self.camera
-                        .process_key(CameraMovement::LEFT, self.delta_time);
+                        .process_movement(CameraMovement::LEFT, self.delta_time);
                 }
                 (Some(VirtualKeyCode::S), ElementState::Pressed) => {
                     self.camera
-                        .process_key(CameraMovement::BACKWARD, self.delta_time);
+                        .process_movement(CameraMovement::BACKWARD, self.delta_time);
                 }
                 (Some(VirtualKeyCode::D), ElementState::Pressed) => {
                     self.camera
-                        .process_key(CameraMovement::RIGHT, self.delta_time);
+                        .process_movement(CameraMovement::RIGHT, self.delta_time);
                 }
                 _ => {}
             },

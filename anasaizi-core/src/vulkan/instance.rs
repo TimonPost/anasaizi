@@ -1,9 +1,15 @@
-use crate::vulkan::{
-    structures::ValidationInfo, Application, Extensions, LogicalDevice, ValidationLayers,
+use crate::{
+    engine::Extensions,
+    vulkan::{
+        structures::ValidationInfo, Application, LogicalDevice, ValidationLayers,
+    },
 };
 use ash::{version::EntryV1_0, vk};
 use std::{ffi::CString, fmt, ops::Deref};
 
+/// Vulkan Instance.
+///
+/// The instance is the connection between the application and the Vulkan library.
 pub struct Instance {
     entry: ash::Entry,
     instance: ash::Instance,
@@ -12,6 +18,7 @@ pub struct Instance {
 }
 
 impl Instance {
+    /// Creates a new vulkan instance with the given extensions.
     pub fn new(
         validation: ValidationInfo,
         extensions: Extensions,

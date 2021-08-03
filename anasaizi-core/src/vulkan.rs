@@ -1,34 +1,12 @@
-mod application;
-mod buffer_layout;
-mod buffers;
-mod command_pool;
-mod descriptor_pool;
-mod device;
-mod extensions;
-mod image_view;
-mod instance;
-mod layer;
-mod pipeline;
-mod queue;
-mod render_pass;
-mod shader;
-pub mod structures;
-mod surface;
-mod swapchain;
-mod version;
-mod window;
-
 pub use application::Application;
-
-pub use command_pool::CommandPool;
-pub use device::LogicalDevice;
-pub use extensions::Extensions;
-
-pub use buffer_layout::BufferLayout;
 pub use buffers::{
-    create_buffer, CommandBuffers, FrameBuffer, FrameBuffers, IndexBuffer, UniformBuffer,
-    UniformBufferObject, UniformBufferObjectTemplate, VertexBuffer,
+    begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, CommandBuffers,
+    FrameBuffer, FrameBuffers, IndexBuffer, UniformBuffer, UniformBufferObject,
+    UniformBufferObjectTemplate, VertexBuffer,
 };
+pub use command_pool::CommandPool;
+pub use descriptor_pool::{DescriptorPool, DescriptorSet};
+pub use device::LogicalDevice;
 pub use image_view::ImageView;
 pub use instance::Instance;
 pub use layer::{ValidationLayerProperties, ValidationLayers};
@@ -42,4 +20,20 @@ pub use swapchain::{SwapChain, SwapChainSupportDetails};
 pub use version::Version;
 pub use window::Window;
 
-pub use descriptor_pool::{DescriptorPool, DescriptorSet};
+mod application;
+mod buffers;
+mod command_pool;
+mod descriptor_pool;
+mod device;
+mod image_view;
+mod instance;
+mod layer;
+mod pipeline;
+mod queue;
+mod render_pass;
+mod shader;
+pub mod structures;
+mod surface;
+mod swapchain;
+mod version;
+mod window;

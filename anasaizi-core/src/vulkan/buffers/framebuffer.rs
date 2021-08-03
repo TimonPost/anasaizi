@@ -7,7 +7,7 @@ use std::ops::Deref;
 /// Framebuffers represent a collection of memory attachments that are used by a render pass instance.
 /// A framebuffer provides the attachments that a render pass needs while rendering.
 pub struct FrameBuffer {
-    frame_buffer: vk::Framebuffer,
+    buffer: vk::Framebuffer,
 }
 
 impl FrameBuffer {
@@ -34,7 +34,9 @@ impl FrameBuffer {
                 .expect("Failed to create Framebuffer!")
         };
 
-        FrameBuffer { frame_buffer }
+        FrameBuffer {
+            buffer: frame_buffer,
+        }
     }
 }
 
@@ -42,15 +44,21 @@ impl Deref for FrameBuffer {
     type Target = vk::Framebuffer;
 
     fn deref(&self) -> &Self::Target {
-        &self.frame_buffer
+        &self.buffer
     }
 }
 
+/// A collection of vulkan framebuffers.
 pub struct FrameBuffers {
     frame_buffers: Vec<FrameBuffer>,
 }
 
 impl FrameBuffers {
+    /// Creates a new collection of framebuffer for the given images.
+    ///
+    /// `render_pass`: The render pass that will render into the framebuffers.
+    /// `image_views`: The image views defining the contents of the framebuffers.
+    /// `swapchain_extent`: The dimensions of the framebufers.
     pub fn create(
         device: &LogicalDevice,
         render_pass: &RenderPass,
@@ -70,17 +78,22 @@ impl FrameBuffers {
             ));
         }
 
-        FrameBuffers { frame_buffers }
+        FrameBuffers {
+            frame_buffers: frame_buffers,
+        }
     }
 
+    /// Returns the number of framebuffers in this collection.
     pub fn len(&self) -> usize {
         self.frame_buffers.len()
     }
 
+    /// Returns an framebuffer at the given index.
     pub fn get(&self, index: usize) -> vk::Framebuffer {
         *self.frame_buffers[index]
     }
 
+    /// Destroys the framebuffer.
     pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
         for framebuffer in self.frame_buffers.iter() {
             device.destroy_framebuffer(**framebuffer, None);

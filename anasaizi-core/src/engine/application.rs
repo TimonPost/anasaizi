@@ -1,19 +1,25 @@
 use crate::{
-    reexports::{imgui::Context, imgui_winit_support::WinitPlatform},
+    reexports::{
+        imgui::{Context, __core::fmt::Formatter},
+        imgui_winit_support::WinitPlatform,
+    },
     vulkan::{
-        structures::ValidationInfo, Application, Extensions, Instance, LogicalDevice, Version,
+        structures::ValidationInfo, Application, Instance, LogicalDevice, Version,
         Window,
     },
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::extensions::{ext::DebugUtils, khr};
+use std::{fmt, fmt::Debug};
 use winit::event_loop::EventLoop;
+use crate::engine::Extensions;
 
 pub const VALIDATION: ValidationInfo = ValidationInfo {
     is_enable: true,
     required_validation_layers: ["VK_LAYER_KHRONOS_validation"],
 };
 
+/// Vulkan application with winit window, vulkan data such as instance, device and application.
 pub struct VulkanApplication {
     pub device: LogicalDevice,
     pub application: Application,
@@ -22,6 +28,13 @@ pub struct VulkanApplication {
 }
 
 impl VulkanApplication {
+    /// Creates a new vulkan application.
+    ///
+    /// This function configures:
+    /// - Application
+    /// - Instance
+    /// - LogicalDevice
+    /// - Device/Instance Extensions
     pub fn new(name: &'static str, event_loop: &EventLoop<()>) -> Self {
         let instance_extensions = Extensions::new(vec![
             khr::Surface::name().to_str().unwrap().to_string(),
@@ -48,14 +61,18 @@ impl VulkanApplication {
 
         let device = LogicalDevice::new(&instance, device_extensions, window.surface_data());
 
-        println!("{:?}", application);
-        println!("{:?}", device);
-
         VulkanApplication {
             application,
             instance,
             window,
             device,
         }
+    }
+}
+
+impl Debug for VulkanApplication {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{:?}", self.application)?;
+        write!(f, "{:?}", self.device)
     }
 }

@@ -1,7 +1,9 @@
-use ash::vk;
-use nalgebra::{Vector2, Vector3, Vector4};
 use std::mem::size_of;
 
+use ash::vk;
+use nalgebra::{Vector2, Vector3, Vector4};
+
+/// Information about element in a buffer layout.
 #[derive(PartialOrd, PartialEq, Eq, Debug)]
 pub struct BufferLayoutElement {
     pub stride: usize,
@@ -19,6 +21,7 @@ impl BufferLayoutElement {
     }
 }
 
+/// The layout of the data inside a buffer.
 pub struct BufferLayout {
     layouts: Vec<BufferLayoutElement>,
 }
@@ -30,6 +33,7 @@ impl BufferLayout {
         }
     }
 
+    /// Adds a 2 component float vector to the layout.
     pub fn add_float_vec2(mut self, layout_id: u8) -> Self {
         let stride = size_of::<Vector2<f32>>();
         self.layouts.push(BufferLayoutElement::new(
@@ -40,6 +44,7 @@ impl BufferLayout {
         self
     }
 
+    /// Adds a 3 component float vector to the layout.
     pub fn add_float_vec3(mut self, layout_id: u8) -> Self {
         let stride = size_of::<Vector3<f32>>();
         self.layouts.push(BufferLayoutElement::new(
@@ -50,6 +55,7 @@ impl BufferLayout {
         self
     }
 
+    /// Adds a 4 component float vector to the layout.
     pub fn add_float_vec4(mut self, layout_id: u8) -> Self {
         let stride = size_of::<Vector4<f32>>();
         self.layouts.push(BufferLayoutElement::new(
@@ -60,6 +66,7 @@ impl BufferLayout {
         self
     }
 
+    /// Gets a layout element by the given id.
     pub fn get(&self, layout_id: u8) -> Option<&BufferLayoutElement> {
         for layout in self.layouts.iter() {
             if layout.layout_id == layout_id {
@@ -69,6 +76,7 @@ impl BufferLayout {
         None
     }
 
+    /// Returns the binding descriptions that describe how a single buffer element is laid out in the buffer.
     pub fn build_binding_description(&self) -> vk::VertexInputBindingDescription {
         vk::VertexInputBindingDescription {
             binding: 0,
@@ -77,6 +85,7 @@ impl BufferLayout {
         }
     }
 
+    /// Returns the attribute descriptions that describes how a buffer element is structured.
     pub fn build_attrib_description(&self) -> Vec<vk::VertexInputAttributeDescription> {
         let mut offset: usize = 0;
         let mut layouts = vec![];
@@ -98,8 +107,9 @@ impl BufferLayout {
 
 #[cfg(test)]
 mod tests {
-    use crate::vulkan::{buffer_layout::BufferLayoutElement, BufferLayout};
     use ash::vk;
+
+    use crate::{engine::buffer_layout::BufferLayoutElement, vulkan::BufferLayout};
 
     #[test]
     fn add_float_vec2_correct_size() {

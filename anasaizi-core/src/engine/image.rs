@@ -1,10 +1,12 @@
 use crate::vulkan::{
-    create_buffer, CommandBuffers, CommandPool, ImageView, Instance, LogicalDevice, Queue,
+    begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, CommandBuffers,
+    CommandPool, ImageView, Instance, LogicalDevice, Queue,
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use image::GenericImageView;
 use std::{path::Path, ptr};
 
+/// A vulkan texture that contains an image, imageview, and device memory.
 #[derive(Clone)]
 pub struct Texture {
     pub image: vk::Image,
@@ -13,6 +15,7 @@ pub struct Texture {
 }
 
 impl Texture {
+    /// Creates a texture from a path to the rgba image.
     pub fn create(
         instance: &Instance,
         device: &LogicalDevice,
@@ -43,7 +46,7 @@ impl Texture {
             | image::DynamicImage::ImageBgra8(_)
             | image::DynamicImage::ImageRgba8(_) => image_object.into_bytes(),
             _ => {
-                vec![]
+                panic!("Invalid image format, image should be rgba compatible");
             }
         };
 
@@ -59,14 +62,6 @@ impl Texture {
     }
 
     /// Creates a texture from an `u8` array containing an rgba image.
-    ///
-    /// The image data is device local and it's format is R8G8B8A8_UNORM.
-    ///
-    /// # Arguments
-    ///
-    /// * `width` - The width of the image.
-    /// * `height` - The height of the image.
-    /// * `data` - The image data.
     pub fn from_bytes(
         instance: &Instance,
         device: &LogicalDevice,
@@ -80,10 +75,13 @@ impl Texture {
             (std::mem::size_of::<u8>() as u32 * image_width * image_height * 4) as vk::DeviceSize;
 
         if image_size <= 0 {
-            panic!("Failed to load texture image!")
+            panic!("Failed to load texture image! Texture image is of size 0.")
         }
 
-        let (staging_buffer, staging_buffer_memory) = create_buffer(
+        // Create staging buffer on the CPU.
+        // The buffer should be in host visible memory so that we can map it
+        // and it should be usable as a transfer source so that we can copy it to an image later on:
+        let (staging_buffer, staging_buffer_memory) = create_allocate_vk_buffer(
             instance,
             device,
             image_size,
@@ -91,6 +89,7 @@ impl Texture {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         );
 
+        // Copy the pixel values from the loaded image to the staging buffer.
         unsafe {
             let data_ptr = device
                 .map_memory(
@@ -119,7 +118,6 @@ impl Texture {
         Self::transition_image_layout(
             device,
             texture_image,
-            vk::Format::R8G8B8A8_UNORM,
             vk::ImageLayout::UNDEFINED,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             command_pool,
@@ -139,18 +137,19 @@ impl Texture {
         Self::transition_image_layout(
             device,
             texture_image,
-            vk::Format::R8G8B8A8_UNORM,
             vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
             command_pool,
             submit_queue,
         );
 
+        // Cleanup the staging buffer because the texture is now uploaded to the GPU.
         unsafe {
             device.destroy_buffer(staging_buffer, None);
             device.free_memory(staging_buffer_memory, None);
         }
 
+        // Crate an imageview for this image.
         let image_view = ImageView::create(
             device,
             texture_image,
@@ -165,6 +164,13 @@ impl Texture {
         }
     }
 
+    /// Creates a vulkan image.
+    ///
+    /// # Arguments
+    /// - `format`: The format of the texel data.
+    /// - `tiling`: How texels are laid out in memory. Use OPTIMAL for best performance.
+    /// - `usage`: How the image is going to be used.
+    /// - `required_memory_properties`: The properties of the image memory.
     pub fn create_image(
         device: &LogicalDevice,
         width: u32,
@@ -174,27 +180,23 @@ impl Texture {
         usage: vk::ImageUsageFlags,
         required_memory_properties: vk::MemoryPropertyFlags,
     ) -> (vk::Image, vk::DeviceMemory) {
-        let image_create_info = vk::ImageCreateInfo {
-            s_type: vk::StructureType::IMAGE_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::ImageCreateFlags::empty(),
-            image_type: vk::ImageType::TYPE_2D,
-            format,
-            extent: vk::Extent3D {
+        // Crate image.
+        let image_create_info = vk::ImageCreateInfo::builder()
+            .image_type(vk::ImageType::TYPE_2D)
+            .format(format)
+            .extent(vk::Extent3D {
                 width,
                 height,
                 depth: 1,
-            },
-            mip_levels: 1,
-            array_layers: 1,
-            samples: vk::SampleCountFlags::TYPE_1,
-            tiling,
-            usage,
-            sharing_mode: vk::SharingMode::EXCLUSIVE,
-            queue_family_index_count: 0,
-            p_queue_family_indices: ptr::null(),
-            initial_layout: vk::ImageLayout::UNDEFINED,
-        };
+            })
+            .mip_levels(1)
+            .array_layers(1)
+            .samples(vk::SampleCountFlags::TYPE_1)
+            .tiling(tiling)
+            .usage(usage)
+            .sharing_mode(vk::SharingMode::EXCLUSIVE)
+            .initial_layout(vk::ImageLayout::UNDEFINED)
+            .build();
 
         let texture_image = unsafe {
             device
@@ -202,17 +204,17 @@ impl Texture {
                 .expect("Failed to create Texture Image!")
         };
 
+        // Allocate image memory.
         let image_memory_requirement =
             unsafe { device.get_image_memory_requirements(texture_image) };
-        let memory_allocate_info = vk::MemoryAllocateInfo {
-            s_type: vk::StructureType::MEMORY_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            allocation_size: image_memory_requirement.size,
-            memory_type_index: device.find_memory_type(
+
+        let memory_allocate_info = vk::MemoryAllocateInfo::builder()
+            .allocation_size(image_memory_requirement.size)
+            .memory_type_index(device.find_memory_type(
                 image_memory_requirement.memory_type_bits,
                 required_memory_properties,
-            ),
-        };
+            ))
+            .build();
 
         let texture_image_memory = unsafe {
             device
@@ -229,16 +231,22 @@ impl Texture {
         (texture_image, texture_image_memory)
     }
 
+    /// Transitions image layout.
+    ///
+    /// # Arguments
+    /// - `old_layout`: The current layout of the image.
+    /// - `new_layout`: The desired layout of the image.
+    /// - `command_pool`: Command pool that is used to allocate a commandbuffer, to perform the transition, from.
+    /// - `submit_queue`: The queue on which the commandbuffer will be queued.
     fn transition_image_layout(
         device: &LogicalDevice,
         image: vk::Image,
-        _format: vk::Format,
         old_layout: vk::ImageLayout,
         new_layout: vk::ImageLayout,
         command_pool: &CommandPool,
         submit_queue: &Queue,
     ) {
-        let command_buffer = Self::begin_single_time_command(device, command_pool);
+        let command_buffer = begin_single_time_command(device, command_pool);
 
         let src_access_mask;
         let dst_access_mask;
@@ -302,7 +310,7 @@ impl Texture {
             );
         }
 
-        Self::end_single_time_command(device, command_pool, submit_queue, &command_buffer);
+        end_single_time_command(device, command_pool, submit_queue, &command_buffer);
     }
 
     fn copy_buffer_to_image(
@@ -314,7 +322,7 @@ impl Texture {
         command_pool: &CommandPool,
         submit_queue: &Queue,
     ) {
-        let command_buffer = Self::begin_single_time_command(device, command_pool);
+        let command_buffer = begin_single_time_command(device, command_pool);
 
         let buffer_image_regions = [vk::BufferImageCopy {
             image_subresource: vk::ImageSubresourceLayers {
@@ -344,80 +352,10 @@ impl Texture {
             );
         }
 
-        Self::end_single_time_command(device, command_pool, submit_queue, &command_buffer);
+        end_single_time_command(device, command_pool, submit_queue, &command_buffer);
     }
 
-    fn begin_single_time_command(
-        device: &LogicalDevice,
-        command_pool: &CommandPool,
-    ) -> vk::CommandBuffer {
-        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_ALLOCATE_INFO,
-            p_next: ptr::null(),
-            command_buffer_count: 1,
-            command_pool: **command_pool,
-            level: vk::CommandBufferLevel::PRIMARY,
-        };
-
-        let command_buffer = unsafe {
-            device
-                .allocate_command_buffers(&command_buffer_allocate_info)
-                .expect("Failed to allocate Command Buffers!")
-        }[0];
-
-        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
-            s_type: vk::StructureType::COMMAND_BUFFER_BEGIN_INFO,
-            p_next: ptr::null(),
-            p_inheritance_info: ptr::null(),
-            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
-        };
-
-        unsafe {
-            device
-                .begin_command_buffer(command_buffer, &command_buffer_begin_info)
-                .expect("Failed to begin recording Command Buffer at beginning!");
-        }
-
-        command_buffer
-    }
-
-    fn end_single_time_command(
-        device: &LogicalDevice,
-        command_pool: &CommandPool,
-        submit_queue: &Queue,
-        command_buffer: &vk::CommandBuffer,
-    ) {
-        unsafe {
-            device
-                .end_command_buffer(*command_buffer)
-                .expect("Failed to record Command Buffer at Ending!");
-        }
-
-        let buffers_to_submit = [*command_buffer];
-
-        let submit_infos = [vk::SubmitInfo {
-            s_type: vk::StructureType::SUBMIT_INFO,
-            p_next: ptr::null(),
-            wait_semaphore_count: 0,
-            p_wait_semaphores: ptr::null(),
-            p_wait_dst_stage_mask: ptr::null(),
-            command_buffer_count: 1,
-            p_command_buffers: buffers_to_submit.as_ptr(),
-            signal_semaphore_count: 0,
-            p_signal_semaphores: ptr::null(),
-        }];
-
-        unsafe {
-            device
-                .queue_submit(**submit_queue, &submit_infos, vk::Fence::null())
-                .expect("Failed to Queue Submit!");
-            device
-                .queue_wait_idle(**submit_queue)
-                .expect("Failed to wait Queue idle!");
-            device.free_command_buffers(**command_pool, &buffers_to_submit);
-        }
-    }
-
+    /// Creates a texture sampler that can be used to sample texel data from.
     pub fn create_texture_sampler(device: &LogicalDevice) -> vk::Sampler {
         let sampler_create_info = vk::SamplerCreateInfo {
             s_type: vk::StructureType::SAMPLER_CREATE_INFO,

@@ -1,6 +1,6 @@
 use anasaizi_core::vulkan::{
-    BufferLayout, CommandPool, IndexBuffer, Instance, LogicalDevice, Pipeline, Queue,
-    ShaderBuilder, ShaderSet, UniformBufferObject, VertexBuffer, Window,
+    CommandPool, IndexBuffer, Instance, LogicalDevice, Pipeline, Queue, ShaderBuilder, ShaderSet,
+    UniformBufferObject, VertexBuffer, Window,
 };
 use ash::vk;
 use winit::{
@@ -23,6 +23,7 @@ use anasaizi_core::{
     },
 };
 
+use anasaizi_core::engine::BufferLayout;
 use std::{path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
 
@@ -214,10 +215,10 @@ impl VulkanApp {
 
             let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, self.count, 0.0));
 
-            uniform_mut.view = view;
-            uniform_mut.proj = perspective;
+            uniform_mut.view_matrix = view;
+            uniform_mut.projection_matrix = perspective;
             // }
-            uniform_mut.model = rotation;
+            uniform_mut.model_matrix = rotation;
 
             pipeline
                 .shader

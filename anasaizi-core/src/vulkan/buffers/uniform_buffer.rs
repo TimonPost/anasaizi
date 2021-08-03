@@ -1,16 +1,19 @@
-use crate::vulkan::{buffers::buffer::create_buffer, Instance, LogicalDevice};
+use crate::vulkan::{buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice};
 use ash::{version::DeviceV1_0, vk};
 use std::{marker::PhantomData, mem::size_of};
 
+/// Template for an uniform buffer object.
 pub trait UniformBufferObjectTemplate: Default + Clone {
+    /// Returns the size of this buffer object.
     fn size(&self) -> usize;
 }
 
+/// Uniform buffer object.
 #[derive(Copy, Clone)]
 pub struct UniformBufferObject {
-    pub model: nalgebra::Matrix4<f32>,
-    pub view: nalgebra::Matrix4<f32>,
-    pub proj: nalgebra::Matrix4<f32>,
+    pub model_matrix: nalgebra::Matrix4<f32>,
+    pub view_matrix: nalgebra::Matrix4<f32>,
+    pub projection_matrix: nalgebra::Matrix4<f32>,
 }
 
 impl UniformBufferObjectTemplate for UniformBufferObject {
@@ -25,36 +28,38 @@ impl Default for UniformBufferObject {
         identity.fill_with_identity();
 
         UniformBufferObject {
-            model: identity,
-            view: identity,
-            proj: identity,
+            model_matrix: identity,
+            view_matrix: identity,
+            projection_matrix: identity,
         }
     }
 }
 
+/// A uniform buffer that is feeded into the shader.
 pub struct UniformBuffer<U: UniformBufferObjectTemplate> {
-    // because we can pregenerate frames and uniforms change per frame we want to have various buffers in our arsenal to use.
-    buffers: Vec<vk::Buffer>,
+    // There is a uniform buffer for ach frame.
+    buffer: Vec<vk::Buffer>,
     buffers_memory: Vec<vk::DeviceMemory>,
-    swap_chain_image_count: usize,
+    frames_count: usize,
 
     _data: PhantomData<U>,
 }
 
 impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
+    /// Creates a new uniform buffer.
     pub fn new(
         instance: &Instance,
         device: &LogicalDevice,
-        swap_chain_image_count: usize,
+        frames_count: usize,
     ) -> UniformBuffer<U> {
         let buffer_size = size_of::<U>() as u64;
 
         let mut buffers = vec![];
         let mut buffers_memory = vec![];
 
-        for _i in 0..swap_chain_image_count {
+        for _i in 0..frames_count {
             unsafe {
-                let (buffer, memory) = create_buffer(
+                let (buffer, memory) = create_allocate_vk_buffer(
                     instance,
                     device,
                     buffer_size,
@@ -67,18 +72,18 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
         }
 
         UniformBuffer {
-            buffers,
+            buffer: buffers,
             buffers_memory,
-            swap_chain_image_count,
+            frames_count: frames_count,
 
             _data: PhantomData,
         }
     }
 
     pub fn destroy(&self, device: &LogicalDevice) {
-        for i in 0..self.swap_chain_image_count {
+        for i in 0..self.frames_count {
             unsafe {
-                device.destroy_buffer(self.buffers[i], None);
+                device.destroy_buffer(self.buffer[i], None);
                 device.free_memory(self.buffers_memory[i], None);
             }
         }
@@ -89,6 +94,6 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
     }
 
     pub fn buffers(&self, image_index: usize) -> vk::Buffer {
-        self.buffers[image_index]
+        self.buffer[image_index]
     }
 }

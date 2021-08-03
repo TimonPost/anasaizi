@@ -4,12 +4,14 @@ use crate::vulkan::LogicalDevice;
 use std::ops::Deref;
 
 /// A Vulkan command pool.
-/// Command pools manage the memory that is used to store the buffers and command buffers are allocated from them.
+///
+/// A command pools manages the command buffer allocation and the associated memory.
 pub struct CommandPool {
-    pool: vk::CommandPool,
+    command_pool: vk::CommandPool,
 }
 
 impl CommandPool {
+    /// Creates a new command pool.
     pub fn create(device: &LogicalDevice) -> CommandPool {
         let command_pool_create_info = vk::CommandPoolCreateInfo::builder()
             .queue_family_index(device.queue_family_indices().graphics_family.unwrap());
@@ -20,11 +22,12 @@ impl CommandPool {
                 .expect("Failed to create Command Pool!")
         };
 
-        CommandPool { pool: command_pool }
+        CommandPool { command_pool }
     }
 
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
-        device.destroy_command_pool(self.pool, None);
+    /// Destroys the command pool and the associated command buffer allocations.
+    pub unsafe fn destroy(&self, device: &LogicalDevice) {
+        device.destroy_command_pool(self.command_pool, None);
     }
 }
 
@@ -32,6 +35,6 @@ impl Deref for CommandPool {
     type Target = vk::CommandPool;
 
     fn deref(&self) -> &Self::Target {
-        &self.pool
+        &self.command_pool
     }
 }

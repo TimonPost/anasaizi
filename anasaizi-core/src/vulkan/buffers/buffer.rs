@@ -1,17 +1,26 @@
-use crate::vulkan::{CommandPool, Instance, LogicalDevice, Queue};
+use crate::vulkan::{
+    begin_single_time_command, end_single_time_command, CommandPool, Instance, LogicalDevice, Queue,
+};
 use ash::{
     version::DeviceV1_0,
     vk,
     vk::{Buffer, DeviceMemory},
 };
 
-pub fn create_buffer(
+/// Creates and allocates a vulkan buffer.
+///
+/// # Arguments
+/// - `size`: The size in bytes of the buffer that is to be created.
+/// - `usage`: How the buffer will be used.
+/// - `flags`: What the memory properties of this buffer should be.
+pub fn create_allocate_vk_buffer(
     _instance: &Instance,
     device: &LogicalDevice,
     size: u64,
     usage: vk::BufferUsageFlags,
     flags: vk::MemoryPropertyFlags,
 ) -> (Buffer, DeviceMemory) {
+    // Create buffer.
     let buffer_create_info = vk::BufferCreateInfo::builder()
         .size(size)
         .usage(usage)
@@ -24,6 +33,7 @@ pub fn create_buffer(
             .expect("Could not create vertex buffer.")
     };
 
+    // Allocate buffer.
     let mem_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
 
     let memory_type = device.find_memory_type(mem_requirements.memory_type_bits, flags);
@@ -48,6 +58,14 @@ pub fn create_buffer(
     (buffer, buffer_memory)
 }
 
+/// Copy one buffer over to an other buffer.
+///
+/// # Arguments
+/// - `submit_queue`: The queue that will be used to execute this copy command on.
+/// - `command_pool`: The pool that will be used to allocate the command buffer, used for copy operation, from.
+/// - `src_buffer`: The source buffer that will be copied to the `dst_buffer`.
+/// - `dst_buffer`: The destination buffer into which the data from `src_buffer` will be copied.
+/// - `size`: The size of data that will be copied. Offset is 0.
 pub fn copy_buffer(
     device: &LogicalDevice,
     submit_queue: &Queue,
@@ -56,29 +74,9 @@ pub fn copy_buffer(
     dst_buffer: vk::Buffer,
     size: vk::DeviceSize,
 ) {
-    let allocate_info = vk::CommandBufferAllocateInfo::builder()
-        .command_buffer_count(1)
-        .command_pool(**command_pool)
-        .level(vk::CommandBufferLevel::PRIMARY)
-        .build();
-
-    let command_buffers = unsafe {
-        device
-            .allocate_command_buffers(&allocate_info)
-            .expect("Failed to allocate Command Buffer")
-    };
-
-    let command_buffer = command_buffers[0];
-
-    let begin_info = vk::CommandBufferBeginInfo::builder()
-        .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT)
-        .build();
+    let command_buffer = begin_single_time_command(device, command_pool);
 
     unsafe {
-        device
-            .begin_command_buffer(command_buffer, &begin_info)
-            .expect("Failed to begin Command Buffer");
-
         let copy_regions = [vk::BufferCopy {
             src_offset: 0,
             dst_offset: 0,
@@ -86,24 +84,7 @@ pub fn copy_buffer(
         }];
 
         device.cmd_copy_buffer(command_buffer, src_buffer, dst_buffer, &copy_regions);
-
-        device
-            .end_command_buffer(command_buffer)
-            .expect("Failed to end Command Buffer");
     }
 
-    let submit_info = [vk::SubmitInfo::builder()
-        .command_buffers(&command_buffers)
-        .build()];
-
-    unsafe {
-        device
-            .queue_submit(**submit_queue, &submit_info, vk::Fence::null())
-            .expect("Failed to Submit Queue.");
-        device
-            .queue_wait_idle(**submit_queue)
-            .expect("Failed to wait Queue idle");
-
-        device.free_command_buffers(**command_pool, &command_buffers);
-    }
+    end_single_time_command(device, command_pool, submit_queue, &command_buffer);
 }

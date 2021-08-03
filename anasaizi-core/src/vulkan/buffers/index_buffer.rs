@@ -1,18 +1,20 @@
 use crate::vulkan::{
-    buffers::buffer::{copy_buffer, create_buffer},
+    buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
     CommandPool, Instance, LogicalDevice, Queue,
 };
 use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
 use std::{mem, mem::size_of};
 
+/// An allocated vulkan buffer containing indices.
 pub struct IndexBuffer {
-    index_buffer: vk::Buffer,
-    index_buffer_memory: vk::DeviceMemory,
-    indices_count: usize,
+    buffer: vk::Buffer,
+    memory: vk::DeviceMemory,
+    count: usize,
 }
 
 impl IndexBuffer {
+    /// Creates a new index buffer from the given indices.
     pub fn create(
         instance: &Instance,
         device: &LogicalDevice,
@@ -20,9 +22,10 @@ impl IndexBuffer {
         submit_queue: &Queue,
         command_pool: &CommandPool,
     ) -> IndexBuffer {
+        // Allocate the staging buffer.
         let buffer_size = (size_of::<u32>() * indices.len()) as u64;
 
-        let (staging_buffer, staging_buffer_memory) = create_buffer(
+        let (staging_buffer, staging_buffer_memory) = create_allocate_vk_buffer(
             &instance,
             &device,
             buffer_size,
@@ -30,6 +33,7 @@ impl IndexBuffer {
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         );
 
+        // Copy the indices into the allocated buffer.
         unsafe {
             let data_ptr = device
                 .map_memory(
@@ -45,7 +49,8 @@ impl IndexBuffer {
             device.unmap_memory(staging_buffer_memory);
         }
 
-        let (index_buffer, index_buffer_memory) = create_buffer(
+        // Create new buffer on the GPU.
+        let (index_buffer, index_buffer_memory) = create_allocate_vk_buffer(
             &instance,
             &device,
             buffer_size,
@@ -53,6 +58,7 @@ impl IndexBuffer {
             vk::MemoryPropertyFlags::DEVICE_LOCAL | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
+        // Copy data from CPU staging buffer to GPU
         copy_buffer(
             device,
             submit_queue,
@@ -69,38 +75,38 @@ impl IndexBuffer {
         }
 
         IndexBuffer {
-            index_buffer,
-            index_buffer_memory,
-            indices_count: indices.len(),
+            buffer: index_buffer,
+            memory: index_buffer_memory,
+            count: indices.len(),
         }
     }
 
+    /// Destroys the buffer and its memory.
     pub fn destroy(&self, device: &LogicalDevice) {
         unsafe {
-            device.destroy_buffer(self.index_buffer, None);
-            device.free_memory(self.index_buffer_memory, None)
+            device.destroy_buffer(self.buffer, None);
+            device.free_memory(self.memory, None)
         }
     }
 
+    /// Returns the number of indices.
     pub fn indices_count(&self) -> usize {
-        self.indices_count
+        self.count
     }
 
+    /// Updates the buffer contents with the given data.
+    ///
+    /// Make sure that the given data is the same as what is stored in the buffer.
     pub fn update_buffer_content<T: Copy>(&self, device: &LogicalDevice, data: &[T]) {
         unsafe {
             let size = (data.len() * mem::size_of::<T>()) as _;
 
             let data_ptr = device
-                .map_memory(
-                    self.index_buffer_memory,
-                    0,
-                    size,
-                    vk::MemoryMapFlags::empty(),
-                )
+                .map_memory(self.memory, 0, size, vk::MemoryMapFlags::empty())
                 .unwrap();
             let mut align = ash::util::Align::new(data_ptr, mem::align_of::<T>() as _, size);
             align.copy_from_slice(&data);
-            device.unmap_memory(self.index_buffer_memory);
+            device.unmap_memory(self.memory);
         };
     }
 }
@@ -109,6 +115,6 @@ impl Deref for IndexBuffer {
     type Target = vk::Buffer;
 
     fn deref(&self) -> &Self::Target {
-        &self.index_buffer
+        &self.buffer
     }
 }
