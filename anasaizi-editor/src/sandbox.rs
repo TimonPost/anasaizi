@@ -27,8 +27,6 @@ use anasaizi_core::engine::BufferLayout;
 use std::{path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
 
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
-
 pub struct VulkanApp {
     vulkan_renderer: VulkanRenderer<UniformBufferObject>,
     application: VulkanApplication,
@@ -125,7 +123,6 @@ impl VulkanApp {
 
         let mut builder = ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER, 3);
         builder
-            .with_textures(&texture, vulkan_renderer.texture_sampler.unwrap())
             .with_input_buffer_layout(input_buffer_layout)
             .with_write_descriptor_layout(&Self::descriptor_set_layout(&application.device))
             .with_descriptor_pool(&[
@@ -170,7 +167,6 @@ impl VulkanApp {
             3,
         );
         builder
-            .with_textures(&textures, vulkan_renderer.texture_sampler.unwrap())
             .with_input_buffer_layout(input_buffer_layout)
             .with_write_descriptor_layout(&Self::descriptor_set_layout(&application.device))
             .with_descriptor_pool(&[vk::DescriptorType::COMBINED_IMAGE_SAMPLER])
@@ -246,7 +242,6 @@ impl VulkanApp {
         let ui_shader = Self::setup_ui_shader(&self.application, &self.vulkan_renderer, &context);
         let pipeline = Pipeline::ui_pipeline(
             &self.application.device,
-            self.vulkan_renderer.swapchain.extent,
             &self.vulkan_renderer.render_pass,
             ui_shader,
         );

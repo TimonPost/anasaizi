@@ -5,7 +5,7 @@ use crate::{
     vulkan::{ImageView, Instance, LogicalDevice, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
-use ash::{version::DeviceV1_0, vk::Image};
+use ash::vk::Image;
 use std::ops::Deref;
 
 /// A Vulkan Swapchain.

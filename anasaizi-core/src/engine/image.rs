@@ -1,8 +1,8 @@
 use crate::vulkan::{
-    begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, CommandBuffers,
-    CommandPool, ImageView, Instance, LogicalDevice, Queue,
+    begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, CommandPool,
+    ImageView, Instance, LogicalDevice, Queue,
 };
-use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
+use ash::{version::DeviceV1_0, vk};
 use image::GenericImageView;
 use std::{path::Path, ptr};
 

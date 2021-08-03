@@ -4,13 +4,11 @@ use std::fmt::Formatter;
 
 use crate::{
     utils::vk_to_string,
-    vulkan::{
-        Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version,
-    },
+    vulkan::{Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version},
 };
 
-use std::{fmt, ops::Deref};
 use crate::engine::Extensions;
+use std::{fmt, ops::Deref};
 
 /// A Vulkan logical device.
 ///
@@ -352,7 +350,7 @@ pub struct DeviceProperties {
 
 impl fmt::Debug for DeviceProperties {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "\nDevice Properties:\n");
+        write!(f, "\nDevice Properties:\n")?;
         write!(
             f,
             "\t- Device Name: {}, id: {}, type: {:?}\n",

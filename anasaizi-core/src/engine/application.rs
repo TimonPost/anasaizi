@@ -1,18 +1,12 @@
 use crate::{
-    reexports::{
-        imgui::{Context, __core::fmt::Formatter},
-        imgui_winit_support::WinitPlatform,
-    },
-    vulkan::{
-        structures::ValidationInfo, Application, Instance, LogicalDevice, Version,
-        Window,
-    },
+    engine::Extensions,
+    reexports::imgui::__core::fmt::Formatter,
+    vulkan::{structures::ValidationInfo, Application, Instance, LogicalDevice, Version, Window},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::extensions::{ext::DebugUtils, khr};
 use std::{fmt, fmt::Debug};
 use winit::event_loop::EventLoop;
-use crate::engine::Extensions;
 
 pub const VALIDATION: ValidationInfo = ValidationInfo {
     is_enable: true,

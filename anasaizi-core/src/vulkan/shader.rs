@@ -1,26 +1,21 @@
 use crate::{
-    engine::{image::Texture, BufferLayout, VulkanApplication},
+    engine::{BufferLayout, VulkanApplication},
     vulkan::{
-        DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer,
-        UniformBufferObject, UniformBufferObjectTemplate,
+        DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer, UniformBufferObjectTemplate,
     },
 };
 use ash::{
     version::DeviceV1_0,
     vk,
-    vk::{DescriptorSetLayout, Sampler, ShaderModule},
+    vk::{DescriptorSetLayout, ShaderModule},
 };
 use std::{path::Path, ptr};
 
 pub struct ShaderBuilder<'a> {
-    textures: Option<&'a [Texture]>,
-    sampler: Option<Sampler>,
-
     input_buffer_layout: Option<BufferLayout>,
     descriptor_set_layout: Option<DescriptorSetLayout>,
     descriptor_pool: Option<DescriptorPool>,
     write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
-    uniform_buffer: Option<UniformBuffer<UniformBufferObject>>,
     vertex_shader: &'static str,
     fragment_shader: &'static str,
     swapchain_images: usize,
@@ -42,13 +37,10 @@ impl<'a> ShaderBuilder<'a> {
             swapchain_images,
             application,
 
-            textures: None,
-            sampler: None,
             input_buffer_layout: None,
             descriptor_set_layout: None,
             descriptor_pool: None,
             write_descriptor_sets: vec![],
-            uniform_buffer: None,
         }
     }
 
@@ -58,17 +50,6 @@ impl<'a> ShaderBuilder<'a> {
         input_buffer_layout: BufferLayout,
     ) -> &mut ShaderBuilder<'a> {
         self.input_buffer_layout = Some(input_buffer_layout);
-        self
-    }
-
-    /// Shader with the given textures.
-    pub fn with_textures(
-        &mut self,
-        textures: &'a [Texture],
-        sampler: Sampler,
-    ) -> &mut ShaderBuilder<'a> {
-        self.textures = Some(textures);
-        self.sampler = Some(sampler);
         self
     }
 

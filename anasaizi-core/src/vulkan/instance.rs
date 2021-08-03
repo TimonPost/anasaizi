@@ -1,8 +1,6 @@
 use crate::{
     engine::Extensions,
-    vulkan::{
-        structures::ValidationInfo, Application, LogicalDevice, ValidationLayers,
-    },
+    vulkan::{structures::ValidationInfo, Application, ValidationLayers},
 };
 use ash::{version::EntryV1_0, vk};
 use std::{ffi::CString, fmt, ops::Deref};

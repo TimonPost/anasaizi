@@ -58,17 +58,15 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
         let mut buffers_memory = vec![];
 
         for _i in 0..frames_count {
-            unsafe {
-                let (buffer, memory) = create_allocate_vk_buffer(
-                    instance,
-                    device,
-                    buffer_size,
-                    vk::BufferUsageFlags::UNIFORM_BUFFER,
-                    vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-                );
-                buffers.push(buffer);
-                buffers_memory.push(memory);
-            }
+            let (buffer, memory) = create_allocate_vk_buffer(
+                instance,
+                device,
+                buffer_size,
+                vk::BufferUsageFlags::UNIFORM_BUFFER,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            );
+            buffers.push(buffer);
+            buffers_memory.push(memory);
         }
 
         UniformBuffer {

@@ -1,11 +1,5 @@
-use crate::{
-    engine::{image::Texture, VulkanApplication},
-    vulkan::{CommandPool, Instance, LogicalDevice, Queue, SurfaceData},
-};
-use ash::version::InstanceV1_0;
-use imgui::{Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId, Textures, Ui};
-use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use std::{ops::Deref, time::Instant};
+use crate::vulkan::{Instance, SurfaceData};
+use std::ops::Deref;
 use winit::event_loop::EventLoop;
 
 /// A Vulkan winit window.

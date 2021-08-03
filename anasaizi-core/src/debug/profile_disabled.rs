@@ -1,4 +1,3 @@
-#[macro_use]
 use lazy_static::lazy_static;
 
 #[macro_export]

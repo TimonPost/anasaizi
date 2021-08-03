@@ -7,8 +7,8 @@ use crate::{
     model::Mesh,
     profile_fn,
     vulkan::{
-        structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue,
-        RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate,
+        structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
+        ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
 use ultraviolet::projection::orthographic_vk;
@@ -16,18 +16,15 @@ use ultraviolet::projection::orthographic_vk;
 use anasaizi_profile::profile;
 
 use crate::{
+    engine::BufferLayout,
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
-    reexports::imgui::{DrawCmd, DrawCmdParams, DrawData, TextureId},
-    vulkan::{
-        IndexBuffer, Instance, LogicalDevice, Pipeline, ShaderBuilder, UniformBufferObject,
-        VertexBuffer,
-    },
+    reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
+    vulkan::{IndexBuffer, LogicalDevice, Pipeline, ShaderBuilder, VertexBuffer},
 };
 use ash::{version::DeviceV1_0, vk};
 use std::{ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
-use crate::engine::BufferLayout;
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -223,10 +220,9 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let (image_index, _is_sub_optimal) = unsafe {
             profile_fn!("Acquire Next Image...", {
-                unsafe {
-                    device
-                        .reset_command_pool(*self.command_pool, vk::CommandPoolResetFlags::empty());
-                }
+                device
+                    .reset_command_pool(*self.command_pool, vk::CommandPoolResetFlags::empty())
+                    .unwrap();
 
                 self.swapchain
                     .loader
@@ -392,7 +388,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                     &draw_data,
                 ));
             } else {
-                let mut mesh = self.ui_mesh.as_mut().unwrap();
+                let mesh = self.ui_mesh.as_mut().unwrap();
                 mesh.update_from_draw_data(
                     &application.instance,
                     &application.device,
@@ -455,8 +451,8 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                 )
             };
 
-            let mut index_offset = 0;
-            let mut vertex_offset = 0;
+            let index_offset = 0;
+            let vertex_offset = 0;
 
             let clip_offset = draw_data.display_pos;
             let clip_scale = draw_data.framebuffer_scale;

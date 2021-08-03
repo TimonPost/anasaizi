@@ -202,7 +202,6 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
 
     pub fn ui_pipeline(
         device: &LogicalDevice,
-        swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
         shader_set: ShaderSet<U>,
     ) -> Pipeline<U> {

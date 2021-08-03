@@ -20,7 +20,6 @@ pub struct Camera {
 
     yaw: f64,
     pitch: f64,
-    roll: f64,
 
     field_of_view: f32,
     aspect_ratio: f32,
@@ -60,7 +59,6 @@ impl Camera {
 
             yaw: -90.0,
             pitch: 0.0,
-            roll: 0.0,
             field_of_view,
 
             znear,

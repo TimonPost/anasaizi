@@ -1,9 +1,6 @@
-use crate::{
-    math::Vertex,
-    vulkan::{
-        buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
-        CommandPool, Instance, LogicalDevice, Queue,
-    },
+use crate::vulkan::{
+    buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
+    CommandPool, Instance, LogicalDevice, Queue,
 };
 use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;

@@ -1,14 +1,9 @@
 use crate::{
     math::Vertex,
     reexports::imgui::DrawData,
-    vulkan::{
-        create_allocate_vk_buffer, CommandPool, IndexBuffer, Instance, LogicalDevice, Queue,
-        VertexBuffer,
-    },
+    vulkan::{CommandPool, IndexBuffer, Instance, LogicalDevice, Queue, VertexBuffer},
 };
-use ash::{version::DeviceV1_0, vk};
 use nalgebra::Matrix4;
-use std::mem::size_of;
 
 /// Mesh that holds the allocated vertex, index buffer and the model transformation.
 pub struct Mesh {
@@ -126,18 +121,12 @@ impl Mesh {
         // load vertexes
         let vertex_count = draw_data.total_vtx_count as usize;
         let mut vertices: Vec<Vertex> = Vec::with_capacity(vertex_count);
-        let mut count = 0;
-        let mut count1 = 0;
+
         for draw_list in draw_data.draw_lists() {
             let vertexes = draw_list
                 .vtx_buffer()
                 .iter()
                 .map(|vertex| {
-                    if (vertex.col[0] == 255 && vertex.col[1] == 255 && vertex.col[2] == 255) {
-                        count += 1;
-                    } else {
-                        count1 += 1;
-                    }
                     Vertex {
                         pos: nalgebra::Vector3::new(vertex.pos[0], vertex.pos[1], 0.0),
                         // Glsl used color range `0 <= x <=1` and imgui `0 <= x <= 255`, therefore divide by 255.

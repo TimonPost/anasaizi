@@ -109,7 +109,7 @@ impl BufferLayout {
 mod tests {
     use ash::vk;
 
-    use crate::{engine::buffer_layout::BufferLayoutElement, vulkan::BufferLayout};
+    use crate::engine::{buffer_layout::BufferLayoutElement, BufferLayout};
 
     #[test]
     fn add_float_vec2_correct_size() {

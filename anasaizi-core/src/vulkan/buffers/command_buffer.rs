@@ -1,12 +1,10 @@
 use crate::{
     model::Mesh,
     vulkan::{
-        CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass, ShaderSet,
-        UniformBufferObjectTemplate,
+        CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass, UniformBufferObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk};
-use imgui::{DrawCmd, DrawCmdParams, DrawData, TextureId};
 use std::ops::Deref;
 
 /// A Vulkan command buffer.

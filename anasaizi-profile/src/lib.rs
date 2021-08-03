@@ -1,16 +1,8 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use ::syn::{self,
-            ItemFn,
-            parse_macro_input,
-            parse_quote,
-            spanned::Spanned,
-};
-use syn::{Stmt, Expr};
 
 #[cfg(not(feature = "profile"))]
 #[proc_macro_attribute]
-pub fn profile(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn profile(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item.into()
 }
 
