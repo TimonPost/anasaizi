@@ -20,10 +20,14 @@ use crate::{
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
     reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
-    vulkan::{IndexBuffer, LogicalDevice, Pipeline, ShaderBuilder, VertexBuffer},
+    utils::any_as_u8_slice,
+    vulkan::{
+        Application, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Pipeline,
+        ShaderBuilder, ShaderIOBuilder, VertexBuffer,
+    },
 };
 use ash::{version::DeviceV1_0, vk};
-use std::{ptr, time::Instant};
+use std::{mem, ptr, time::Instant};
 use winit::event::{ElementState, VirtualKeyCode};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
@@ -332,7 +336,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    pub fn render_meshes(&self, application: &VulkanApplication) {
+    pub fn render_meshes(&mut self, application: &VulkanApplication) {
         unsafe {
             let viewports = [vk::Viewport {
                 x: 0.0,
@@ -487,7 +491,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                                 },
                             }];
                             device.cmd_set_scissor(current_command_buffer, 0, &scissors);
-                            let sets = [*ui_pipeline.shader.descriptor_sets[image_index]];
+                            let sets = [ui_pipeline.shader.get_descriptor_sets(image_index)];
                             device.cmd_bind_descriptor_sets(
                                 current_command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
@@ -636,20 +640,22 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             &self.command_pool,
         );
 
-        let descriptor_write_sets = vec![vk::WriteDescriptorSet::builder()
-            .dst_binding(0)
-            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            .dst_array_element(0)
-            .build()];
-
-        let layout_binding = [vk::DescriptorSetLayoutBinding::builder()
-            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            .descriptor_count(1)
-            .stage_flags(vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT)
-            .binding(0)
-            .build()];
-
         let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
+
+        let push_const_ranges = [vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: mem::size_of::<MeshPushConstants>() as u32,
+        }];
+
+        let mut descriptors = ShaderIOBuilder::builder()
+            .add_uniform_buffer(
+                0,
+                vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+            )
+            .add_input_buffer_layout(input_buffer_layout)
+            .add_push_constant_ranges(&push_const_ranges)
+            .build(application, self.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(
             application,
@@ -657,20 +663,10 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             "assets\\shaders\\build\\grid_frag.spv",
             self.swapchain.images.len(),
         );
-        builder
-            .with_input_buffer_layout(input_buffer_layout)
-            .with_write_descriptor_layout(&layout_binding)
-            .with_descriptor_pool(&[vk::DescriptorType::UNIFORM_BUFFER])
-            .with_write_descriptor_sets(descriptor_write_sets);
+        builder.with_descriptors(descriptors);
 
         let build: ShaderSet<U> = builder.build();
 
         (build, Mesh::new(grid_vertex_buffer, grid_index_buffer))
     }
-}
-
-/// Return a `&[u8]` for any sized object passed in.
-pub(crate) unsafe fn any_as_u8_slice<T: Sized>(any: &T) -> &[u8] {
-    let ptr = (any as *const T) as *const u8;
-    std::slice::from_raw_parts(ptr, std::mem::size_of::<T>())
 }

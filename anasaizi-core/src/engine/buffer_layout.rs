@@ -24,12 +24,18 @@ impl BufferLayoutElement {
 /// The layout of the data inside a buffer.
 pub struct BufferLayout {
     layouts: Vec<BufferLayoutElement>,
+
+    // those are used for pointers.
+    pub binding_desc: Vec<vk::VertexInputBindingDescription>,
+    pub attrib_desc: Vec<vk::VertexInputAttributeDescription>,
 }
 
 impl BufferLayout {
     pub fn new() -> BufferLayout {
         BufferLayout {
             layouts: Vec::new(),
+            binding_desc: Vec::new(),
+            attrib_desc: Vec::new(),
         }
     }
 
@@ -77,21 +83,20 @@ impl BufferLayout {
     }
 
     /// Returns the binding descriptions that describe how a single buffer element is laid out in the buffer.
-    pub fn build_binding_description(&self) -> vk::VertexInputBindingDescription {
-        vk::VertexInputBindingDescription {
+    pub fn build_binding_description(&mut self) {
+        self.binding_desc.push(vk::VertexInputBindingDescription {
             binding: 0,
             stride: self.layouts.iter().map(|x| x.stride).sum::<usize>() as u32,
             input_rate: vk::VertexInputRate::VERTEX,
-        }
+        });
     }
 
     /// Returns the attribute descriptions that describes how a buffer element is structured.
-    pub fn build_attrib_description(&self) -> Vec<vk::VertexInputAttributeDescription> {
+    pub fn build_attrib_description(&mut self) {
         let mut offset: usize = 0;
-        let mut layouts = vec![];
 
         for layout in self.layouts.iter() {
-            layouts.push(vk::VertexInputAttributeDescription {
+            self.attrib_desc.push(vk::VertexInputAttributeDescription {
                 binding: 0,
                 location: layout.layout_id as u32,
                 format: layout.format,
@@ -100,8 +105,6 @@ impl BufferLayout {
 
             offset += layout.stride;
         }
-
-        layouts
     }
 }
 

@@ -1,7 +1,8 @@
 use crate::{
     engine::{BufferLayout, VulkanApplication},
     vulkan::{
-        DescriptorPool, DescriptorSet, LogicalDevice, UniformBuffer, UniformBufferObjectTemplate,
+        DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer,
+        UniformBufferObjectTemplate,
     },
 };
 use ash::{
@@ -11,11 +12,10 @@ use ash::{
 };
 use std::{path::Path, ptr};
 
-pub struct ShaderBuilder<'a> {
+pub struct ShaderBuilder<'a, U: UniformBufferObjectTemplate> {
     input_buffer_layout: Option<BufferLayout>,
-    descriptor_set_layout: Option<DescriptorSetLayout>,
-    descriptor_pool: Option<DescriptorPool>,
-    write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
+    descriptors: Option<ShaderIo<U>>,
+
     vertex_shader: &'static str,
     fragment_shader: &'static str,
     swapchain_images: usize,
@@ -23,104 +23,33 @@ pub struct ShaderBuilder<'a> {
     application: &'a VulkanApplication,
 }
 
-impl<'a> ShaderBuilder<'a> {
+impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
     /// Creates a new shader builder.
     pub fn builder(
         application: &'a VulkanApplication,
         vertex_shader: &'static str,
         fragment_shader: &'static str,
         swapchain_images: usize,
-    ) -> Self {
-        ShaderBuilder {
+    ) -> ShaderBuilder<'a, U> {
+        ShaderBuilder::<'a, U> {
             vertex_shader,
             fragment_shader,
             swapchain_images,
             application,
 
             input_buffer_layout: None,
-            descriptor_set_layout: None,
-            descriptor_pool: None,
-            write_descriptor_sets: vec![],
+            descriptors: None,
         }
     }
 
-    /// Shader with the given input buffer.
-    pub fn with_input_buffer_layout(
-        &mut self,
-        input_buffer_layout: BufferLayout,
-    ) -> &mut ShaderBuilder<'a> {
-        self.input_buffer_layout = Some(input_buffer_layout);
-        self
-    }
-
-    /// Shader with a descriptor pool and given descriptor types.
-    pub fn with_descriptor_pool(
-        &mut self,
-        descriptor_types: &[vk::DescriptorType],
-    ) -> &mut ShaderBuilder<'a> {
-        self.descriptor_pool = Some(DescriptorPool::new(
-            &self.application.device,
-            descriptor_types,
-            self.swapchain_images,
-        ));
-        self
-    }
-
-    /// Shader wit descriptor sets.
-    pub fn with_write_descriptor_sets(
-        &mut self,
-        write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
-    ) -> &mut ShaderBuilder<'a> {
-        self.write_descriptor_sets = write_descriptor_sets;
-
-        self
-    }
-
-    /// Shader wit descriptor layout.
-    pub fn with_write_descriptor_layout(
-        &mut self,
-        layout_binding: &[vk::DescriptorSetLayoutBinding],
-    ) -> &mut ShaderBuilder<'a> {
-        let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(layout_binding)
-            .build();
-
-        self.descriptor_set_layout = Some(unsafe {
-            self.application
-                .device
-                .create_descriptor_set_layout(&layout_create_info, None)
-                .expect("failed to create descriptor set layout!")
-        });
-
+    pub fn with_descriptors(&mut self, descriptors: ShaderIo<U>) -> &mut ShaderBuilder<'a, U> {
+        self.descriptors = Some(descriptors);
         self
     }
 
     /// Build shader.
-    pub fn build<U: UniformBufferObjectTemplate>(mut self) -> ShaderSet<U> {
-        let uniform_buffer_object = U::default();
-
-        if let None = self.descriptor_pool {
-            self.with_descriptor_pool(&[]);
-        }
-
-        if let None = self.descriptor_set_layout {
-            self.with_write_descriptor_layout(&[]);
-        }
-
-        let uniform_buffer = UniformBuffer::<U>::new(
-            &self.application.instance,
-            &self.application.device,
-            self.swapchain_images,
-        );
-
-        let descriptor_pool = self.descriptor_pool.unwrap();
-        let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
-            &self.application.device,
-            self.descriptor_set_layout.unwrap(),
-            self.write_descriptor_sets,
-            &uniform_buffer,
-        );
-
+    pub fn build(mut self) -> ShaderSet<U> {
+        let uniform_buffer_object = Default::default();
         let vertex_shader_code = ShaderSet::<U>::read_shader_code(Path::new(self.vertex_shader));
         let vertex_shader_module =
             ShaderSet::<U>::create_shader_module(&self.application.device, vertex_shader_code);
@@ -134,13 +63,9 @@ impl<'a> ShaderBuilder<'a> {
             vertex_shader_module,
             fragment_shader_module,
 
-            uniform_buffer,
             uniform_buffer_object,
 
-            descriptor_sets,
-            descriptor_pool,
-            descriptor_set_layout: self.descriptor_set_layout.unwrap(),
-            input_buffer_layout: self.input_buffer_layout.unwrap(),
+            io: self.descriptors.unwrap(),
         }
     }
 }
@@ -156,11 +81,17 @@ pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     uniform_buffer_object: U,
     fragment_shader_module: ShaderModule,
 
-    pub descriptor_set_layout: DescriptorSetLayout,
-    pub descriptor_sets: Vec<DescriptorSet>,
-    pub uniform_buffer: UniformBuffer<U>,
-    pub descriptor_pool: DescriptorPool,
-    pub input_buffer_layout: BufferLayout,
+    pub io: ShaderIo<U>,
+}
+
+impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
+    pub fn get_descriptor_sets(&self, frame: usize) -> vk::DescriptorSet {
+        *self.io.descriptor_sets[frame]
+    }
+
+    pub fn descriptor_set_layout(&self) -> Vec<vk::DescriptorSetLayout> {
+        vec![self.io.descriptor_set_layout]
+    }
 }
 
 impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
@@ -172,20 +103,24 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         self.vertex_shader_module
     }
 
+    pub fn uniform(&self) -> &U {
+        &self.uniform_buffer_object
+    }
+
     pub fn uniform_mut(&mut self) -> &mut U {
         &mut self.uniform_buffer_object
     }
 
     /// Write the uniform buffer object to shader memory.
-    pub fn update_uniform(&mut self, device: &LogicalDevice, current_image: usize) {
+    pub fn update_uniform(&self, device: &LogicalDevice, current_image: usize) {
         let ubos = [self.uniform_buffer_object.clone()];
 
-        let buffer_size = (std::mem::size_of::<U>() * ubos.len()) as u64;
+        let buffer_size = (self.uniform_buffer_object.size() * ubos.len()) as u64;
 
         unsafe {
             let data_ptr = device
                 .map_memory(
-                    self.uniform_buffer.buffers_memory(current_image),
+                    self.io.uniform_buffer.buffers_memory(current_image),
                     0,
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
@@ -194,7 +129,7 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
 
             data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
 
-            device.unmap_memory(self.uniform_buffer.buffers_memory(current_image));
+            device.unmap_memory(self.io.uniform_buffer.buffers_memory(current_image));
         }
     }
 
@@ -208,11 +143,8 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
     pub unsafe fn destroy(&self, device: &LogicalDevice) {
         device.destroy_shader_module(self.fragment_shader(), None);
         device.destroy_shader_module(self.vertex_shader(), None);
-        device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
 
-        self.uniform_buffer.destroy(device);
-
-        self.descriptor_pool.destroy(device);
+        self.io.destroy(device);
     }
 
     fn create_shader_module(device: &LogicalDevice, code: Vec<u8>) -> vk::ShaderModule {

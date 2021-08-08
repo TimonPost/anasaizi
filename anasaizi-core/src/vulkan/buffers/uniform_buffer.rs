@@ -1,43 +1,13 @@
-use crate::vulkan::{buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice};
-use ash::{version::DeviceV1_0, vk};
+use crate::vulkan::{
+    buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline,
+    UniformBufferObjectTemplate,
+};
+use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use std::{marker::PhantomData, mem::size_of};
-
-/// Template for an uniform buffer object.
-pub trait UniformBufferObjectTemplate: Default + Clone {
-    /// Returns the size of this buffer object.
-    fn size(&self) -> usize;
-}
-
-/// Uniform buffer object.
-#[derive(Copy, Clone)]
-pub struct UniformBufferObject {
-    pub model_matrix: nalgebra::Matrix4<f32>,
-    pub view_matrix: nalgebra::Matrix4<f32>,
-    pub projection_matrix: nalgebra::Matrix4<f32>,
-}
-
-impl UniformBufferObjectTemplate for UniformBufferObject {
-    fn size(&self) -> usize {
-        size_of::<UniformBufferObject>()
-    }
-}
-
-impl Default for UniformBufferObject {
-    fn default() -> Self {
-        let mut identity = nalgebra::Matrix4::default();
-        identity.fill_with_identity();
-
-        UniformBufferObject {
-            model_matrix: identity,
-            view_matrix: identity,
-            projection_matrix: identity,
-        }
-    }
-}
 
 /// A uniform buffer that is feeded into the shader.
 pub struct UniformBuffer<U: UniformBufferObjectTemplate> {
-    // There is a uniform buffer for ach frame.
+    // There is a uniform buffer for each frame.
     buffer: Vec<vk::Buffer>,
     buffers_memory: Vec<vk::DeviceMemory>,
     frames_count: usize,
@@ -72,7 +42,7 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
         UniformBuffer {
             buffer: buffers,
             buffers_memory,
-            frames_count: frames_count,
+            frames_count,
 
             _data: PhantomData,
         }

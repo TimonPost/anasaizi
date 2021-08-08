@@ -8,7 +8,7 @@ mod vertex_buffer;
 pub use command_buffer::CommandBuffers;
 pub use framebuffer::{FrameBuffer, FrameBuffers};
 pub use index_buffer::IndexBuffer;
-pub use uniform_buffer::{UniformBuffer, UniformBufferObject, UniformBufferObjectTemplate};
+pub use uniform_buffer::UniformBuffer;
 pub use vertex_buffer::VertexBuffer;
 
 use crate::vulkan::{CommandPool, LogicalDevice, Queue};

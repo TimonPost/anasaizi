@@ -8,7 +8,6 @@ layout(location = 1) in vec3 nearPoint; // nearPoint calculated in vertex shader
 layout(location = 2) in vec3 farPoint; // farPoint calculated in vertex shader
 
 layout(binding = 0) uniform UniformBufferObject {
-    mat4 model;
     mat4 view;
     mat4 proj;
 } ubo;

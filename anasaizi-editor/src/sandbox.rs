@@ -1,6 +1,6 @@
 use anasaizi_core::vulkan::{
-    CommandPool, IndexBuffer, Instance, LogicalDevice, Pipeline, Queue, ShaderBuilder, ShaderSet,
-    UniformBufferObject, VertexBuffer, Window,
+    CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Pipeline, Queue,
+    ShaderBuilder, ShaderIOBuilder, ShaderSet, UniformBufferObject, VertexBuffer, Window,
 };
 use ash::vk;
 use winit::{
@@ -24,7 +24,7 @@ use anasaizi_core::{
 };
 
 use anasaizi_core::engine::BufferLayout;
-use std::{path::Path, time::Instant};
+use std::{mem, path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
 
 pub struct VulkanApp {
@@ -72,9 +72,7 @@ impl VulkanApp {
 
         let shader_set =
             Self::setup_main_shader(&application, &vulkan_renderer, &viking_room_texture);
-
         let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application);
-
         vulkan_renderer.create_pipeline(&application, shader_set, vec![mesh]);
         vulkan_renderer.create_pipeline(&application, grid_shader, vec![grid_mesh]);
 
@@ -94,42 +92,33 @@ impl VulkanApp {
     pub fn setup_main_shader(
         application: &VulkanApplication,
         vulkan_renderer: &VulkanRenderer<UniformBufferObject>,
-        texture: &[Texture],
+        textures: &[Texture],
     ) -> ShaderSet<UniformBufferObject> {
         let input_buffer_layout = BufferLayout::new()
             .add_float_vec3(0)
             .add_float_vec4(1)
             .add_float_vec2(2);
 
-        let descriptor_image_info = [vk::DescriptorImageInfo::builder()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .image_view(*texture[0].image_view)
-            .sampler(vulkan_renderer.texture_sampler.unwrap())
-            .build()];
+        let push_const_ranges = [vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: mem::size_of::<MeshPushConstants>() as u32,
+        }];
 
-        let descriptor_write_sets = vec![
-            vk::WriteDescriptorSet::builder()
-                .dst_binding(0)
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .dst_array_element(0)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_binding(1)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .dst_array_element(0)
-                .image_info(&descriptor_image_info)
-                .build(),
-        ];
+        let mut descriptors = ShaderIOBuilder::builder()
+            .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
+            .add_image(
+                1,
+                vk::ShaderStageFlags::FRAGMENT,
+                textures,
+                vulkan_renderer.texture_sampler.unwrap(),
+            )
+            .add_input_buffer_layout(input_buffer_layout)
+            .add_push_constant_ranges(&push_const_ranges)
+            .build(application, vulkan_renderer.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER, 3);
-        builder
-            .with_input_buffer_layout(input_buffer_layout)
-            .with_write_descriptor_layout(&Self::descriptor_set_layout(&application.device))
-            .with_descriptor_pool(&[
-                vk::DescriptorType::UNIFORM_BUFFER,
-                vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-            ])
-            .with_write_descriptor_sets(descriptor_write_sets);
+        builder.with_descriptors(descriptors);
 
         builder.build()
     }
@@ -147,18 +136,22 @@ impl VulkanApp {
             .add_float_vec4(1)
             .add_float_vec2(2);
 
-        let descriptor_image_info = [vk::DescriptorImageInfo::builder()
-            .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-            .image_view(*textures[0].image_view)
-            .sampler(vulkan_renderer.texture_sampler.unwrap())
-            .build()];
+        let push_const_ranges = [vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: mem::size_of::<MeshPushConstants>() as u32,
+        }];
 
-        let descriptor_write_sets = vec![vk::WriteDescriptorSet::builder()
-            .dst_binding(1)
-            .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-            .dst_array_element(0)
-            .image_info(&descriptor_image_info)
-            .build()];
+        let mut descriptors = ShaderIOBuilder::builder()
+            .add_image(
+                1,
+                vk::ShaderStageFlags::FRAGMENT,
+                &textures,
+                vulkan_renderer.texture_sampler.unwrap(),
+            )
+            .add_input_buffer_layout(input_buffer_layout)
+            .add_push_constant_ranges(&push_const_ranges)
+            .build(application, vulkan_renderer.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(
             application,
@@ -166,37 +159,15 @@ impl VulkanApp {
             "assets\\shaders\\build\\ui_frag.spv",
             3,
         );
-        builder
-            .with_input_buffer_layout(input_buffer_layout)
-            .with_write_descriptor_layout(&Self::descriptor_set_layout(&application.device))
-            .with_descriptor_pool(&[vk::DescriptorType::COMBINED_IMAGE_SAMPLER])
-            .with_write_descriptor_sets(descriptor_write_sets);
+        builder.with_descriptors(descriptors);
 
         builder.build()
-    }
-
-    pub fn descriptor_set_layout(_device: &LogicalDevice) -> [vk::DescriptorSetLayoutBinding; 2] {
-        let layout_binding = [
-            vk::DescriptorSetLayoutBinding::builder()
-                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::VERTEX)
-                .binding(0)
-                .build(),
-            vk::DescriptorSetLayoutBinding::builder()
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .descriptor_count(1)
-                .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-                .binding(1)
-                .build(),
-        ];
-
-        layout_binding
     }
 
     #[profile(Sandbox)]
     fn update_uniform(&mut self, _current_image: usize) {
         self.count += 1.0 / 1000.0;
+        let current_frame = self.vulkan_renderer.current_frame();
 
         let (view, perspective) = {
             let camera = self.vulkan_renderer.camera();
@@ -205,20 +176,20 @@ impl VulkanApp {
         };
 
         for pipeline in self.vulkan_renderer.pipelines.iter_mut() {
-            let uniform_mut = pipeline.shader.uniform_mut();
+            for mesh in pipeline.meshes.iter_mut() {
+                mesh.update_model_transform(math::Matrix4::new_rotation(math::Vector3::new(
+                    0.0, self.count, 0.0,
+                )))
+            }
 
             //if camera.is_dirty() {
-
-            let rotation = math::Matrix4::new_rotation(math::Vector3::new(0.0, self.count, 0.0));
-
+            let uniform_mut = pipeline.shader.uniform_mut();
             uniform_mut.view_matrix = view;
             uniform_mut.projection_matrix = perspective;
-            // }
-            uniform_mut.model_matrix = rotation;
-
             pipeline
                 .shader
-                .update_uniform(&self.application.device, _current_image);
+                .update_uniform(&self.application.device, current_frame);
+            // }
         }
     }
 

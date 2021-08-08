@@ -1,6 +1,6 @@
 use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
-use std::ffi::CString;
+use std::{ffi::CString, mem::size_of};
 
 pub struct QueueFamilyIndices {
     pub graphics_family: Option<u32>,
@@ -48,5 +48,40 @@ impl ValidationInfo {
             .iter()
             .map(|layer_name| CString::new(*layer_name).expect("Could not parse cstr"))
             .collect();
+    }
+}
+
+pub struct MeshPushConstants {
+    pub model_matrix: nalgebra::Matrix4<f32>,
+}
+
+/// Template for an uniform buffer object.
+pub trait UniformBufferObjectTemplate: Default + Clone {
+    /// Returns the size of this buffer object.
+    fn size(&self) -> usize;
+}
+
+/// Uniform buffer object.
+#[derive(Copy, Clone)]
+pub struct UniformBufferObject {
+    pub view_matrix: nalgebra::Matrix4<f32>,
+    pub projection_matrix: nalgebra::Matrix4<f32>,
+}
+
+impl UniformBufferObjectTemplate for UniformBufferObject {
+    fn size(&self) -> usize {
+        size_of::<UniformBufferObject>()
+    }
+}
+
+impl Default for UniformBufferObject {
+    fn default() -> Self {
+        let mut identity = nalgebra::Matrix4::default();
+        identity.fill_with_identity();
+
+        UniformBufferObject {
+            view_matrix: identity,
+            projection_matrix: identity,
+        }
     }
 }

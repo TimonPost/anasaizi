@@ -16,4 +16,11 @@ Features:
 - Single command operation abstraction
 - Combine index/vertex buffer into one structure
 - create to new
-- Make pipeline more generic. 
+- Make pipeline more generic.
+
+TODO:
+
+- Maak uniform objecten push constants werkend
+- Maak uniform buffer update werkend.
+- Test de nieuwe shader IO. 
+ 

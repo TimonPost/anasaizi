@@ -108,6 +108,14 @@ impl Mesh {
         self.index_buffer.indices_count()
     }
 
+    pub fn update_model_transform(&mut self, matrix: nalgebra::Matrix4<f32>) {
+        self.model_transform = matrix;
+    }
+
+    pub fn model_transform(&self) -> &nalgebra::Matrix4<f32> {
+        return &self.model_transform;
+    }
+
     /// Destroys `Mesh` contents:
     /// - IndexBuffer and its memory.
     /// - VertexBuffer and its memory.

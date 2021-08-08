@@ -22,10 +22,10 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        shader_set: ShaderSet<U>,
+        mut shader_set: ShaderSet<U>,
     ) -> Pipeline<U> {
         let (pipeline, layout) =
-            Self::build_pipeline(device, swapchain_extent, render_pass, &shader_set);
+            Self::build_pipeline(device, swapchain_extent, render_pass, &mut shader_set);
 
         Pipeline {
             layout,
@@ -39,7 +39,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        shader_set: &ShaderSet<U>,
+        shader_set: &mut ShaderSet<U>,
     ) -> (ash::vk::Pipeline, PipelineLayout) {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -56,13 +56,8 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
                 .build(),
         ];
 
-        let attrib_descriptions = shader_set.input_buffer_layout.build_attrib_description();
-        let binding_descriptions = shader_set.input_buffer_layout.build_binding_description();
-
-        let vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo::builder()
-            .vertex_attribute_descriptions(&attrib_descriptions)
-            .vertex_binding_descriptions(&[binding_descriptions])
-            .build();
+        let pipeline_layout = shader_set.io.create_pipeline_layout(device);
+        let vertex_input_info = shader_set.io.vertex_input_info();
 
         let vertex_input_assembly_state_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
             .primitive_restart_enable(false)
@@ -147,24 +142,6 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
             .blend_constants([0.0, 0.0, 0.0, 0.0])
             .build();
 
-        let descriptor_layouts = [shader_set.descriptor_set_layout];
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
-            s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::PipelineLayoutCreateFlags::empty(),
-            set_layout_count: 1,
-            p_set_layouts: descriptor_layouts.as_ptr(),
-            push_constant_range_count: 0,
-            p_push_constant_ranges: ptr::null(),
-        };
-
-        let pipeline_layout = unsafe {
-            device
-                .logical_device()
-                .create_pipeline_layout(&pipeline_layout_create_info, None)
-                .expect("Failed to create pipeline layout!")
-        };
-
         let dynamic_states = [vk::DynamicState::SCISSOR, vk::DynamicState::VIEWPORT];
         let dynamic_states_info = vk::PipelineDynamicStateCreateInfo::builder()
             .dynamic_states(&dynamic_states)
@@ -172,7 +149,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
 
         let graphic_pipeline_create_infos = [vk::GraphicsPipelineCreateInfo::builder()
             .stages(&shader_stages)
-            .vertex_input_state(&vertex_input_state_create_info)
+            .vertex_input_state(&vertex_input_info)
             .input_assembly_state(&vertex_input_assembly_state_info)
             .viewport_state(&viewport_state_create_info)
             .rasterization_state(&rasterization_statue_create_info)
@@ -203,7 +180,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
     pub fn ui_pipeline(
         device: &LogicalDevice,
         render_pass: &RenderPass,
-        shader_set: ShaderSet<U>,
+        mut shader_set: ShaderSet<U>,
     ) -> Pipeline<U> {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -220,36 +197,8 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
                 .build(),
         ];
 
-        let push_const_range = [vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: mem::size_of::<Mat4>() as u32,
-        }];
-
-        let descriptor_layouts = [shader_set.descriptor_set_layout];
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
-            s_type: vk::StructureType::PIPELINE_LAYOUT_CREATE_INFO,
-            p_next: ptr::null(),
-            flags: vk::PipelineLayoutCreateFlags::empty(),
-            set_layout_count: 1,
-            p_set_layouts: descriptor_layouts.as_ptr(),
-            push_constant_range_count: push_const_range.len() as u32,
-            p_push_constant_ranges: push_const_range.as_ptr(),
-        };
-
-        let pipeline_layout = unsafe {
-            device
-                .logical_device()
-                .create_pipeline_layout(&pipeline_layout_create_info, None)
-                .expect("Failed to create pipeline layout!")
-        };
-
-        let attribute_desc = shader_set.input_buffer_layout.build_attrib_description();
-        let binding_desc = [shader_set.input_buffer_layout.build_binding_description()];
-
-        let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
-            .vertex_binding_descriptions(&binding_desc)
-            .vertex_attribute_descriptions(&attribute_desc);
+        let pipeline_layout = shader_set.io.create_pipeline_layout(device);
+        let vertex_input_info = shader_set.io.vertex_input_info();
 
         let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST)
@@ -345,7 +294,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         device.destroy_pipeline_layout(self.layout, None);
 
         let (pipeline, layout) =
-            Self::build_pipeline(device, swapchain.extent, render_pass, &self.shader);
+            Self::build_pipeline(device, swapchain.extent, render_pass, &mut self.shader);
         self.pipeline = pipeline;
         self.layout = layout;
     }
