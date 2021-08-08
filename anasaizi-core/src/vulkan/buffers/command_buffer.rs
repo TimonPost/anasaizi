@@ -103,7 +103,8 @@ impl CommandBuffers {
 
         // Push the model matrix using push constants.
         unsafe {
-            let push = any_as_u8_slice(mesh.model_transform());
+            let transform = mesh.model_transform();
+            let push = any_as_u8_slice(&transform);
             device.cmd_push_constants(
                 command_buffer,
                 pipeline.layout(),

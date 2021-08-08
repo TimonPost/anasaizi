@@ -3,22 +3,60 @@ use crate::{
     reexports::imgui::DrawData,
     vulkan::{CommandPool, IndexBuffer, Instance, LogicalDevice, Queue, VertexBuffer},
 };
-use nalgebra::Matrix4;
+use nalgebra::{Matrix4, Vector3};
+use crate::engine::VulkanApplication;
 
 /// Mesh that holds the allocated vertex, index buffer and the model transformation.
 pub struct Mesh {
     vertex_buffer: VertexBuffer,
     index_buffer: IndexBuffer,
-    model_transform: nalgebra::Matrix4<f32>,
+
+    pub scale_transform: nalgebra::Matrix4<f32>,
+    pub rotate_transform: nalgebra::Matrix4<f32>,
+    pub translate_transform: nalgebra::Matrix4<f32>,
 }
 
 impl Mesh {
     /// Creates a new `Mesh` from the given allocated vertex and index buffer.
     pub fn new(vertex_buffer: VertexBuffer, index_buffer: IndexBuffer) -> Mesh {
+        let mut identity = Matrix4::default();
+        identity.fill_with_identity();
+
         Mesh {
             vertex_buffer,
-            model_transform: Matrix4::default(),
+            scale_transform: identity,
+            translate_transform: identity,
+            rotate_transform: identity,
             index_buffer,
+        }
+    }
+
+    pub fn from_raw(application: &VulkanApplication, queue: &Queue, command_pool: &CommandPool, vertices: Vec<Vertex>, indices: Vec<u32>) -> Mesh {
+        let vertex_buffer = VertexBuffer::create(
+            &application.instance,
+            &application.device,
+            &vertices,
+            queue,
+            command_pool,
+        );
+        let index_buffer = IndexBuffer::create(
+            &application.instance,
+            &application.device,
+            &indices,
+            &queue,
+            command_pool,
+        );
+
+        let mut identity = Matrix4::default();
+        identity.fill_with_identity();
+
+        Mesh {
+            vertex_buffer,
+            index_buffer,
+
+            scale_transform: identity,
+            translate_transform: identity,
+            rotate_transform: identity,
         }
     }
 
@@ -37,11 +75,42 @@ impl Mesh {
         let index_buffer =
             IndexBuffer::create(instance, device, &indices, submit_queue, command_pool);
 
+        let mut identity = Matrix4::default();
+        identity.fill_with_identity();
+
         Mesh {
             vertex_buffer,
             index_buffer,
-            model_transform: Matrix4::default(),
+
+            scale_transform: identity,
+            translate_transform: identity,
+            rotate_transform: identity,
         }
+    }
+
+    pub fn rotate(&mut self, rotate: Vector3<f32>) {
+        self.rotate_transform = Matrix4::new_rotation(rotate);
+    }
+    pub fn translate(&mut self, translate: Vector3<f32>) {
+        let translate_matrix = Matrix4::new(
+            1.0, 0.0, 0.0, translate[0],
+            0.0, 1.0, 0.0, translate[1],
+            0.0, 0.0, 1.0, translate[2],
+            0.0, 0.0, 0.0, 1.0,
+        );
+
+        self.translate_transform = translate_matrix;
+    }
+
+    pub fn scale(&mut self, factor: f32) {
+        let scale_matrix = Matrix4::new(
+            factor, 0.0, 0.0, 0.0,
+            0.0, factor, 0.0, 0.0,
+            0.0, 0.0, factor, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        );
+
+        self.scale_transform = scale_matrix;
     }
 
     /// Updates the mesh with the given imgui `DrawData`.
@@ -108,12 +177,8 @@ impl Mesh {
         self.index_buffer.indices_count()
     }
 
-    pub fn update_model_transform(&mut self, matrix: nalgebra::Matrix4<f32>) {
-        self.model_transform = matrix;
-    }
-
-    pub fn model_transform(&self) -> &nalgebra::Matrix4<f32> {
-        return &self.model_transform;
+    pub fn model_transform(&self) -> nalgebra::Matrix4<f32> {
+        return self.rotate_transform * self.scale_transform * self.translate_transform;
     }
 
     /// Destroys `Mesh` contents:

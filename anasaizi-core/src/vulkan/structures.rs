@@ -55,6 +55,10 @@ pub struct MeshPushConstants {
     pub model_matrix: nalgebra::Matrix4<f32>,
 }
 
+pub struct UIPushConstants {
+    pub ortho_matrix: nalgebra::Matrix4<f32>,
+}
+
 /// Template for an uniform buffer object.
 pub trait UniformBufferObjectTemplate: Default + Clone {
     /// Returns the size of this buffer object.

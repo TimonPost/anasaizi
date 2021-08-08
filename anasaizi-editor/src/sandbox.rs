@@ -26,13 +26,13 @@ use anasaizi_core::{
 use anasaizi_core::engine::BufferLayout;
 use std::{mem, path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
+use anasaizi_core::vulkan::structures::UIPushConstants;
+use anasaizi_core::reexports::nalgebra::{Matrix4, Vector3};
 
 pub struct VulkanApp {
     vulkan_renderer: VulkanRenderer<UniformBufferObject>,
     application: VulkanApplication,
 
-    pub viking_indices: Vec<u32>,
-    pub viking_vertices: Vec<Vertex>,
     pub viking_room_texture: [Texture; 1],
 
     count: f32,
@@ -45,22 +45,12 @@ impl VulkanApp {
         let mut vulkan_renderer = VulkanRenderer::new(&application);
 
         let (viking_vertices, viking_indices) = Object::load_model(Path::new("viking_room.obj"));
+        let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
 
-        let vertex_buffer = VertexBuffer::create(
-            &application.instance,
-            &application.device,
-            &viking_vertices,
-            &vulkan_renderer.graphics_queue,
-            &vulkan_renderer.command_pool,
-        );
-        let index_buffer = IndexBuffer::create(
-            &application.instance,
-            &application.device,
-            &viking_indices,
-            &vulkan_renderer.graphics_queue,
-            &vulkan_renderer.command_pool,
-        );
-        let mesh = Mesh::new(vertex_buffer, index_buffer);
+        let viking_mesh = Mesh::from_raw(&application, &vulkan_renderer.graphics_queue, &vulkan_renderer.command_pool, viking_vertices, viking_indices);
+        let mut post_mesh = Mesh::from_raw(&application, &vulkan_renderer.graphics_queue, &vulkan_renderer.command_pool, post_vertices, post_indices);
+        post_mesh.scale(0.01);
+        post_mesh.translate(Vector3::new(100.0, 0.0, 100.0));
 
         let viking_room_texture = [Texture::create(
             &application.instance,
@@ -72,8 +62,9 @@ impl VulkanApp {
 
         let shader_set =
             Self::setup_main_shader(&application, &vulkan_renderer, &viking_room_texture);
+
         let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application);
-        vulkan_renderer.create_pipeline(&application, shader_set, vec![mesh]);
+        vulkan_renderer.create_pipeline(&application, shader_set, vec![viking_mesh, post_mesh]);
         vulkan_renderer.create_pipeline(&application, grid_shader, vec![grid_mesh]);
 
         start_profiler();
@@ -83,8 +74,6 @@ impl VulkanApp {
             application,
 
             viking_room_texture,
-            viking_vertices,
-            viking_indices,
             count: 0.0,
         }
     }
@@ -139,7 +128,7 @@ impl VulkanApp {
         let push_const_ranges = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
             offset: 0,
-            size: mem::size_of::<MeshPushConstants>() as u32,
+            size: mem::size_of::<UIPushConstants>() as u32,
         }];
 
         let mut descriptors = ShaderIOBuilder::builder()
@@ -177,9 +166,7 @@ impl VulkanApp {
 
         for pipeline in self.vulkan_renderer.pipelines.iter_mut() {
             for mesh in pipeline.meshes.iter_mut() {
-                mesh.update_model_transform(math::Matrix4::new_rotation(math::Vector3::new(
-                    0.0, self.count, 0.0,
-                )))
+                mesh.rotate(Vector3::new(0.0, self.count, 0.0));
             }
 
             //if camera.is_dirty() {
