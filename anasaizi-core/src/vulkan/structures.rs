@@ -53,6 +53,7 @@ impl ValidationInfo {
 
 pub struct MeshPushConstants {
     pub model_matrix: nalgebra::Matrix4<f32>,
+    pub texture_id: i32,
 }
 
 pub struct UIPushConstants {

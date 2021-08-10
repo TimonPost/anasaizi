@@ -11,7 +11,7 @@ use ash::{
         PipelineVertexInputStateCreateInfoBuilder, PushConstantRange, ShaderStageFlags,
     },
 };
-use std::{mem, ops::Deref, ptr};
+use std::{collections::HashMap, mem, ops::Deref, ptr};
 use ultraviolet::Mat4;
 
 /// Think of a single descriptor as a handle or pointer into a resource.
@@ -99,7 +99,7 @@ impl DescriptorPool {
         device: &LogicalDevice,
         descriptor_set_layout: vk::DescriptorSetLayout,
         descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
-        uniform_buffer: &UniformBuffer<U>,
+        uniform_buffer: Option<&UniformBuffer<U>>,
     ) -> Vec<DescriptorSet> {
         let mut layouts: Vec<vk::DescriptorSetLayout> = vec![];
 
@@ -126,11 +126,17 @@ impl DescriptorPool {
         let mut descriptor_set = vec![];
 
         for (i, descritptor_set) in descriptor_sets.iter().enumerate() {
-            let descriptor_buffer_info = [vk::DescriptorBufferInfo {
-                buffer: uniform_buffer.buffers(i),
-                offset: 0,
-                range: std::mem::size_of::<U>() as u64,
-            }];
+            let descriptor_buffer_info = {
+                if let Some(uniform_buffer) = uniform_buffer {
+                    vec![vk::DescriptorBufferInfo {
+                        buffer: uniform_buffer.buffers(i),
+                        offset: 0,
+                        range: std::mem::size_of::<U>() as u64,
+                    }]
+                } else {
+                    vec![]
+                }
+            };
 
             let mut write_sets = vec![];
             write_sets.extend_from_slice(&descriptor_write_sets);
@@ -165,11 +171,15 @@ impl Deref for DescriptorPool {
 pub struct ShaderIOBuilder {
     descriptor_types: Vec<vk::DescriptorType>,
     descriptor_layout_bindingen: Vec<vk::DescriptorSetLayoutBinding>,
+
     write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
+
     input_buffer_layout: Option<BufferLayout>,
     push_constant_ranges: Vec<vk::PushConstantRange>,
 
     descriptor_image_info: Vec<vk::DescriptorImageInfo>,
+    dynamic_descriptor_image_info: Vec<vk::DescriptorImageInfo>,
+    sampler: Vec<vk::DescriptorImageInfo>,
 }
 
 impl ShaderIOBuilder {
@@ -183,6 +193,8 @@ impl ShaderIOBuilder {
 
             // used to keep pointer alive.
             descriptor_image_info: vec![],
+            dynamic_descriptor_image_info: vec![],
+            sampler: vec![],
         }
     }
 
@@ -192,7 +204,45 @@ impl ShaderIOBuilder {
         self
     }
 
-    pub fn add_image(
+    pub fn sampler(
+        mut self,
+        binding_id: u32,
+        stage_flags: vk::ShaderStageFlags,
+        sampler: vk::Sampler,
+    ) -> ShaderIOBuilder {
+        let descriptor_type = vk::DescriptorType::SAMPLER;
+
+        self.sampler.push(
+            vk::DescriptorImageInfo::builder()
+                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                .sampler(sampler)
+                .build(),
+        );
+
+        self.write_descriptor_sets.push(
+            vk::WriteDescriptorSet::builder()
+                .dst_binding(binding_id)
+                .descriptor_type(descriptor_type)
+                .dst_array_element(0)
+                .image_info(&self.sampler)
+                .build(),
+        );
+
+        self.descriptor_layout_bindingen.push(
+            vk::DescriptorSetLayoutBinding::builder()
+                .descriptor_type(descriptor_type)
+                .descriptor_count(1) // update texture count
+                .stage_flags(stage_flags) //
+                .binding(binding_id)
+                .build(),
+        );
+
+        self.descriptor_types.push(descriptor_type);
+
+        self
+    }
+
+    pub fn texture_array(
         mut self,
         binding_id: u32,
         stage_flags: vk::ShaderStageFlags,
@@ -201,11 +251,52 @@ impl ShaderIOBuilder {
     ) -> ShaderIOBuilder {
         let descriptor_type = vk::DescriptorType::COMBINED_IMAGE_SAMPLER;
 
-        let image_view = *textures[0].image_view;
+        for texture in textures.iter() {
+            self.dynamic_descriptor_image_info.push(
+                vk::DescriptorImageInfo::builder()
+                    .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                    .image_view(*texture.image_view)
+                    .sampler(sampler)
+                    .build(),
+            );
+        }
+
+        self.write_descriptor_sets.push(
+            vk::WriteDescriptorSet::builder()
+                .dst_binding(binding_id)
+                .descriptor_type(descriptor_type)
+                .dst_array_element(0)
+                .image_info(&self.dynamic_descriptor_image_info)
+                .build(),
+        );
+
+        self.descriptor_layout_bindingen.push(
+            vk::DescriptorSetLayoutBinding::builder()
+                .descriptor_type(descriptor_type)
+                .descriptor_count(2) // update texture count
+                .stage_flags(stage_flags) //
+                .binding(binding_id)
+                .build(),
+        );
+
+        self.descriptor_types.push(descriptor_type);
+
+        self
+    }
+
+    pub fn add_static_image(
+        mut self,
+        binding_id: u32,
+        stage_flags: vk::ShaderStageFlags,
+        texture: &Texture,
+        sampler: vk::Sampler,
+    ) -> ShaderIOBuilder {
+        let descriptor_type = vk::DescriptorType::COMBINED_IMAGE_SAMPLER;
+
         self.descriptor_image_info.push(
             vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(image_view)
+                .image_view(*texture.image_view)
                 .sampler(sampler)
                 .build(),
         );
@@ -295,8 +386,34 @@ impl ShaderIOBuilder {
             &application.device,
             descriptor_set_layout,
             self.write_descriptor_sets,
-            &uniform_buffer,
+            Some(&uniform_buffer),
         );
+
+        let mut texture_descriptor_sets = TextureDescriptorSets::new();
+
+        // for dynamic_texture in self.dynamic_textures.iter() {
+        //     let descriptor_layout_bindingen = [dynamic_texture.binding_info];
+        //     let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
+        //         .bindings(&descriptor_layout_bindingen)
+        //         .build();
+        //
+        //     let descriptor_set_layout = unsafe {
+        //         application
+        //             .device
+        //             .create_descriptor_set_layout(&layout_create_info, None)
+        //             .expect("failed to create descriptor set layout!")
+        //     };
+        //
+        //     let writes = vec![dynamic_texture.write_descriptor];
+        //     let dynamic_texture_descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
+        //         &application.device,
+        //         descriptor_set_layout,
+        //         writes,
+        //         None
+        //     );
+        //
+        //     texture_descriptor_sets.set_texture(dynamic_texture.texture_id.clone(), dynamic_texture_descriptor_sets);
+        //}
 
         ShaderIo {
             descriptor_pool,
@@ -305,6 +422,8 @@ impl ShaderIOBuilder {
             descriptor_set_layout,
             input_buffer_layout: self.input_buffer_layout.unwrap(),
             push_constant_ranges: self.push_constant_ranges,
+            uniform_buffer_object: Default::default(),
+            texture_descriptor_sets,
         }
     }
 }
@@ -316,6 +435,9 @@ pub struct ShaderIo<U: UniformBufferObjectTemplate> {
     pub descriptor_set_layout: vk::DescriptorSetLayout,
     pub input_buffer_layout: BufferLayout,
     pub push_constant_ranges: Vec<vk::PushConstantRange>,
+    pub uniform_buffer_object: U,
+
+    pub texture_descriptor_sets: TextureDescriptorSets,
 }
 
 impl<U: UniformBufferObjectTemplate> ShaderIo<U> {
@@ -352,5 +474,29 @@ impl<U: UniformBufferObjectTemplate> ShaderIo<U> {
             .build();
 
         vertex_input_info
+    }
+}
+
+pub struct TextureDescriptorSets {
+    descriptor_sets: HashMap<String, Vec<DescriptorSet>>,
+}
+
+impl TextureDescriptorSets {
+    pub fn new() -> TextureDescriptorSets {
+        TextureDescriptorSets {
+            descriptor_sets: HashMap::new(),
+        }
+    }
+
+    pub fn texture(&self, id: String, frame: usize) -> Option<&vk::DescriptorSet> {
+        if let Some(sets) = self.descriptor_sets.get(&id) {
+            return Some(&sets[frame]);
+        }
+
+        None
+    }
+
+    pub fn set_texture(&mut self, id: String, descriptor_set: Vec<DescriptorSet>) {
+        self.descriptor_sets.insert(id, descriptor_set);
     }
 }

@@ -49,7 +49,6 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
 
     /// Build shader.
     pub fn build(mut self) -> ShaderSet<U> {
-        let uniform_buffer_object = Default::default();
         let vertex_shader_code = ShaderSet::<U>::read_shader_code(Path::new(self.vertex_shader));
         let vertex_shader_module =
             ShaderSet::<U>::create_shader_module(&self.application.device, vertex_shader_code);
@@ -62,8 +61,6 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
         ShaderSet {
             vertex_shader_module,
             fragment_shader_module,
-
-            uniform_buffer_object,
 
             io: self.descriptors.unwrap(),
         }
@@ -78,15 +75,20 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
 /// - Descriptor pool, set, layout
 pub struct ShaderSet<U: UniformBufferObjectTemplate> {
     vertex_shader_module: vk::ShaderModule,
-    uniform_buffer_object: U,
     fragment_shader_module: ShaderModule,
 
     pub io: ShaderIo<U>,
 }
 
 impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
-    pub fn get_descriptor_sets(&self, frame: usize) -> vk::DescriptorSet {
-        *self.io.descriptor_sets[frame]
+    pub fn get_descriptor_sets(&self, frame: usize, texture: String) -> Vec<vk::DescriptorSet> {
+        let mut result = vec![*self.io.descriptor_sets[frame]];
+
+        // if let Some(set) = self.io.texture_descriptor_sets.texture(texture, frame) {
+        //     result.push(*set);
+        // }
+
+        result
     }
 
     pub fn descriptor_set_layout(&self) -> Vec<vk::DescriptorSetLayout> {
@@ -104,18 +106,18 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
     }
 
     pub fn uniform(&self) -> &U {
-        &self.uniform_buffer_object
+        &self.io.uniform_buffer_object
     }
 
     pub fn uniform_mut(&mut self) -> &mut U {
-        &mut self.uniform_buffer_object
+        &mut self.io.uniform_buffer_object
     }
 
     /// Write the uniform buffer object to shader memory.
     pub fn update_uniform(&self, device: &LogicalDevice, current_image: usize) {
-        let ubos = [self.uniform_buffer_object.clone()];
+        let ubos = [self.io.uniform_buffer_object.clone()];
 
-        let buffer_size = (self.uniform_buffer_object.size() * ubos.len()) as u64;
+        let buffer_size = (self.io.uniform_buffer_object.size() * ubos.len()) as u64;
 
         unsafe {
             let data_ptr = device

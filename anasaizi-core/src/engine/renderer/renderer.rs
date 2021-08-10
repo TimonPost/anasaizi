@@ -491,7 +491,9 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                                 },
                             }];
                             device.cmd_set_scissor(current_command_buffer, 0, &scissors);
-                            let sets = [ui_pipeline.shader.get_descriptor_sets(image_index)];
+                            let sets = ui_pipeline
+                                .shader
+                                .get_descriptor_sets(image_index, String::from(""));
                             device.cmd_bind_descriptor_sets(
                                 current_command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
@@ -667,6 +669,6 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let build: ShaderSet<U> = builder.build();
 
-        (build, Mesh::new(grid_vertex_buffer, grid_index_buffer))
+        (build, Mesh::new(grid_vertex_buffer, grid_index_buffer, -1))
     }
 }

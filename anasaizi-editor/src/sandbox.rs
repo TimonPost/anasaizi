@@ -23,17 +23,19 @@ use anasaizi_core::{
     },
 };
 
-use anasaizi_core::engine::BufferLayout;
+use anasaizi_core::{
+    engine::BufferLayout,
+    reexports::nalgebra::{Matrix4, Vector3},
+    vulkan::structures::UIPushConstants,
+};
 use std::{mem, path::Path, time::Instant};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
-use anasaizi_core::vulkan::structures::UIPushConstants;
-use anasaizi_core::reexports::nalgebra::{Matrix4, Vector3};
 
 pub struct VulkanApp {
     vulkan_renderer: VulkanRenderer<UniformBufferObject>,
     application: VulkanApplication,
 
-    pub viking_room_texture: [Texture; 1],
+    pub viking_room_texture: [Texture; 2],
 
     count: f32,
 }
@@ -47,21 +49,45 @@ impl VulkanApp {
         let (viking_vertices, viking_indices) = Object::load_model(Path::new("viking_room.obj"));
         let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
 
-        let viking_mesh = Mesh::from_raw(&application, &vulkan_renderer.graphics_queue, &vulkan_renderer.command_pool, viking_vertices, viking_indices);
-        let mut post_mesh = Mesh::from_raw(&application, &vulkan_renderer.graphics_queue, &vulkan_renderer.command_pool, post_vertices, post_indices);
+        let viking_mesh = Mesh::from_raw(
+            &application,
+            &vulkan_renderer.graphics_queue,
+            &vulkan_renderer.command_pool,
+            viking_vertices,
+            viking_indices,
+            0,
+        );
+        let mut post_mesh = Mesh::from_raw(
+            &application,
+            &vulkan_renderer.graphics_queue,
+            &vulkan_renderer.command_pool,
+            post_vertices,
+            post_indices,
+            1,
+        );
+
         post_mesh.scale(0.01);
         post_mesh.translate(Vector3::new(100.0, 0.0, 100.0));
 
-        let viking_room_texture = [Texture::create(
-            &application.instance,
-            &application.device,
-            &vulkan_renderer.command_pool,
-            &vulkan_renderer.graphics_queue,
-            &Path::new("viking_room.png"),
-        )];
+        let main_shader_textures = [
+            Texture::create(
+                &application.instance,
+                &application.device,
+                &vulkan_renderer.command_pool,
+                &vulkan_renderer.graphics_queue,
+                &Path::new("viking_room.png"),
+            ),
+            Texture::create(
+                &application.instance,
+                &application.device,
+                &vulkan_renderer.command_pool,
+                &vulkan_renderer.graphics_queue,
+                &Path::new("texture.jpg"),
+            ),
+        ];
 
         let shader_set =
-            Self::setup_main_shader(&application, &vulkan_renderer, &viking_room_texture);
+            Self::setup_main_shader(&application, &vulkan_renderer, &main_shader_textures);
 
         let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application);
         vulkan_renderer.create_pipeline(&application, shader_set, vec![viking_mesh, post_mesh]);
@@ -73,7 +99,7 @@ impl VulkanApp {
             vulkan_renderer,
             application,
 
-            viking_room_texture,
+            viking_room_texture: main_shader_textures,
             count: 0.0,
         }
     }
@@ -96,10 +122,15 @@ impl VulkanApp {
 
         let mut descriptors = ShaderIOBuilder::builder()
             .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
-            .add_image(
+            .sampler(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,
-                textures,
+                vulkan_renderer.texture_sampler.unwrap(),
+            )
+            .texture_array(
+                2,
+                vk::ShaderStageFlags::FRAGMENT,
+                &textures,
                 vulkan_renderer.texture_sampler.unwrap(),
             )
             .add_input_buffer_layout(input_buffer_layout)
@@ -117,9 +148,6 @@ impl VulkanApp {
         vulkan_renderer: &VulkanRenderer<UniformBufferObject>,
         imgui_context: &ImguiContext,
     ) -> ShaderSet<UniformBufferObject> {
-        let texture_ref = imgui_context.ui_font_texture.clone();
-        let textures = [texture_ref];
-
         let input_buffer_layout = BufferLayout::new()
             .add_float_vec3(0)
             .add_float_vec4(1)
@@ -132,10 +160,10 @@ impl VulkanApp {
         }];
 
         let mut descriptors = ShaderIOBuilder::builder()
-            .add_image(
+            .add_static_image(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,
-                &textures,
+                &imgui_context.ui_font_texture,
                 vulkan_renderer.texture_sampler.unwrap(),
             )
             .add_input_buffer_layout(input_buffer_layout)

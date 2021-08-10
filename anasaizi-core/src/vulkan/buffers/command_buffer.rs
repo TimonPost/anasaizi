@@ -2,7 +2,8 @@ use crate::{
     model::Mesh,
     utils::any_as_u8_slice,
     vulkan::{
-        CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass, UniformBufferObjectTemplate,
+        CommandPool, FrameBuffers, LogicalDevice, MeshPushConstants, Pipeline, RenderPass,
+        UniformBufferObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk};
@@ -103,7 +104,10 @@ impl CommandBuffers {
 
         // Push the model matrix using push constants.
         unsafe {
-            let transform = mesh.model_transform();
+            let transform = MeshPushConstants {
+                model_matrix: mesh.model_transform(),
+                texture_id: mesh.texture_id,
+            };
             let push = any_as_u8_slice(&transform);
             device.cmd_push_constants(
                 command_buffer,
@@ -119,7 +123,9 @@ impl CommandBuffers {
             device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &offsets);
             device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT32);
 
-            let sets = [pipeline.shader.get_descriptor_sets(self.active_buffer)];
+            let sets = pipeline
+                .shader
+                .get_descriptor_sets(self.active_buffer, String::from("viking"));
             device.cmd_bind_descriptor_sets(
                 command_buffer,
                 vk::PipelineBindPoint::GRAPHICS,
