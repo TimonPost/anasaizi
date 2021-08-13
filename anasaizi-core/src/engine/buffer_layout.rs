@@ -144,21 +144,20 @@ mod tests {
 
     #[test]
     fn build_attrib_description() {
-        let buffer_layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
+        let mut buffer_layout = BufferLayout::new().add_float_vec2(0).add_float_vec3(1);
+        buffer_layout.build_attrib_description();
 
         let first_layout = buffer_layout.get(0).unwrap();
         let second_layout = buffer_layout.get(1).unwrap();
 
-        let attrib_bindingen = buffer_layout.build_attrib_description();
+        assert_eq!( buffer_layout.attrib_desc[0].binding, 0);
+        assert_eq!( buffer_layout.attrib_desc[0].location, first_layout.layout_id as u32);
+        assert_eq!( buffer_layout.attrib_desc[0].format, first_layout.format);
+        assert_eq!( buffer_layout.attrib_desc[0].offset, 0);
 
-        assert_eq!(attrib_bindingen[0].binding, 0);
-        assert_eq!(attrib_bindingen[0].location, first_layout.layout_id as u32);
-        assert_eq!(attrib_bindingen[0].format, first_layout.format);
-        assert_eq!(attrib_bindingen[0].offset, 0);
-
-        assert_eq!(attrib_bindingen[1].binding, 0);
-        assert_eq!(attrib_bindingen[1].location, second_layout.layout_id as u32);
-        assert_eq!(attrib_bindingen[1].format, second_layout.format);
-        assert_eq!(attrib_bindingen[1].offset, first_layout.stride as u32);
+        assert_eq!( buffer_layout.attrib_desc[1].binding, 0);
+        assert_eq!( buffer_layout.attrib_desc[1].location, second_layout.layout_id as u32);
+        assert_eq!( buffer_layout.attrib_desc[1].format, second_layout.format);
+        assert_eq!( buffer_layout.attrib_desc[1].offset, first_layout.stride as u32);
     }
 }

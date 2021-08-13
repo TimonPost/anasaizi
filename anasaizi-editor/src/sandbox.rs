@@ -1,45 +1,35 @@
 use anasaizi_core::vulkan::{
-    CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Pipeline, Queue,
-    ShaderBuilder, ShaderIOBuilder, ShaderSet, UniformBufferObject, VertexBuffer, Window,
+    MeshPushConstants, Pipeline,
+    ShaderBuilder, ShaderIOBuilder, ShaderSet, UniformBufferObject,
 };
 use ash::vk;
 use winit::{
-    event::WindowEvent,
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{EventLoop},
 };
 
-use anasaizi_core::{engine, reexports::nalgebra as math};
+
 
 use anasaizi_profile::profile;
 
 use anasaizi_core::{
-    debug::{start_profiler, stop_profiler},
+    debug::{start_profiler},
     engine::{image::Texture, RenderLayer, VulkanApplication, FRAGMENT_SHADER, VERTEX_SHADER},
-    math::Vertex,
     model::{Mesh, Object},
-    reexports::{
-        imgui::{Context, DrawData, FontConfig, FontGlyphRanges, FontSource, TextureId},
-        imgui_winit_support::{HiDpiMode, WinitPlatform},
-    },
 };
 
 use crate::{game_layer::GameLayer, imgui_layer::ImguiLayer};
 use anasaizi_core::{
-    engine::{BufferLayout, Event, Layer, RenderContext},
+    engine::{BufferLayout, Layer},
     reexports::{
-        imgui::{ImStr, InputFloat4},
-        nalgebra::{Matrix4, Vector3},
+        nalgebra::{Vector3},
     },
     vulkan::structures::UIPushConstants,
 };
 use std::{
     mem,
     path::Path,
-    ptr,
-    sync::mpsc::channel,
-    time::{Duration, Instant},
 };
-use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
+
 
 pub struct VulkanApp {
     vulkan_renderer: RenderLayer<UniformBufferObject>,
@@ -52,7 +42,7 @@ pub struct VulkanApp {
 
 impl VulkanApp {
     pub fn new(event_loop: &EventLoop<()>) -> VulkanApp {
-        let mut application = VulkanApplication::new("Vulkan Engine", event_loop);
+        let application = VulkanApplication::new("Vulkan Engine", event_loop);
 
         let mut vulkan_renderer = RenderLayer::new(&application);
 
@@ -106,7 +96,7 @@ impl VulkanApp {
             size: mem::size_of::<MeshPushConstants>() as u32,
         }];
 
-        let mut descriptors = ShaderIOBuilder::builder()
+        let descriptors = ShaderIOBuilder::builder()
             .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
             .sampler(
                 1,
@@ -148,7 +138,7 @@ impl VulkanApp {
             size: mem::size_of::<UIPushConstants>() as u32,
         }];
 
-        let mut descriptors = ShaderIOBuilder::builder()
+        let descriptors = ShaderIOBuilder::builder()
             .add_static_image(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,

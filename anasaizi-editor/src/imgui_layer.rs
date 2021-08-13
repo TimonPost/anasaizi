@@ -1,18 +1,18 @@
-use crate::sandbox::VulkanApp;
+
 use anasaizi_core::{
     engine::{image::Texture, Event, Layer, RenderContext, RenderLayer, VulkanApplication},
     model::Mesh,
     reexports::{
         imgui::{
-            ConfigFlags, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, ImStr,
+            Context, DrawData, FontConfig, FontGlyphRanges, FontSource,
             TextureId,
         },
         imgui_winit_support::{HiDpiMode, WinitPlatform},
     },
-    vulkan::{CommandPool, Pipeline, Queue, UniformBufferObject, Window},
+    vulkan::{UniformBufferObject, Window},
 };
 use std::{mem, time::Duration};
-use winapi::um::winnt::SANDBOX_INERT;
+
 
 pub struct WindowData {
     pub object_translate: [f32; 3],
@@ -35,11 +35,11 @@ pub struct ImguiLayer {
 impl ImguiLayer {
     pub fn new(
         application: &mut VulkanApplication,
-        vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
+        _vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
     ) -> ImguiLayer {
         let mut imgui = Context::create();
 
-        let mut platform = WinitPlatform::init(&mut imgui);
+        let platform = WinitPlatform::init(&mut imgui);
 
         ImguiLayer {
             imgui_context: imgui,
