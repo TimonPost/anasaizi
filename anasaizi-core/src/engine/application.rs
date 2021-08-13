@@ -15,10 +15,10 @@ pub const VALIDATION: ValidationInfo = ValidationInfo {
 
 /// Vulkan application with winit window, vulkan data such as instance, device and application.
 pub struct VulkanApplication {
-    pub device: LogicalDevice,
     pub application: Application,
     pub instance: Instance,
     pub window: Window,
+    pub device: LogicalDevice,
 }
 
 impl VulkanApplication {

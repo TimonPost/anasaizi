@@ -6,6 +6,8 @@ use winit::event_loop::EventLoop;
 
 #[macro_use]
 mod sandbox;
+mod game_layer;
+mod imgui_layer;
 
 #[profile]
 fn main() {

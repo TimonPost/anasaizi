@@ -4,7 +4,7 @@ use anasaizi_core::vulkan::{
 };
 use ash::vk;
 use winit::{
-    event::{Event, WindowEvent},
+    event::WindowEvent,
     event_loop::{ControlFlow, EventLoop},
 };
 
@@ -14,7 +14,7 @@ use anasaizi_profile::profile;
 
 use anasaizi_core::{
     debug::{start_profiler, stop_profiler},
-    engine::{image::Texture, VulkanApplication, VulkanRenderer, FRAGMENT_SHADER, VERTEX_SHADER},
+    engine::{image::Texture, RenderLayer, VulkanApplication, FRAGMENT_SHADER, VERTEX_SHADER},
     math::Vertex,
     model::{Mesh, Object},
     reexports::{
@@ -23,16 +23,26 @@ use anasaizi_core::{
     },
 };
 
+use crate::{game_layer::GameLayer, imgui_layer::ImguiLayer};
 use anasaizi_core::{
-    engine::BufferLayout,
-    reexports::nalgebra::{Matrix4, Vector3},
+    engine::{BufferLayout, Event, Layer, RenderContext},
+    reexports::{
+        imgui::{ImStr, InputFloat4},
+        nalgebra::{Matrix4, Vector3},
+    },
     vulkan::structures::UIPushConstants,
 };
-use std::{mem, path::Path, time::Instant};
+use std::{
+    mem,
+    path::Path,
+    ptr,
+    sync::mpsc::channel,
+    time::{Duration, Instant},
+};
 use winit::{event::MouseScrollDelta, platform::run_return::EventLoopExtRunReturn};
 
 pub struct VulkanApp {
-    vulkan_renderer: VulkanRenderer<UniformBufferObject>,
+    vulkan_renderer: RenderLayer<UniformBufferObject>,
     application: VulkanApplication,
 
     pub viking_room_texture: [Texture; 2],
@@ -42,54 +52,31 @@ pub struct VulkanApp {
 
 impl VulkanApp {
     pub fn new(event_loop: &EventLoop<()>) -> VulkanApp {
-        let application = VulkanApplication::new("Vulkan Engine", event_loop);
+        let mut application = VulkanApplication::new("Vulkan Engine", event_loop);
 
-        let mut vulkan_renderer = VulkanRenderer::new(&application);
+        let mut vulkan_renderer = RenderLayer::new(&application);
 
         let (viking_vertices, viking_indices) = Object::load_model(Path::new("viking_room.obj"));
         let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
 
-        let viking_mesh = Mesh::from_raw(
-            &application,
-            &vulkan_renderer.graphics_queue,
-            &vulkan_renderer.command_pool,
-            viking_vertices,
-            viking_indices,
-            0,
-        );
-        let mut post_mesh = Mesh::from_raw(
-            &application,
-            &vulkan_renderer.graphics_queue,
-            &vulkan_renderer.command_pool,
-            post_vertices,
-            post_indices,
-            1,
-        );
+        let render_context = vulkan_renderer.render_context(&application);
+        vulkan_renderer.initialize(&application.window, &render_context);
+
+        let viking_mesh = Mesh::from_raw(&render_context, viking_vertices, viking_indices, 0);
+        let mut post_mesh = Mesh::from_raw(&render_context, post_vertices, post_indices, 1);
 
         post_mesh.scale(0.01);
         post_mesh.translate(Vector3::new(100.0, 0.0, 100.0));
 
         let main_shader_textures = [
-            Texture::create(
-                &application.instance,
-                &application.device,
-                &vulkan_renderer.command_pool,
-                &vulkan_renderer.graphics_queue,
-                &Path::new("viking_room.png"),
-            ),
-            Texture::create(
-                &application.instance,
-                &application.device,
-                &vulkan_renderer.command_pool,
-                &vulkan_renderer.graphics_queue,
-                &Path::new("texture.jpg"),
-            ),
+            Texture::create(&render_context, &Path::new("viking_room.png")),
+            Texture::create(&render_context, &Path::new("texture.jpg")),
         ];
 
         let shader_set =
             Self::setup_main_shader(&application, &vulkan_renderer, &main_shader_textures);
 
-        let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application);
+        let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application, &render_context);
         vulkan_renderer.create_pipeline(&application, shader_set, vec![viking_mesh, post_mesh]);
         vulkan_renderer.create_pipeline(&application, grid_shader, vec![grid_mesh]);
 
@@ -98,7 +85,6 @@ impl VulkanApp {
         VulkanApp {
             vulkan_renderer,
             application,
-
             viking_room_texture: main_shader_textures,
             count: 0.0,
         }
@@ -106,7 +92,7 @@ impl VulkanApp {
 
     pub fn setup_main_shader(
         application: &VulkanApplication,
-        vulkan_renderer: &VulkanRenderer<UniformBufferObject>,
+        vulkan_renderer: &RenderLayer<UniformBufferObject>,
         textures: &[Texture],
     ) -> ShaderSet<UniformBufferObject> {
         let input_buffer_layout = BufferLayout::new()
@@ -135,7 +121,10 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(application, vulkan_renderer.swapchain.images.len());
+            .build(
+                &vulkan_renderer.render_context(application),
+                vulkan_renderer.swapchain.images.len(),
+            );
 
         let mut builder = ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER, 3);
         builder.with_descriptors(descriptors);
@@ -145,8 +134,8 @@ impl VulkanApp {
 
     pub fn setup_ui_shader(
         application: &VulkanApplication,
-        vulkan_renderer: &VulkanRenderer<UniformBufferObject>,
-        imgui_context: &ImguiContext,
+        vulkan_renderer: &RenderLayer<UniformBufferObject>,
+        texture: &Texture,
     ) -> ShaderSet<UniformBufferObject> {
         let input_buffer_layout = BufferLayout::new()
             .add_float_vec3(0)
@@ -163,12 +152,15 @@ impl VulkanApp {
             .add_static_image(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,
-                &imgui_context.ui_font_texture,
+                &texture,
                 vulkan_renderer.texture_sampler.unwrap(),
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(application, vulkan_renderer.swapchain.images.len());
+            .build(
+                &vulkan_renderer.render_context(application),
+                vulkan_renderer.swapchain.images.len(),
+            );
 
         let mut builder = ShaderBuilder::builder(
             application,
@@ -182,19 +174,23 @@ impl VulkanApp {
     }
 
     #[profile(Sandbox)]
-    fn update_uniform(&mut self, _current_image: usize) {
-        self.count += 1.0 / 1000.0;
-        let current_frame = self.vulkan_renderer.current_frame();
+    fn update_uniform(
+        vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
+        count: &mut f32,
+        application: &VulkanApplication,
+    ) {
+        *count += 1.0 / 1000.0;
+        let current_frame = vulkan_renderer.current_frame();
 
         let (view, perspective) = {
-            let camera = self.vulkan_renderer.camera();
+            let camera = vulkan_renderer.camera();
             camera.reload();
             (camera.view(), camera.projection())
         };
 
-        for pipeline in self.vulkan_renderer.pipelines.iter_mut() {
+        for pipeline in vulkan_renderer.pipelines.iter_mut() {
             for mesh in pipeline.meshes.iter_mut() {
-                mesh.rotate(Vector3::new(0.0, self.count, 0.0));
+                mesh.rotate(Vector3::new(0.0, *count, 0.0));
             }
 
             //if camera.is_dirty() {
@@ -203,193 +199,51 @@ impl VulkanApp {
             uniform_mut.projection_matrix = perspective;
             pipeline
                 .shader
-                .update_uniform(&self.application.device, current_frame);
+                .update_uniform(&application.device, current_frame);
             // }
         }
     }
 
-    #[profile(Sandbox)]
-    fn draw_frame(&mut self, draw_data: &DrawData) {
-        self.update_uniform(self.vulkan_renderer.current_frame());
-        self.vulkan_renderer.draw(&self.application, draw_data);
-    }
-
     pub fn main_loop(mut self, mut event_loop: EventLoop<()>) {
-        let mut run = true;
+        let mut application = self.application;
+        let mut vulkan_renderer = self.vulkan_renderer;
+        let render_context = vulkan_renderer.render_context(&application);
+        let mut game_layer = GameLayer::new();
 
-        let mut context = ImguiContext::new(
-            &self.application.window,
-            &self.application.device,
-            &self.application.instance,
-            &self.vulkan_renderer.command_pool,
-            &self.vulkan_renderer.graphics_queue,
-        );
+        let mut ui_layer = ImguiLayer::new(&mut application, &mut vulkan_renderer);
+        ui_layer.initialize(&application.window, &render_context);
+        let ui_shader =
+            Self::setup_ui_shader(&application, &vulkan_renderer, &ui_layer.ui_font_texture);
+        let pipeline =
+            Pipeline::ui_pipeline(&application.device, &vulkan_renderer.render_pass, ui_shader);
 
-        let ui_shader = Self::setup_ui_shader(&self.application, &self.vulkan_renderer, &context);
-        let pipeline = Pipeline::ui_pipeline(
-            &self.application.device,
-            &self.vulkan_renderer.render_pass,
-            ui_shader,
-        );
+        vulkan_renderer.ui_pipeline = Some(pipeline);
 
-        self.vulkan_renderer.ui_pipeline = Some(pipeline);
+        let mut render_layers = vec![vulkan_renderer];
 
-        while run {
-            event_loop.run_return(|event, _, control_flow| {
-                context.handle_event(&event, &self.application.window);
+        let mut ui_layers = vec![ui_layer];
 
-                match event {
-                    Event::WindowEvent { event, .. } => match event {
-                        WindowEvent::CloseRequested => {
-                            *control_flow = ControlFlow::Exit;
-                            run = false;
-                            self.destroy();
-                            stop_profiler();
-                        }
-                        WindowEvent::CursorMoved { position, .. } => self
-                            .vulkan_renderer
-                            .handle_event(engine::Event::MouseMove(position)),
-                        WindowEvent::MouseWheel { delta, .. } => {
-                            if let MouseScrollDelta::LineDelta(x, y) = delta {
-                                self.vulkan_renderer
-                                    .handle_event(engine::Event::MouseScroll(x, y));
-                            }
-                        }
-                        WindowEvent::KeyboardInput { input, .. } => {
-                            self.vulkan_renderer
-                                .handle_event(engine::Event::Keyboard(input));
-                        }
-                        _ => {}
-                    },
-                    _ => (),
-                }
-                *control_flow = ControlFlow::Exit;
-            });
+        let mut game_runs = true;
+        while game_runs {
+            game_runs = game_layer.tick(&mut event_loop);
 
-            if !run {
+            if !game_runs {
                 break;
             }
 
-            context.start_frame(&self.application.window);
+            game_layer.before_frame();
+            game_layer.run_layers(&mut render_layers, &render_context, &application);
+            game_layer.run_layers(&mut ui_layers, &render_context, &application);
+            game_layer.after_frame();
 
-            context.update(&self.application.window);
+            Self::update_uniform(&mut render_layers[0], &mut self.count, &application);
 
-            let ui = context.imgui_context.frame();
-            let mut opened = false;
-            ui.show_demo_window(&mut opened);
-            //     .text(im_str!("Hello world!"));
-            // ui.text(im_str!("こんにちは世界！"));
-            // ui.text(im_str!("This...is...imgui-rs!"));
-            // ui.separator();
-            // let mouse_pos = ui.io().mouse_pos;
-            // ui.text(format!(
-            //     "Mouse Position: ({:.1},{:.1})",
-            //     mouse_pos[0], mouse_pos[1]
-            // ));
-
-            context
-                .platform
-                .prepare_render(&ui, &self.application.window);
-
-            let draw_data = ui.render();
-
-            self.draw_frame(draw_data)
+            render_layers[0].ui_data = ui_layers[0].draw_data;
+            render_layers[0].ui_mesh = ui_layers[0].ui_mesh.as_ref().unwrap();
         }
     }
 
     fn destroy(&self) {
         self.vulkan_renderer.destroy(&self.application.device);
     }
-}
-
-pub struct ImguiContext {
-    pub platform: WinitPlatform,
-    pub imgui_context: Context,
-    pub ui_font_texture: Texture,
-    pub last_frame: Instant,
-}
-
-impl ImguiContext {
-    pub fn new(
-        window: &Window,
-        device: &LogicalDevice,
-        instance: &Instance,
-        command_pool: &CommandPool,
-        submit_queue: &Queue,
-    ) -> ImguiContext {
-        let mut imgui = Context::create();
-        imgui.set_ini_filename(None);
-
-        let mut platform = WinitPlatform::init(&mut imgui);
-
-        let hidpi_factor = platform.hidpi_factor();
-        let font_size = (13.0 * hidpi_factor) as f32;
-        imgui.fonts().add_font(&[
-            FontSource::DefaultFontData {
-                config: Some(FontConfig {
-                    size_pixels: font_size,
-                    ..FontConfig::default()
-                }),
-            },
-            FontSource::TtfData {
-                data: include_bytes!("../assets/mplus-1p-regular.ttf"),
-                size_pixels: font_size,
-                config: Some(FontConfig {
-                    rasterizer_multiply: 1.75,
-                    glyph_ranges: FontGlyphRanges::japanese(),
-                    ..FontConfig::default()
-                }),
-            },
-        ]);
-        imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
-        platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
-
-        // Fonts texture
-        let fonts_texture = {
-            let mut fonts = imgui.fonts();
-            let atlas_texture = fonts.build_rgba32_texture();
-            println!("{} {}", atlas_texture.width, atlas_texture.height);
-            Texture::from_bytes(
-                instance,
-                device,
-                command_pool,
-                submit_queue,
-                &atlas_texture.data,
-                atlas_texture.width,
-                atlas_texture.height,
-            )
-        };
-
-        {
-            let mut fonts = imgui.fonts();
-            fonts.tex_id = TextureId::from(usize::MAX);
-        }
-        ImguiContext {
-            imgui_context: imgui,
-            platform,
-            ui_font_texture: fonts_texture,
-            last_frame: Instant::now(),
-        }
-    }
-
-    pub fn handle_event(&mut self, event: &winit::event::Event<()>, window: &Window) {
-        self.platform
-            .handle_event(self.imgui_context.io_mut(), &window, &event);
-    }
-
-    pub fn start_frame(&mut self, window: &Window) {
-        let io = self.imgui_context.io_mut();
-        self.platform
-            .prepare_frame(io, &window.window)
-            .expect("Failed to start frame");
-    }
-
-    pub fn update(&mut self, _window: &Window) {
-        let io = self.imgui_context.io_mut();
-        let now = Instant::now();
-        io.update_delta_time(now - self.last_frame);
-        self.last_frame = now;
-    }
-
-    pub fn end_frame(&self) {}
 }

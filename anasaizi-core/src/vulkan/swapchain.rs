@@ -1,7 +1,7 @@
 use ash::vk;
 
 use crate::{
-    engine::image::Texture,
+    engine::{image::Texture, RenderContext},
     vulkan::{ImageView, Instance, LogicalDevice, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
@@ -35,45 +35,33 @@ impl SwapChain {
 }
 
 impl SwapChain {
-    pub fn new(
-        instance: &Instance,
-        device: &LogicalDevice,
-        surface_data: &SurfaceData,
-    ) -> SwapChain {
-        let swap_chain_support = Self::query_swapchain_support(device, surface_data);
+    pub fn new(render_context: &RenderContext, surface_data: &SurfaceData) -> SwapChain {
+        let swap_chain_support =
+            Self::query_swapchain_support(render_context.physical_device(), surface_data);
 
         if swap_chain_support.formats.is_empty() && swap_chain_support.present_modes.is_empty() {
             panic!("Swapchain can not be configured with present modes!")
         }
 
-        return Self::create_swapchain(instance, device, surface_data);
+        return Self::create_swapchain(render_context, surface_data);
     }
 
     fn query_swapchain_support(
-        device: &LogicalDevice,
+        physical_device: &vk::PhysicalDevice,
         surface_data: &SurfaceData,
     ) -> SwapChainSupportDetails {
         unsafe {
             let capabilities = surface_data
                 .surface_loader
-                .get_physical_device_surface_capabilities(
-                    *device.physical_device(),
-                    surface_data.surface,
-                )
+                .get_physical_device_surface_capabilities(*physical_device, surface_data.surface)
                 .expect("Failed to query for surface capabilities.");
             let formats = surface_data
                 .surface_loader
-                .get_physical_device_surface_formats(
-                    *device.physical_device(),
-                    surface_data.surface,
-                )
+                .get_physical_device_surface_formats(*physical_device, surface_data.surface)
                 .expect("Failed to query for surface formats.");
             let present_modes = surface_data
                 .surface_loader
-                .get_physical_device_surface_present_modes(
-                    *device.physical_device(),
-                    surface_data.surface,
-                )
+                .get_physical_device_surface_present_modes(*physical_device, surface_data.surface)
                 .expect("Failed to query for surface present mode.");
 
             SwapChainSupportDetails {
@@ -84,12 +72,9 @@ impl SwapChain {
         }
     }
 
-    fn create_swapchain(
-        instance: &Instance,
-        device: &LogicalDevice,
-        surface_stuff: &SurfaceData,
-    ) -> SwapChain {
-        let swapchain_support = Self::query_swapchain_support(device, surface_stuff);
+    fn create_swapchain(render_context: &RenderContext, surface_stuff: &SurfaceData) -> SwapChain {
+        let swapchain_support =
+            Self::query_swapchain_support(render_context.physical_device(), surface_stuff);
 
         let surface_format = Self::choose_swapchain_format(&swapchain_support.formats);
         let present_mode = Self::choose_swapchain_present_mode(&swapchain_support.present_modes);
@@ -102,7 +87,7 @@ impl SwapChain {
             image_count
         };
 
-        let queue_family = device.queue_family_indices();
+        let queue_family = render_context.logical_device().queue_family_indices();
 
         let (image_sharing_mode, _queue_family_index_count, queue_family_indices) =
             if queue_family.graphics_family != queue_family.present_family {
@@ -135,8 +120,10 @@ impl SwapChain {
             .image_array_layers(1)
             .build();
 
-        let swapchain_loader =
-            ash::extensions::khr::Swapchain::new(instance.deref(), device.deref());
+        let swapchain_loader = ash::extensions::khr::Swapchain::new(
+            render_context.raw_instance(),
+            render_context.device(),
+        );
         let swapchain = unsafe {
             swapchain_loader
                 .create_swapchain(&swapchain_create_info, None)
@@ -149,10 +136,13 @@ impl SwapChain {
                 .expect("Failed to get Swapchain Images.")
         };
 
-        let depth_image = Self::create_depth_resources(instance, &device, extent);
+        let depth_image = Self::create_depth_resources(render_context, extent);
 
-        let image_views =
-            Self::create_image_views(&device, &swapchain_images, &surface_format.format);
+        let image_views = Self::create_image_views(
+            render_context.device(),
+            &swapchain_images,
+            &surface_format.format,
+        );
 
         SwapChain {
             loader: swapchain_loader,
@@ -168,7 +158,7 @@ impl SwapChain {
 
     /// An image view defines how the swapchain is going to use an image.
     fn create_image_views(
-        device: &LogicalDevice,
+        device: &ash::Device,
         images: &Vec<vk::Image>,
         format: &vk::Format,
     ) -> Vec<ImageView> {
@@ -185,14 +175,15 @@ impl SwapChain {
     }
 
     fn create_depth_resources(
-        instance: &Instance,
-        device: &LogicalDevice,
+        render_context: &RenderContext,
         swapchain_extent: vk::Extent2D,
     ) -> (Image, ImageView, vk::DeviceMemory) {
-        let depth_format = device.find_depth_format(instance);
+        let depth_format = render_context
+            .logical_device()
+            .find_depth_format(render_context.raw_instance());
 
         let (depth_image, depth_image_memory) = Texture::create_image(
-            device,
+            render_context,
             swapchain_extent.width,
             swapchain_extent.height,
             depth_format,
@@ -202,7 +193,7 @@ impl SwapChain {
         );
 
         let depth_image_view = ImageView::create(
-            &device,
+            render_context.device(),
             depth_image,
             depth_format,
             vk::ImageAspectFlags::DEPTH,

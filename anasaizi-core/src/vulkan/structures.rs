@@ -2,6 +2,7 @@ use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{ffi::CString, mem::size_of};
 
+#[derive(Copy, Clone)]
 pub struct QueueFamilyIndices {
     pub graphics_family: Option<u32>,
     pub present_family: Option<u32>,

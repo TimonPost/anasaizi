@@ -13,7 +13,7 @@ pub struct ImageView {
 
 impl ImageView {
     pub fn create(
-        device: &LogicalDevice,
+        device: &ash::Device,
         image: vk::Image,
         format: vk::Format,
         aspect: vk::ImageAspectFlags,

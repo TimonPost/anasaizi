@@ -1,5 +1,5 @@
 use crate::{
-    engine::{image::Texture, BufferLayout, VulkanApplication},
+    engine::{image::Texture, BufferLayout, RenderContext, VulkanApplication},
     reexports::imgui::__core::option::IterMut,
     vulkan::{LogicalDevice, MeshPushConstants, UniformBuffer, UniformBufferObjectTemplate},
 };
@@ -23,7 +23,7 @@ pub struct DescriptorSet {
 
 impl DescriptorSet {
     pub fn new(
-        device: &LogicalDevice,
+        device: &ash::Device,
         descriptor_set: vk::DescriptorSet,
         descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
         descriptor_info: &[vk::DescriptorBufferInfo],
@@ -63,7 +63,7 @@ pub struct DescriptorPool {
 impl DescriptorPool {
     /// Creates a new `DescriptorPool`.
     pub fn new(
-        device: &LogicalDevice,
+        device: &ash::Device,
         descriptor_types: &[vk::DescriptorType],
         swap_chain_image_count: usize,
     ) -> DescriptorPool {
@@ -96,7 +96,7 @@ impl DescriptorPool {
     /// Creates descriptor sets.
     pub fn create_descriptor_sets<U: UniformBufferObjectTemplate>(
         &self,
-        device: &LogicalDevice,
+        device: &ash::Device,
         descriptor_set_layout: vk::DescriptorSetLayout,
         descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
         uniform_buffer: Option<&UniformBuffer<U>>,
@@ -362,7 +362,7 @@ impl ShaderIOBuilder {
 
     pub fn build<U: UniformBufferObjectTemplate>(
         self,
-        application: &VulkanApplication,
+        render_context: &RenderContext,
         frames: usize,
     ) -> ShaderIo<U> {
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
@@ -370,20 +370,19 @@ impl ShaderIOBuilder {
             .build();
 
         let descriptor_set_layout = unsafe {
-            application
-                .device
+            render_context
+                .device()
                 .create_descriptor_set_layout(&layout_create_info, None)
                 .expect("failed to create descriptor set layout!")
         };
 
-        let uniform_buffer =
-            UniformBuffer::<U>::new(&application.instance, &application.device, frames);
+        let uniform_buffer = UniformBuffer::<U>::new(&render_context, frames);
 
         let descriptor_pool =
-            DescriptorPool::new(&application.device, &self.descriptor_types, frames);
+            DescriptorPool::new(&render_context.device(), &self.descriptor_types, frames);
 
         let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
-            &application.device,
+            &render_context.device(),
             descriptor_set_layout,
             self.write_descriptor_sets,
             Some(&uniform_buffer),

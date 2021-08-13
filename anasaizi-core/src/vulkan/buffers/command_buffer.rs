@@ -91,54 +91,6 @@ impl CommandBuffers {
         };
     }
 
-    /// Records draw commands, required for this mesh, into the current activated command buffer.
-    pub fn render_mesh<U: UniformBufferObjectTemplate>(
-        &self,
-        device: &LogicalDevice,
-        pipeline: &Pipeline<U>,
-        mesh: &Mesh,
-    ) {
-        let vertex_buffer = *mesh.vertex_buffer().deref();
-        let index_buffer = *mesh.index_buffer().deref();
-        let command_buffer = self.current();
-
-        // Push the model matrix using push constants.
-        unsafe {
-            let transform = MeshPushConstants {
-                model_matrix: mesh.model_transform(),
-                texture_id: mesh.texture_id,
-            };
-            let push = any_as_u8_slice(&transform);
-            device.cmd_push_constants(
-                command_buffer,
-                pipeline.layout(),
-                vk::ShaderStageFlags::VERTEX,
-                0,
-                push,
-            )
-        };
-
-        let offsets = [0];
-        unsafe {
-            device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &offsets);
-            device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT32);
-
-            let sets = pipeline
-                .shader
-                .get_descriptor_sets(self.active_buffer, String::from("viking"));
-            device.cmd_bind_descriptor_sets(
-                command_buffer,
-                vk::PipelineBindPoint::GRAPHICS,
-                pipeline.layout(),
-                0,
-                &sets,
-                &[],
-            );
-
-            device.cmd_draw_indexed(command_buffer, mesh.indices_count() as u32, 1, 0, 0, 0);
-        }
-    }
-
     /// Ends the render session.
     ///
     /// 1. Ends the renderpass.

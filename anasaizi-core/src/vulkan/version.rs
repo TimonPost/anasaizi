@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialOrd, PartialEq, Eq)]
+#[derive(PartialOrd, PartialEq, Eq, Clone)]
 pub struct Version {
     major: u32,
     minor: u32,

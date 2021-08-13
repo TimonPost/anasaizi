@@ -1,6 +1,9 @@
-use crate::vulkan::{
-    buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
-    CommandPool, Instance, LogicalDevice, Queue,
+use crate::{
+    engine::RenderContext,
+    vulkan::{
+        buffers::buffer::{copy_buffer, create_allocate_vk_buffer},
+        CommandPool, Instance, LogicalDevice, Queue,
+    },
 };
 use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
@@ -15,19 +18,13 @@ pub struct IndexBuffer {
 
 impl IndexBuffer {
     /// Creates a new index buffer from the given indices.
-    pub fn create(
-        instance: &Instance,
-        device: &LogicalDevice,
-        indices: &Vec<u32>,
-        submit_queue: &Queue,
-        command_pool: &CommandPool,
-    ) -> IndexBuffer {
+    pub fn create(render_context: &RenderContext, indices: &Vec<u32>) -> IndexBuffer {
+        let device = render_context.device();
         // Allocate the staging buffer.
         let buffer_size = (size_of::<u32>() * indices.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_allocate_vk_buffer(
-            &instance,
-            &device,
+            &render_context,
             buffer_size,
             vk::BufferUsageFlags::TRANSFER_SRC,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
@@ -51,22 +48,14 @@ impl IndexBuffer {
 
         // Create new buffer on the GPU.
         let (index_buffer, index_buffer_memory) = create_allocate_vk_buffer(
-            &instance,
-            &device,
+            render_context,
             buffer_size,
             vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::INDEX_BUFFER,
             vk::MemoryPropertyFlags::DEVICE_LOCAL | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
         // Copy data from CPU staging buffer to GPU
-        copy_buffer(
-            device,
-            submit_queue,
-            command_pool,
-            staging_buffer,
-            index_buffer,
-            buffer_size,
-        );
+        copy_buffer(render_context, staging_buffer, index_buffer, buffer_size);
 
         // Clean up the staging buffer.
         unsafe {
@@ -82,7 +71,7 @@ impl IndexBuffer {
     }
 
     /// Destroys the buffer and its memory.
-    pub fn destroy(&self, device: &LogicalDevice) {
+    pub fn destroy(&self, device: &ash::Device) {
         unsafe {
             device.destroy_buffer(self.buffer, None);
             device.free_memory(self.memory, None)
@@ -97,7 +86,7 @@ impl IndexBuffer {
     /// Updates the buffer contents with the given data.
     ///
     /// Make sure that the given data is the same as what is stored in the buffer.
-    pub fn update_buffer_content<T: Copy>(&self, device: &LogicalDevice, data: &[T]) {
+    pub fn update_buffer_content<T: Copy>(&self, device: &ash::Device, data: &[T]) {
         unsafe {
             let size = (data.len() * mem::size_of::<T>()) as _;
 

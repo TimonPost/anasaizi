@@ -1,8 +1,18 @@
 use crate::{
-    engine::VulkanApplication,
+    engine::{RenderContext, VulkanApplication},
     math::Vertex,
     reexports::imgui::DrawData,
-    vulkan::{CommandPool, IndexBuffer, Instance, LogicalDevice, Queue, VertexBuffer},
+    utils::any_as_u8_slice,
+    vulkan,
+    vulkan::{
+        CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Queue,
+        UniformBufferObjectTemplate, VertexBuffer,
+    },
+};
+use ash::{
+    version::DeviceV1_0,
+    vk,
+    vk::{CommandBuffer, Pipeline},
 };
 use nalgebra::{Matrix4, Vector3};
 
@@ -35,45 +45,23 @@ impl Mesh {
     }
 
     pub fn from_raw(
-        application: &VulkanApplication,
-        queue: &Queue,
-        command_pool: &CommandPool,
+        render_context: &RenderContext,
         vertices: Vec<Vertex>,
         indices: Vec<u32>,
         texture_id: i32,
     ) -> Mesh {
-        let vertex_buffer = VertexBuffer::create(
-            &application.instance,
-            &application.device,
-            &vertices,
-            queue,
-            command_pool,
-        );
-        let index_buffer = IndexBuffer::create(
-            &application.instance,
-            &application.device,
-            &indices,
-            &queue,
-            command_pool,
-        );
+        let vertex_buffer = VertexBuffer::create(render_context, &vertices);
+        let index_buffer = IndexBuffer::create(render_context, &indices);
 
         Mesh::new(vertex_buffer, index_buffer, texture_id)
     }
 
     /// Creates a new `Mesh` from the given imgui `DrawData`.
-    pub fn from_draw_data(
-        instance: &Instance,
-        device: &LogicalDevice,
-        submit_queue: &Queue,
-        command_pool: &CommandPool,
-        draw_data: &DrawData,
-    ) -> Mesh {
+    pub fn from_draw_data(render_context: &RenderContext, draw_data: &DrawData) -> Mesh {
         let (vertices, indices) = Self::get_vertices_and_indices(draw_data);
 
-        let vertex_buffer =
-            VertexBuffer::create::<Vertex>(instance, device, &vertices, submit_queue, command_pool);
-        let index_buffer =
-            IndexBuffer::create(instance, device, &indices, submit_queue, command_pool);
+        let vertex_buffer = VertexBuffer::create::<Vertex>(render_context, &vertices);
+        let index_buffer = IndexBuffer::create(render_context, &indices);
 
         Mesh::new(vertex_buffer, index_buffer, -1)
     }
@@ -115,44 +103,32 @@ impl Mesh {
     /// Updates the mesh with the given imgui `DrawData`.
     ///
     /// This function will either reallocate, destroy, extend memory based up on the given `DrawData`.
-    pub fn update_from_draw_data(
-        &mut self,
-        instance: &Instance,
-        device: &LogicalDevice,
-        submit_queue: &Queue,
-        command_pool: &CommandPool,
-        draw_data: &DrawData,
-    ) {
+    pub fn update_from_draw_data(&mut self, render_context: &RenderContext, draw_data: &DrawData) {
+        let device = render_context.device();
+
         let (vertices, indices) = Self::get_vertices_and_indices(draw_data);
 
         // if vertex buffer is outdated
         if draw_data.total_vtx_count as usize > self.vertex_buffer.vertices_count() {
             self.vertex_buffer.destroy(device);
 
-            let vertex_buffer = VertexBuffer::create::<Vertex>(
-                instance,
-                device,
-                &vertices,
-                submit_queue,
-                command_pool,
-            );
+            let vertex_buffer = VertexBuffer::create::<Vertex>(render_context, &vertices);
 
             self.vertex_buffer = vertex_buffer;
         } else {
             // Update buffer content with new draw data.
-            self.vertex_buffer.update_buffer_content(&device, &vertices);
+            self.vertex_buffer.update_buffer_content(device, &vertices);
         }
 
         // if index buffer is outdated
         if draw_data.total_idx_count as usize > self.index_buffer.indices_count() {
             self.index_buffer.destroy(device);
 
-            let index_buffer =
-                IndexBuffer::create(instance, device, &indices, submit_queue, command_pool);
+            let index_buffer = IndexBuffer::create(render_context, &indices);
             self.index_buffer = index_buffer;
         } else {
             // Update buffer content with new draw data.
-            self.index_buffer.update_buffer_content(&device, &indices);
+            self.index_buffer.update_buffer_content(device, &indices);
         }
     }
 
@@ -186,6 +162,31 @@ impl Mesh {
     pub fn destroy(&self, device: &LogicalDevice) {
         self.vertex_buffer.destroy(device);
         self.index_buffer.destroy(device);
+    }
+
+    pub fn push_constants<U: UniformBufferObjectTemplate>(
+        &self,
+        device: &ash::Device,
+        command_buffer: &CommandBuffer,
+        pipeline: &vulkan::Pipeline<U>,
+    ) {
+        // Push the model matrix using push constants.
+        let transform = MeshPushConstants {
+            model_matrix: self.model_transform(),
+            texture_id: self.texture_id,
+        };
+
+        unsafe {
+            let push_constants = any_as_u8_slice(&transform);
+
+            device.cmd_push_constants(
+                *command_buffer,
+                pipeline.layout(),
+                vk::ShaderStageFlags::VERTEX,
+                0,
+                &push_constants,
+            );
+        }
     }
 
     /// Gets vertices and indices from the imgui `DrawData`.

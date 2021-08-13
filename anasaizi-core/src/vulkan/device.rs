@@ -13,6 +13,7 @@ use std::{fmt, ops::Deref};
 /// A Vulkan logical device.
 ///
 /// A logical device acts upont a physical device by proving helper functions.
+#[derive(Clone)]
 pub struct LogicalDevice {
     physical_device: vk::PhysicalDevice,
     device_features: vk::PhysicalDeviceFeatures,
@@ -88,7 +89,7 @@ impl LogicalDevice {
         panic!("Failed to find suitable memory type!")
     }
 
-    pub fn find_depth_format(&self, instance: &Instance) -> vk::Format {
+    pub fn find_depth_format(&self, instance: &ash::Instance) -> vk::Format {
         self.find_supported_format(
             instance,
             &[
@@ -103,7 +104,7 @@ impl LogicalDevice {
 
     fn find_supported_format(
         &self,
-        instance: &Instance,
+        instance: &ash::Instance,
         candidate_formats: &[vk::Format],
         tiling: vk::ImageTiling,
         features: vk::FormatFeatureFlags,
@@ -316,7 +317,7 @@ impl fmt::Debug for LogicalDevice {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DeviceType {
     Other,
     IntegratedGPU,
@@ -338,6 +339,7 @@ impl From<vk::PhysicalDeviceType> for DeviceType {
     }
 }
 
+#[derive(Clone)]
 pub struct DeviceProperties {
     pub api_version: Version,
     pub driver_version: Version,

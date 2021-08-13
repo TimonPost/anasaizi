@@ -16,14 +16,14 @@ use ultraviolet::projection::orthographic_vk;
 use anasaizi_profile::profile;
 
 use crate::{
-    engine::BufferLayout,
+    engine::{renderer::render_pipeline::RenderPipeline, BufferLayout, Layer, RenderContext},
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
     reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
     utils::any_as_u8_slice,
     vulkan::{
         Application, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Pipeline,
-        ShaderBuilder, ShaderIOBuilder, VertexBuffer,
+        ShaderBuilder, ShaderIOBuilder, VertexBuffer, Window,
     },
 };
 use ash::{version::DeviceV1_0, vk};
@@ -78,7 +78,7 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     sync_objects
 }
 
-pub struct VulkanRenderer<U: UniformBufferObjectTemplate> {
+pub struct RenderLayer<U: UniformBufferObjectTemplate> {
     pub swapchain: SwapChain,
     pub render_pass: RenderPass,
     pub graphics_queue: Queue,
@@ -89,138 +89,78 @@ pub struct VulkanRenderer<U: UniformBufferObjectTemplate> {
     command_buffers: CommandBuffers,
 
     pub pipelines: Vec<Pipeline<U>>,
+
     pub ui_pipeline: Option<Pipeline<U>>,
+    pub ui_mesh: *const Mesh,
+    pub ui_data: *const DrawData,
 
     pub texture_sampler: Option<vk::Sampler>,
 
     sync_object: SyncObjects,
 
-    pub current_frame: usize,
-    pub last_frame: Instant,
-    pub delta_time: f32,
-    pub start_time: Instant,
-
     pub camera: Camera,
     pub last_y: f64,
     pub last_x: f64,
-
-    ui_mesh: Option<Mesh>,
+    pub current_frame: usize,
+    delta_time: f32,
 }
 
-impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
-    pub fn new(application: &VulkanApplication) -> Self {
-        let device = &application.device;
-        let instance = &application.instance;
+impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
+    fn initialize(&mut self, window: &Window, render_context: &RenderContext) {}
 
-        let graphics_queue = Queue::create(
-            &device,
-            device.queue_family_indices().graphics_family.unwrap(),
-        );
-        let present_queue = Queue::create(
-            &device,
-            device.queue_family_indices().present_family.unwrap(),
-        );
+    fn on_event(&mut self, event: &Event) {
+        match event {
+            Event::MouseMove(position) => {
+                let xoffset = position.x - self.last_x;
+                let yoffset = self.last_y - position.y;
 
-        let command_pool = CommandPool::create(&device);
+                self.last_x = position.x;
+                self.last_y = position.y;
 
-        let swapchain = SwapChain::new(&instance, &device, application.window.surface_data());
-
-        let render_pass = RenderPass::create(&instance, &device, swapchain.image_format);
-
-        let frame_buffers = FrameBuffers::create(
-            &application.device,
-            &render_pass,
-            &swapchain.image_views.iter().map(|i| **i).collect(),
-            swapchain.depth_image_view.clone(),
-            &swapchain.extent,
-        );
-
-        let sync_object = create_sync_objects(device.logical_device());
-
-        let camera = Camera::new(
-            16.0 / 9.0,
-            (swapchain.extent.width / swapchain.extent.height) as f32,
-            0.1,
-            100.0,
-        );
-
-        let texture_sampler = Texture::create_texture_sampler(&device);
-
-        let command_buffers =
-            CommandBuffers::create::<U>(&application.device, &command_pool, frame_buffers.len());
-
-        VulkanRenderer {
-            swapchain,
-            render_pass,
-
-            command_pool,
-
-            graphics_queue,
-            present_queue,
-
-            frame_buffers,
-            command_buffers,
-            pipelines: vec![],
-            ui_pipeline: None,
-
-            texture_sampler: Some(texture_sampler),
-
-            sync_object,
-
-            camera,
-
-            delta_time: 0.0,
-
-            last_frame: Instant::now(),
-            start_time: Instant::now(),
-            current_frame: 0,
-
-            last_x: 400.0,
-            last_y: 300.0,
-
-            ui_mesh: None,
+                self.camera.process_mouse(self.delta_time, xoffset, yoffset)
+            }
+            Event::Keyboard(input) => match (input.virtual_keycode, input.state) {
+                (Some(VirtualKeyCode::W), ElementState::Pressed) => {
+                    self.camera
+                        .process_movement(CameraMovement::FORWARD, self.delta_time);
+                }
+                (Some(VirtualKeyCode::A), ElementState::Pressed) => {
+                    self.camera
+                        .process_movement(CameraMovement::LEFT, self.delta_time);
+                }
+                (Some(VirtualKeyCode::S), ElementState::Pressed) => {
+                    self.camera
+                        .process_movement(CameraMovement::BACKWARD, self.delta_time);
+                }
+                (Some(VirtualKeyCode::D), ElementState::Pressed) => {
+                    self.camera
+                        .process_movement(CameraMovement::RIGHT, self.delta_time);
+                }
+                _ => {}
+            },
+            Event::MouseScroll(_xoffset, yoffset) => {
+                self.camera.process_mouse_scroll(*yoffset);
+            }
+            _ => {}
         }
     }
 
-    pub fn camera(&mut self) -> &mut Camera {
-        &mut self.camera
-    }
+    fn start_frame(&mut self) {}
 
-    pub fn current_frame(&self) -> usize {
-        self.current_frame
-    }
-
-    pub fn create_pipeline(
+    fn on_update(
         &mut self,
+        delta_time: u128,
+        render_context: &RenderContext,
         application: &VulkanApplication,
-        shader: ShaderSet<U>,
-        meshes: Vec<Mesh>,
     ) {
-        let mut pipeline = Pipeline::create(
+        let device = render_context.device();
+        let mut render_pipeline = RenderPipeline::<U>::new(
             &application.device,
-            self.swapchain.extent,
-            &self.render_pass,
-            shader,
+            &self.command_buffers.current(),
+            self.current_frame(),
         );
-        pipeline.meshes = meshes;
 
-        self.pipelines.push(pipeline);
-    }
-
-    pub fn initialize_resources() {}
-
-    pub fn start_frame(&mut self) {
-        let current_frame = Instant::now();
-
-        self.delta_time = (current_frame - self.last_frame).as_millis() as f32;
-        self.last_frame = current_frame;
-    }
-
-    #[profile(VulkanRenderer)]
-    pub fn draw(&mut self, application: &VulkanApplication, draw_data: &DrawData) {
-        let device = &application.device;
-
-        let wait_fences = [self.sync_object.inflight_fences[self.current_frame]];
+        let wait_fences = [self.sync_object.inflight_fences[self.current_frame()]];
 
         let (image_index, _is_sub_optimal) = unsafe {
             profile_fn!("Acquire Next Image...", {
@@ -242,23 +182,28 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         profile_fn!("Recording Commands...", {
             self.command_buffers.begin_session(
-                device,
+                &application.device,
                 &self.render_pass,
                 self.swapchain.extent,
                 &self.frame_buffers,
                 self.current_frame,
             );
 
-            self.render_meshes(&application);
+            let mut render_pipeline = RenderPipeline::new(
+                &application.device,
+                &self.command_buffers.current(),
+                self.current_frame(),
+            );
+            self.render_meshes(&mut render_pipeline);
 
             unsafe {
                 device
                     .cmd_next_subpass(self.command_buffers.current(), vk::SubpassContents::INLINE);
             };
 
-            self.render_ui(&application, draw_data, self.current_frame);
+            self.render_ui(&mut render_pipeline);
 
-            self.command_buffers.end_session(device);
+            self.command_buffers.end_session(&application.device);
         });
 
         profile_fn!("Queues...", {
@@ -318,7 +263,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                     match result {
                         Err(vk::Result::ERROR_OUT_OF_DATE_KHR)
                         | Err(vk::Result::SUBOPTIMAL_KHR) => {
-                            self.recreate_swapchain(application);
+                            self.recreate_swapchain(application, render_context);
                         }
                         Err(_) => {
                             panic!("a");
@@ -336,124 +281,163 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    pub fn render_meshes(&mut self, application: &VulkanApplication) {
-        unsafe {
-            let viewports = [vk::Viewport {
-                x: 0.0,
-                y: 0.0,
-                width: self.swapchain.extent.width as f32,
-                height: self.swapchain.extent.height as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            }];
+    fn end_frame(&mut self) {}
+}
 
-            application
-                .device
-                .cmd_set_viewport(self.command_buffers.current(), 0, &viewports);
+impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
+    pub fn new(application: &VulkanApplication) -> Self {
+        let device = &application.device;
+        let instance = &application.instance;
 
-            let scissors = [vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.swapchain.extent,
-            }];
+        let graphics_queue = Queue::create(
+            &device,
+            device.queue_family_indices().graphics_family.unwrap(),
+        );
+        let present_queue = Queue::create(
+            &device,
+            device.queue_family_indices().present_family.unwrap(),
+        );
 
-            application
-                .device
-                .cmd_set_scissor(self.command_buffers.current(), 0, &scissors);
-        };
+        let command_pool = CommandPool::create(&device);
+
+        let render_context = RenderContext::new(
+            &application.instance,
+            &command_pool,
+            &device,
+            &graphics_queue,
+        );
+
+        let swapchain = SwapChain::new(&render_context, application.window.surface_data());
+
+        let render_pass = RenderPass::create(&instance, &device, swapchain.image_format);
+
+        let frame_buffers = FrameBuffers::create(
+            &application.device,
+            &render_pass,
+            &swapchain.image_views.iter().map(|i| **i).collect(),
+            swapchain.depth_image_view.clone(),
+            &swapchain.extent,
+        );
+
+        let sync_object = create_sync_objects(device.logical_device());
+
+        let camera = Camera::new(
+            16.0 / 9.0,
+            (swapchain.extent.width / swapchain.extent.height) as f32,
+            0.1,
+            100.0,
+        );
+
+        let texture_sampler = Texture::create_texture_sampler(&device);
+
+        let command_buffers =
+            CommandBuffers::create::<U>(&application.device, &command_pool, frame_buffers.len());
+
+        RenderLayer {
+            swapchain,
+            render_pass,
+
+            command_pool,
+
+            graphics_queue,
+            present_queue,
+
+            frame_buffers,
+            command_buffers,
+            pipelines: vec![],
+
+            texture_sampler: Some(texture_sampler),
+
+            sync_object,
+
+            camera,
+
+            last_x: 400.0,
+            last_y: 300.0,
+            current_frame: 0,
+            ui_pipeline: None,
+            ui_mesh: std::ptr::null(),
+            ui_data: std::ptr::null(),
+            delta_time: 0.0,
+        }
+    }
+
+    pub fn render_context(&self, application: &VulkanApplication) -> RenderContext {
+        RenderContext::new(
+            &application.instance,
+            &self.command_pool,
+            &application.device,
+            &self.graphics_queue,
+        )
+    }
+
+    pub fn camera(&mut self) -> &mut Camera {
+        &mut self.camera
+    }
+
+    pub fn current_frame(&self) -> usize {
+        self.current_frame
+    }
+
+    pub fn create_pipeline(
+        &mut self,
+        application: &VulkanApplication,
+        shader: ShaderSet<U>,
+        meshes: Vec<Mesh>,
+    ) {
+        let mut pipeline = Pipeline::create(
+            &application.device,
+            self.swapchain.extent,
+            &self.render_pass,
+            shader,
+        );
+        pipeline.meshes = meshes;
+
+        self.pipelines.push(pipeline);
+    }
+
+    pub fn render_meshes(&mut self, render_pipeline: &mut RenderPipeline<U>) {
+        render_pipeline.set_view_port(
+            0.0,
+            0.0,
+            self.swapchain.extent.width as f32,
+            self.swapchain.extent.height as f32,
+        );
+        render_pipeline.set_scissors(
+            0.0,
+            0.0,
+            self.swapchain.extent.width as f32,
+            self.swapchain.extent.height as f32,
+        );
 
         for pipeline in self.pipelines.iter() {
-            self.command_buffers
-                .bind_pipeline(&application.device, pipeline);
+            render_pipeline.bind_pipeline(pipeline, &self.command_buffers);
 
             for mesh in pipeline.meshes.iter() {
-                self.command_buffers
-                    .render_mesh(&application.device, pipeline, &mesh);
+                render_pipeline.set_mesh(mesh);
+                render_pipeline.push_mesh_constants();
+                render_pipeline.render_mesh();
             }
         }
     }
 
-    pub fn render_ui(
-        &mut self,
-        application: &VulkanApplication,
-        draw_data: &DrawData,
-        image_index: usize,
-    ) {
+    pub fn render_ui(&mut self, render_pipeline: &mut RenderPipeline<U>) {
+        if self.ui_data.is_null() || self.ui_mesh.is_null() {
+            return;
+        }
+
         if let Some(ui_pipeline) = &self.ui_pipeline {
-            self.command_buffers
-                .bind_pipeline(&application.device, ui_pipeline);
-            let current_command_buffer = self.command_buffers.current();
-
-            if let None = self.ui_mesh {
-                self.ui_mesh = Some(Mesh::from_draw_data(
-                    &application.instance,
-                    &application.device,
-                    &self.graphics_queue,
-                    &self.command_pool,
-                    &draw_data,
-                ));
-            } else {
-                let mesh = self.ui_mesh.as_mut().unwrap();
-                mesh.update_from_draw_data(
-                    &application.instance,
-                    &application.device,
-                    &self.graphics_queue,
-                    &self.command_pool,
-                    draw_data,
-                );
-            }
-            let mesh = self.ui_mesh.as_ref().unwrap();
-
-            let device = &application.device;
+            let draw_data = unsafe { &*self.ui_data };
 
             let framebuffer_width = draw_data.framebuffer_scale[0] * draw_data.display_size[0];
             let framebuffer_height = draw_data.framebuffer_scale[1] * draw_data.display_size[1];
-            let viewports = [vk::Viewport {
-                width: framebuffer_width,
-                height: framebuffer_height,
-                max_depth: 1.0,
-                ..Default::default()
-            }];
 
-            unsafe { device.cmd_set_viewport(current_command_buffer, 0, &viewports) };
-
-            // Ortho projection
-            let projection = orthographic_vk(
-                0.0,
-                draw_data.display_size[0],
-                0.0,
-                -draw_data.display_size[1],
-                -1.0,
-                1.0,
-            );
-
+            render_pipeline.bind_pipeline(ui_pipeline, &self.command_buffers);
             unsafe {
-                let push = any_as_u8_slice(&projection);
-                device.cmd_push_constants(
-                    current_command_buffer,
-                    ui_pipeline.layout(),
-                    vk::ShaderStageFlags::VERTEX,
-                    0,
-                    push,
-                )
-            };
-
-            unsafe {
-                device.cmd_bind_index_buffer(
-                    current_command_buffer,
-                    **mesh.index_buffer(),
-                    0,
-                    vk::IndexType::UINT32,
-                )
-            };
-
-            unsafe {
-                device.cmd_bind_vertex_buffers(
-                    current_command_buffer,
-                    0,
-                    &[**mesh.vertex_buffer()],
-                    &[0],
-                )
-            };
+                render_pipeline.set_mesh(&*self.ui_mesh);
+            }
+            render_pipeline.set_view_port(0.0, 0.0, framebuffer_width, framebuffer_height);
+            render_pipeline.push_ui_constants(draw_data);
 
             let index_offset = 0;
             let vertex_offset = 0;
@@ -480,37 +464,12 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
                             let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
                             let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
 
-                            let scissors = [vk::Rect2D {
-                                offset: vk::Offset2D {
-                                    x: clip_x as _,
-                                    y: clip_y as _,
-                                },
-                                extent: vk::Extent2D {
-                                    width: clip_w as _,
-                                    height: clip_h as _,
-                                },
-                            }];
-                            device.cmd_set_scissor(current_command_buffer, 0, &scissors);
-                            let sets = ui_pipeline
-                                .shader
-                                .get_descriptor_sets(image_index, String::from(""));
-                            device.cmd_bind_descriptor_sets(
-                                current_command_buffer,
-                                vk::PipelineBindPoint::GRAPHICS,
-                                ui_pipeline.layout(),
-                                0,
-                                &sets,
-                                &[],
-                            );
+                            render_pipeline.set_scissors(clip_x, clip_y, clip_w, clip_h);
 
-                            device.cmd_draw_indexed(
-                                current_command_buffer,
-                                count as _,
-                                1,
-                                index_offset + idx_offset as u32,
-                                vertex_offset + vtx_offset as i32,
-                                0,
-                            )
+                            render_pipeline.index_offset = index_offset + idx_offset as u32;
+                            render_pipeline.vertex_offset = (vertex_offset + vtx_offset) as u32;
+                            render_pipeline.index_count = count as u32;
+                            render_pipeline.render_mesh();
                         }
                     }
                 }
@@ -518,9 +477,11 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         }
     }
 
-    pub fn end_frame() {}
-
-    pub fn recreate_swapchain(&mut self, application: &VulkanApplication) {
+    pub fn recreate_swapchain(
+        &mut self,
+        application: &VulkanApplication,
+        render_context: &RenderContext,
+    ) {
         unsafe {
             application
                 .device
@@ -532,7 +493,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         let surface_data = application.window.surface_data();
 
-        self.swapchain = SwapChain::new(&application.instance, &application.device, surface_data);
+        self.swapchain = SwapChain::new(render_context, surface_data);
         self.render_pass = RenderPass::create(
             &application.instance,
             &application.device,
@@ -585,62 +546,18 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event) {
-        match event {
-            Event::MouseMove(position) => {
-                let xoffset = position.x - self.last_x;
-                let yoffset = self.last_y - position.y;
-
-                self.last_x = position.x;
-                self.last_y = position.y;
-
-                self.camera.process_mouse(self.delta_time, xoffset, yoffset)
-            }
-            Event::Keyboard(input) => match (input.virtual_keycode, input.state) {
-                (Some(VirtualKeyCode::W), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::FORWARD, self.delta_time);
-                }
-                (Some(VirtualKeyCode::A), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::LEFT, self.delta_time);
-                }
-                (Some(VirtualKeyCode::S), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::BACKWARD, self.delta_time);
-                }
-                (Some(VirtualKeyCode::D), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::RIGHT, self.delta_time);
-                }
-                _ => {}
-            },
-            Event::MouseScroll(_xoffset, yoffset) => {
-                self.camera.process_mouse_scroll(yoffset);
-            }
-            _ => {}
-        }
-    }
-
-    pub fn grid_mesh(&self, application: &VulkanApplication) -> (ShaderSet<U>, Mesh) {
+    pub fn grid_mesh(
+        &self,
+        application: &VulkanApplication,
+        render_context: &RenderContext,
+    ) -> (ShaderSet<U>, Mesh) {
         let (square_vertices, square_indices) =
             (square_vertices().to_vec(), square_indices().to_vec());
 
-        let grid_vertex_buffer = VertexBuffer::create::<PosOnlyVertex>(
-            &application.instance,
-            &application.device,
-            &square_vertices,
-            &self.graphics_queue,
-            &self.command_pool,
-        );
+        let grid_vertex_buffer =
+            VertexBuffer::create::<PosOnlyVertex>(render_context, &square_vertices);
 
-        let grid_index_buffer = IndexBuffer::create(
-            &application.instance,
-            &application.device,
-            &square_indices,
-            &self.graphics_queue,
-            &self.command_pool,
-        );
+        let grid_index_buffer = IndexBuffer::create(render_context, &square_indices);
 
         let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
 
@@ -657,7 +574,7 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(application, self.swapchain.images.len());
+            .build(render_context, self.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(
             application,
@@ -671,4 +588,34 @@ impl<U: UniformBufferObjectTemplate> VulkanRenderer<U> {
 
         (build, Mesh::new(grid_vertex_buffer, grid_index_buffer, -1))
     }
+}
+
+enum DrawCommand<'a> {
+    ImGui(UiDrawElement<'a>),
+    Mesh(),
+}
+
+struct UiDrawElement<'a> {
+    mesh: &'a Mesh,
+    commands: Vec<DrawCommands>,
+    /// Upper-left position of the viewport to render.
+    ///
+    /// (= upper-left corner of the orthogonal projection matrix to use)
+    pub display_pos: [f32; 2],
+    /// Size of the viewport to render.
+    ///
+    /// (= display_pos + display_size == lower-right corner of the orthogonal matrix to use)
+    pub display_size: [f32; 2],
+    /// Amount of pixels for each unit of display_size.
+    ///
+    /// Based on io.display_frame_buffer_scale. Typically [1.0, 1.0] on normal displays, and
+    /// [2.0, 2.0] on Retina displays, but fractional values are also possible.
+    pub framebuffer_scale: [f32; 2],
+}
+
+struct DrawCommands {
+    pub count: usize,
+    pub clip_rect: [f32; 4],
+    pub vtx_offset: usize,
+    pub idx_offset: usize,
 }
