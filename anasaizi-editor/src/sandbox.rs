@@ -194,6 +194,7 @@ impl VulkanApp {
             let uniform_mut = pipeline.shader.uniform_mut();
             uniform_mut.view_matrix = view;
             uniform_mut.projection_matrix = perspective;
+
             pipeline
                 .shader
                 .update_uniform(&application.device, current_frame);

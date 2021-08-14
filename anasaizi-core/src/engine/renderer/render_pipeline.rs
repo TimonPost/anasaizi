@@ -10,7 +10,6 @@ use crate::{
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
 use std::ptr;
-use ultraviolet::projection::orthographic_vk;
 
 pub struct RenderPipeline<U: UniformBufferObjectTemplate> {
     active_command_buffer: *const CommandBuffer,
@@ -103,18 +102,13 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
     }
 
     pub fn push_ui_constants(&self, draw_data: &DrawData) {
-        // Ortho projection
-        let projection = orthographic_vk(
-            0.0,
-            draw_data.display_size[0],
-            0.0,
-            -draw_data.display_size[1],
-            -1.0,
-            1.0,
-        );
+        let orthographic = nalgebra::Orthographic3::new(0.0, draw_data.display_size[0], 0.0, -draw_data.display_size[1], -1.0, 1.0);
+
+        let mut matrix = orthographic.to_homogeneous();
+        matrix[(1, 1)] = matrix[(1, 1)] * -1.0;
 
         unsafe {
-            let push = any_as_u8_slice(&projection);
+            let push = any_as_u8_slice(&matrix);
             self.device().cmd_push_constants(
                 *self.active_command_buffer,
                 self.active_pipeline().layout(),

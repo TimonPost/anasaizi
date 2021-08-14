@@ -11,7 +11,6 @@ use crate::{
         ShaderSet, SwapChain, UniformBufferObjectTemplate,
     },
 };
-use ultraviolet::projection::orthographic_vk;
 
 use anasaizi_profile::profile;
 

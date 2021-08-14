@@ -12,7 +12,6 @@ use ash::{
     },
 };
 use std::{collections::HashMap, mem, ops::Deref, ptr};
-use ultraviolet::Mat4;
 
 /// Think of a single descriptor as a handle or pointer into a resource.
 /// That resource being a Buffer or a Image, and also holds other information, such as the size of the buffer, or the type of sampler if it’s for an image.
