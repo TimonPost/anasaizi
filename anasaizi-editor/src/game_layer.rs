@@ -58,8 +58,8 @@ impl GameLayer {
                         self.input_sender.send(engine::Event::Shutdown);
                         run = false;
                     }
-                    WindowEvent::CursorMoved { position, .. } => {
-                        self.input_sender.send(engine::Event::MouseMove(position));
+                    WindowEvent::CursorMoved { position, modifiers, .. } => {
+                        self.input_sender.send(engine::Event::MouseMove(position,modifiers));
                     }
                     WindowEvent::MouseWheel { delta, .. } => {
                         if let MouseScrollDelta::LineDelta(x, y) = delta {

@@ -7,7 +7,7 @@ use winit::{
 #[derive(Clone)]
 pub enum Event {
     Mouse(ModifiersState, ElementState, MouseButton),
-    MouseMove(PhysicalPosition<f64>),
+    MouseMove(PhysicalPosition<f64>, ModifiersState),
     MouseScroll(f32, f32),
     Keyboard(KeyboardInput),
     MouseInput(ElementState, MouseButton),

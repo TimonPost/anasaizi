@@ -12,6 +12,7 @@ use anasaizi_core::{
     vulkan::{UniformBufferObject, Window},
 };
 use std::{mem, time::Duration};
+use anasaizi_core::reexports::imgui::ImStr;
 
 
 pub struct WindowData {
@@ -141,23 +142,21 @@ impl Layer for ImguiLayer {
 
         let ui = self.imgui_context.frame();
 
-        // unsafe {
-        //     ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Translate".as_bytes()), &mut self.data.object_translate)
-        //         .build();
-        //     ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Rotate".as_bytes()), &mut self.data.object_rotate)
-        //         .build();
-        //     ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Scale".as_bytes()), &mut self.data.object_scale)
-        //         .build();
-        // }
-        //
-        // ui.separator();
-        // let mouse_pos = ui.io().mouse_pos;
-        // ui.text(format!(
-        //     "Mouse Position: ({:.1},{:.1})",
-        //     mouse_pos[0], mouse_pos[1]
-        // ));
-        let mut a = true;
-        ui.show_demo_window(&mut a);
+        unsafe {
+            ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Translate".as_bytes()), &mut self.data.object_translate)
+                .build();
+            ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Rotate".as_bytes()), &mut self.data.object_rotate)
+                .build();
+            ui.input_float3(ImStr::from_utf8_with_nul_unchecked("Scale".as_bytes()), &mut self.data.object_scale)
+                .build();
+        }
+
+        ui.separator();
+        let mouse_pos = ui.io().mouse_pos;
+        ui.text(format!(
+            "Mouse Position: ({:.1},{:.1})",
+            mouse_pos[0], mouse_pos[1]
+        ));
 
         self.platform
             .prepare_render(&ui, unsafe { &mut (*self.window).window });

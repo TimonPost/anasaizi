@@ -28,7 +28,9 @@
   <component name="ChangeListManager">
     <list default="true" id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/buffer_layout.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/buffer_layout.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/keycode.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/keycode.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/game_layer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/game_layer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/imgui_layer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/imgui_layer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" afterDir="false" />
     </list>
@@ -176,11 +178,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Cargo.Expand anasaizi_core::engine::application [anasaizi-core]" />
@@ -264,7 +261,7 @@
       <workItem from="1628597700852" duration="20647000" />
       <workItem from="1628684168041" duration="20541000" />
       <workItem from="1628770381986" duration="12602000" />
-      <workItem from="1628857265736" duration="12183000" />
+      <workItem from="1628857265736" duration="13983000" />
     </task>
     <servers />
   </component>
@@ -317,46 +314,46 @@
     </state>
     <state x="-1500" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1624536012235" />
     <state x="1060" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628771250470" />
-    <state width="2500" height="410" key="GridCell.Tab.0.bottom" timestamp="1628876764711">
+    <state width="2500" height="410" key="GridCell.Tab.0.bottom" timestamp="1628886769129">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="182" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149851227" />
-    <state width="2500" height="410" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628876764711" />
-    <state width="2500" height="410" key="GridCell.Tab.0.center" timestamp="1628876764711">
+    <state width="2500" height="410" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769129" />
+    <state width="2500" height="410" key="GridCell.Tab.0.center" timestamp="1628886769129">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="182" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149851227" />
-    <state width="2500" height="410" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628876764711" />
-    <state width="2500" height="410" key="GridCell.Tab.0.left" timestamp="1628876764711">
+    <state width="2500" height="410" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769129" />
+    <state width="2500" height="410" key="GridCell.Tab.0.left" timestamp="1628886769129">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="182" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149851227" />
-    <state width="2500" height="410" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628876764711" />
-    <state width="2500" height="410" key="GridCell.Tab.0.right" timestamp="1628876764711">
+    <state width="2500" height="410" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769129" />
+    <state width="2500" height="410" key="GridCell.Tab.0.right" timestamp="1628886769129">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="182" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149851227" />
-    <state width="2500" height="410" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628876764711" />
-    <state width="2500" height="272" key="GridCell.Tab.1.bottom" timestamp="1628872818681">
+    <state width="2500" height="410" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769129" />
+    <state width="2500" height="272" key="GridCell.Tab.1.bottom" timestamp="1628886769125">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="2500" height="272" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628872818681" />
-    <state width="2500" height="272" key="GridCell.Tab.1.center" timestamp="1628872818681">
+    <state width="2500" height="272" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769125" />
+    <state width="2500" height="272" key="GridCell.Tab.1.center" timestamp="1628886769125">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="2500" height="272" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628872818681" />
-    <state width="2500" height="272" key="GridCell.Tab.1.left" timestamp="1628872818681">
+    <state width="2500" height="272" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769125" />
+    <state width="2500" height="272" key="GridCell.Tab.1.left" timestamp="1628886769124">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="2500" height="272" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628872818681" />
-    <state width="2500" height="272" key="GridCell.Tab.1.right" timestamp="1628872818681">
+    <state width="2500" height="272" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769124" />
+    <state width="2500" height="272" key="GridCell.Tab.1.right" timestamp="1628886769125">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="2500" height="272" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628872818681" />
+    <state width="2500" height="272" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628886769125" />
     <state x="781" y="170" key="SettingsEditor" timestamp="1628709382036">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -407,11 +404,6 @@
           <url>file://$PROJECT_DIR$/anasaizi-core/src/vulkan/descriptor_pool.rs</url>
           <line>398</line>
           <option name="timeStamp" value="56" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/anasaizi-editor/src/game_layer.rs</url>
-          <line>69</line>
-          <option name="timeStamp" value="89" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -28,7 +28,7 @@ use crate::{
 };
 use ash::{version::DeviceV1_0, vk};
 use std::{mem, ptr, time::Instant};
-use winit::event::{ElementState, VirtualKeyCode};
+use winit::event::{ElementState, VirtualKeyCode, ModifiersState};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -110,14 +110,16 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
 
     fn on_event(&mut self, event: &Event) {
         match event {
-            Event::MouseMove(position) => {
-                let xoffset = position.x - self.last_x;
-                let yoffset = self.last_y - position.y;
+            Event::MouseMove(position, modifiers) => {
+                if modifiers.ctrl() {
+                    let xoffset = position.x - self.last_x;
+                    let yoffset = self.last_y - position.y;
 
-                self.last_x = position.x;
-                self.last_y = position.y;
+                    self.last_x = position.x;
+                    self.last_y = position.y;
 
-                self.camera.process_mouse(self.delta_time, xoffset, yoffset)
+                    self.camera.process_mouse(self.delta_time, xoffset, yoffset)
+                }
             }
             Event::Keyboard(input) => match (input.virtual_keycode, input.state) {
                 (Some(VirtualKeyCode::W), ElementState::Pressed) => {

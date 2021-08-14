@@ -166,6 +166,7 @@ impl VulkanApp {
     #[profile(Sandbox)]
     fn update_uniform(
         vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
+        ui_layer: &ImguiLayer,
         count: &mut f32,
         application: &VulkanApplication,
     ) {
@@ -179,9 +180,15 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            for mesh in pipeline.meshes.iter_mut() {
-                mesh.rotate(Vector3::new(0.0, *count, 0.0));
-            }
+            let mut mesh = &mut pipeline.meshes[0];
+            let rotate = ui_layer.data.object_rotate;
+            let translate = ui_layer.data.object_translate;
+            let scale = ui_layer.data.object_scale;
+
+            mesh.rotate(Vector3::new(rotate[0],rotate[1],rotate[2]));
+            mesh.translate(Vector3::new(translate[0],translate[1],translate[2]));
+            mesh.scale(scale[0]);
+
 
             //if camera.is_dirty() {
             let uniform_mut = pipeline.shader.uniform_mut();
@@ -226,7 +233,7 @@ impl VulkanApp {
             game_layer.run_layers(&mut ui_layers, &render_context, &application);
             game_layer.after_frame();
 
-            Self::update_uniform(&mut render_layers[0], &mut self.count, &application);
+            Self::update_uniform(&mut render_layers[0], &ui_layers[0],&mut self.count, &application);
 
             render_layers[0].ui_data = ui_layers[0].draw_data;
             render_layers[0].ui_mesh = ui_layers[0].ui_mesh.as_ref().unwrap();
