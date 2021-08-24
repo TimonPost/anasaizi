@@ -1,8 +1,6 @@
 use anasaizi_core::vulkan::{
-    begin_single_time_command, copy_image_to_buffer, create_allocate_vk_buffer,
-    end_single_time_command, FrameBuffers, ImageView, MeshPushConstants, Pipeline, RenderPass,
-    ShaderBuilder, ShaderIOBuilder, ShaderSet, SwapChain, UniformBufferObject,
-    UniformBufferObjectTemplate,
+    MeshPushConstants, Pipeline,
+    ShaderBuilder, ShaderIOBuilder, ShaderSet, UniformBufferObject,
 };
 use ash::vk;
 use winit::event_loop::EventLoop;
@@ -17,15 +15,12 @@ use anasaizi_core::{
 
 use crate::{game_layer::Application, imgui_layer::ImguiLayer};
 use anasaizi_core::{
-    engine::{BufferLayout, GpuMeshMemory, Layer, RenderContext, RenderPipeline, Transform},
-    reexports::nalgebra::{Vector3, Vector4},
-    vulkan::structures::{ObjectIdPushConstants, UIPushConstants},
+    engine::{BufferLayout, GpuMeshMemory, Layer, Transform},
+    reexports::nalgebra::{Vector3},
+    vulkan::structures::{UIPushConstants},
 };
-use ash::{
-    version::DeviceV1_0,
-    vk::{Buffer, DeviceMemory},
-};
-use hecs::{Entity, World};
+
+use hecs::{Entity};
 use std::{
     ffi::{c_void, CStr},
     mem,
@@ -77,7 +72,7 @@ impl VulkanApp {
             viking_indices,
             VIKING_TEXTURE_ID,
         );
-        let mut post_mesh_memory = GpuMeshMemory::from_raw(
+        let post_mesh_memory = GpuMeshMemory::from_raw(
             &render_context,
             post_vertices,
             post_indices,
@@ -99,14 +94,14 @@ impl VulkanApp {
             Transform::new(1.0),
             MAIN_MESH_PIPELINE_ID,
         ));
-        let post_entity = vulkan_renderer.world.spawn((
+        let _post_entity = vulkan_renderer.world.spawn((
             post_mesh_memory,
             Transform::new(0.01)
                 .with_scale(0.01)
                 .with_translate(Vector3::new(100.0, 0.0, 100.0)),
             MAIN_MESH_PIPELINE_ID,
         ));
-        let grid_entity =
+        let _grid_entity =
             vulkan_renderer
                 .world
                 .spawn((grid_mesh, Transform::new(1.0), GRID_PIPELINE_ID));
@@ -212,7 +207,7 @@ impl VulkanApp {
     #[profile(Sandbox)]
     fn update_uniform(
         vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
-        ui_layer: &ImguiLayer,
+        _ui_layer: &ImguiLayer,
         count: &mut f32,
         application: &VulkanApplication,
         entity: Entity,
@@ -227,9 +222,9 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            let mut game_entity = vulkan_renderer
+            let _game_entity = vulkan_renderer
                 .world
-                .get_mut::<(Transform)>(entity)
+                .get_mut::<Transform>(entity)
                 .unwrap();
 
             // game_entity.rotate(Vector3::new(rotate[0], rotate[1], rotate[2]));

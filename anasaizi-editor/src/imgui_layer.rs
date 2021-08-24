@@ -1,4 +1,4 @@
-use crate::sandbox::MAIN_MESH_PIPELINE_ID;
+
 use anasaizi_core::{
     engine::{
         image::Texture, Event, GpuMeshMemory, Layer, RenderContext, RenderLayer, Transform,
@@ -6,7 +6,7 @@ use anasaizi_core::{
     },
     reexports::{
         imgui::{
-            im_str, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, ImStr, Slider,
+            im_str, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, Slider,
             TextureId,
         },
         imgui_winit_support::{HiDpiMode, WinitPlatform},
@@ -16,7 +16,6 @@ use anasaizi_core::{
 };
 use hecs::Entity;
 use std::{
-    collections::{HashMap, HashSet},
     f32::consts::PI,
     mem,
     time::Duration,
@@ -175,7 +174,7 @@ impl Layer for ImguiLayer {
                 }
 
                 if let Some(selected_entity) = index {
-                    for (id, (transform)) in (*self.world).query::<(&Transform)>().iter() {
+                    for (id, transform) in (*self.world).query::<&Transform>().iter() {
                         if id.id() == selected_entity {
                             self.selected_entity = Some(id);
                             let translate = transform.translate_factor();
@@ -220,7 +219,7 @@ impl Layer for ImguiLayer {
 
         if let Some(entity_id) = self.selected_entity {
             unsafe {
-                for (id, (transform)) in (*self.world).query_mut::<(&mut Transform)>() {
+                for (id, transform) in (*self.world).query_mut::<&mut Transform>() {
                     if id == entity_id {
                         transform.translate(Vector3::new(
                             self.transform_input.object_translate_x,

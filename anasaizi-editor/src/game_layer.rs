@@ -3,7 +3,7 @@ use anasaizi_core::{
     engine,
     engine::{Layer, RenderContext, VulkanApplication},
 };
-use hecs::World;
+
 use std::{
     sync::{
         mpsc::{channel, Receiver, Sender},
