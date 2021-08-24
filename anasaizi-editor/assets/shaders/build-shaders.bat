@@ -7,4 +7,7 @@ C:\VulkanSDK\1.2.176.1\Bin32\glslc.exe grid_frag.frag -o build/grid_frag.spv
 C:\VulkanSDK\1.2.176.1\Bin32\glslc.exe ui_vert.vert -o build/ui_vert.spv
 C:\VulkanSDK\1.2.176.1\Bin32\glslc.exe ui_frag.frag -o build/ui_frag.spv
 
+C:\VulkanSDK\1.2.176.1\Bin32\glslc.exe mouse_pick.vert -o build/mouse_pick_vert.spv
+C:\VulkanSDK\1.2.176.1\Bin32\glslc.exe mouse_pick.frag -o build/mouse_pick_frag.spv
+
 pause

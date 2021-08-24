@@ -78,9 +78,7 @@ impl FrameBuffers {
             ));
         }
 
-        FrameBuffers {
-            frame_buffers: frame_buffers,
-        }
+        FrameBuffers { frame_buffers }
     }
 
     /// Returns the number of framebuffers in this collection.

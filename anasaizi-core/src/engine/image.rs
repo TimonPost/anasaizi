@@ -219,7 +219,7 @@ impl Texture {
     /// - `new_layout`: The desired layout of the image.
     /// - `command_pool`: Command pool that is used to allocate a commandbuffer, to perform the transition, from.
     /// - `submit_queue`: The queue on which the commandbuffer will be queued.
-    fn transition_image_layout(
+    pub fn transition_image_layout(
         render_context: &RenderContext,
         image: vk::Image,
         old_layout: vk::ImageLayout,

@@ -12,6 +12,7 @@ winit = "0.25.0"
 ash="0.32.1"
 winapi = "0.3.9"
 num = "0.4.0"
+hecs="0.6.0"
 
 [features]
 profile = ["anasaizi-core/profile", "anasaizi-profile/profile"]

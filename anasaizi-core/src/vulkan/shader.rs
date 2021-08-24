@@ -42,7 +42,7 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
         }
     }
 
-    pub fn with_descriptors(&mut self, descriptors: ShaderIo<U>) -> &mut ShaderBuilder<'a, U> {
+    pub fn with_descriptors(mut self, descriptors: ShaderIo<U>) -> ShaderBuilder<'a, U> {
         self.descriptors = Some(descriptors);
         self
     }
@@ -82,13 +82,7 @@ pub struct ShaderSet<U: UniformBufferObjectTemplate> {
 
 impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
     pub fn get_descriptor_sets(&self, frame: usize, texture: String) -> Vec<vk::DescriptorSet> {
-        let mut result = vec![*self.io.descriptor_sets[frame]];
-
-        // if let Some(set) = self.io.texture_descriptor_sets.texture(texture, frame) {
-        //     result.push(*set);
-        // }
-
-        result
+        vec![*self.io.descriptor_sets[frame]]
     }
 
     pub fn descriptor_set_layout(&self) -> Vec<vk::DescriptorSetLayout> {
@@ -115,6 +109,10 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
 
     /// Write the uniform buffer object to shader memory.
     pub fn update_uniform(&self, device: &LogicalDevice, current_image: usize) {
+        if self.io.uniform_buffer.is_none() {
+            panic!("Trying to update shader uniform without uniform buffer.");
+        }
+
         let ubos = [self.io.uniform_buffer_object.clone()];
 
         let buffer_size = (self.io.uniform_buffer_object.size() * ubos.len()) as u64;
@@ -122,7 +120,11 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         unsafe {
             let data_ptr = device
                 .map_memory(
-                    self.io.uniform_buffer.buffers_memory(current_image),
+                    self.io
+                        .uniform_buffer
+                        .as_ref()
+                        .unwrap()
+                        .buffers_memory(current_image),
                     0,
                     buffer_size,
                     vk::MemoryMapFlags::empty(),
@@ -131,7 +133,13 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
 
             data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
 
-            device.unmap_memory(self.io.uniform_buffer.buffers_memory(current_image));
+            device.unmap_memory(
+                self.io
+                    .uniform_buffer
+                    .as_ref()
+                    .unwrap()
+                    .buffers_memory(current_image),
+            );
         }
     }
 

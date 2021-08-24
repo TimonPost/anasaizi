@@ -4,7 +4,6 @@ use crate::{
         image::Texture,
         Event, VulkanApplication,
     },
-    model::Mesh,
     profile_fn,
     vulkan::{
         structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
@@ -15,19 +14,24 @@ use crate::{
 use anasaizi_profile::profile;
 
 use crate::{
-    engine::{renderer::render_pipeline::RenderPipeline, BufferLayout, Layer, RenderContext},
+    engine::{
+        renderer::render_pipeline::RenderPipeline, BufferLayout, GpuMeshMemory, Layer,
+        RenderContext, Transform, World,
+    },
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
     reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
     utils::any_as_u8_slice,
     vulkan::{
-        Application, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Pipeline,
-        ShaderBuilder, ShaderIOBuilder, VertexBuffer, Window,
+        Application, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, ObjectPicker,
+        Pipeline, RenderPassBuilder, ShaderBuilder, ShaderIOBuilder, SubpassDescriptor,
+        VertexBuffer, Window,
     },
 };
 use ash::{version::DeviceV1_0, vk};
-use std::{mem, ptr, time::Instant};
-use winit::event::{ElementState, VirtualKeyCode, ModifiersState};
+use nalgebra::Vector4;
+use std::{mem, mem::swap, ptr, time::Instant};
+use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -90,7 +94,7 @@ pub struct RenderLayer<U: UniformBufferObjectTemplate> {
     pub pipelines: Vec<Pipeline<U>>,
 
     pub ui_pipeline: Option<Pipeline<U>>,
-    pub ui_mesh: *const Mesh,
+    pub ui_mesh: *const GpuMeshMemory,
     pub ui_data: *const DrawData,
 
     pub texture_sampler: Option<vk::Sampler>,
@@ -100,8 +104,13 @@ pub struct RenderLayer<U: UniformBufferObjectTemplate> {
     pub camera: Camera,
     pub last_y: f64,
     pub last_x: f64,
+
     pub current_frame: usize,
     delta_time: f32,
+
+    pub world: World,
+    mouse_down: bool,
+    pub object_picker: ObjectPicker,
 }
 
 impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
@@ -120,27 +129,36 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
                     self.camera.process_mouse(self.delta_time, xoffset, yoffset)
                 }
             }
-            Event::Keyboard(input) => match (input.virtual_keycode, input.state) {
-                (Some(VirtualKeyCode::W), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::FORWARD, self.delta_time);
-                }
-                (Some(VirtualKeyCode::A), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::LEFT, self.delta_time);
-                }
-                (Some(VirtualKeyCode::S), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::BACKWARD, self.delta_time);
-                }
-                (Some(VirtualKeyCode::D), ElementState::Pressed) => {
-                    self.camera
-                        .process_movement(CameraMovement::RIGHT, self.delta_time);
-                }
-                _ => {}
-            },
+            Event::Keyboard(input) => {
+                match (input.virtual_keycode, input.state) {
+                    (Some(VirtualKeyCode::W), ElementState::Pressed) => {
+                        self.camera
+                            .process_movement(CameraMovement::FORWARD, self.delta_time);
+                    }
+                    (Some(VirtualKeyCode::A), ElementState::Pressed) => {
+                        self.camera
+                            .process_movement(CameraMovement::LEFT, self.delta_time);
+                    }
+                    (Some(VirtualKeyCode::S), ElementState::Pressed) => {
+                        self.camera
+                            .process_movement(CameraMovement::BACKWARD, self.delta_time);
+                    }
+                    (Some(VirtualKeyCode::D), ElementState::Pressed) => {
+                        self.camera
+                            .process_movement(CameraMovement::RIGHT, self.delta_time);
+                    }
+                    _ => {}
+                };
+            }
             Event::MouseScroll(_xoffset, yoffset) => {
                 self.camera.process_mouse_scroll(*yoffset);
+            }
+            Event::MouseInput(state, button) => {
+                if *button == MouseButton::Left && *state == ElementState::Pressed {
+                    self.mouse_down = true;
+                } else if *button == MouseButton::Left && *state == ElementState::Released {
+                    self.mouse_down = false;
+                }
             }
             _ => {}
         }
@@ -195,6 +213,7 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
                 &self.command_buffers.current(),
                 self.current_frame(),
             );
+
             self.render_meshes(&mut render_pipeline);
 
             unsafe {
@@ -279,6 +298,12 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
             }
         });
 
+        // TODO: pick object
+        if self.mouse_down {
+            self.pick_object_pass(&render_context);
+            self.mouse_down = false;
+        }
+
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
@@ -310,7 +335,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
 
         let swapchain = SwapChain::new(&render_context, application.window.surface_data());
 
-        let render_pass = RenderPass::create(&instance, &device, swapchain.image_format);
+        let render_pass = Self::setup_renderpass(swapchain.image_format, &application);
 
         let frame_buffers = FrameBuffers::create(
             &application.device,
@@ -334,7 +359,15 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         let command_buffers =
             CommandBuffers::create::<U>(&application.device, &command_pool, frame_buffers.len());
 
+        let mut object_picker = ObjectPicker::new(
+            application,
+            &render_context,
+            swapchain.extent.width as usize,
+            swapchain.extent.height as usize,
+        );
+
         RenderLayer {
+            object_picker,
             swapchain,
             render_pass,
 
@@ -360,6 +393,9 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
             ui_mesh: std::ptr::null(),
             ui_data: std::ptr::null(),
             delta_time: 0.0,
+
+            world: World::new(),
+            mouse_down: true,
         }
     }
 
@@ -384,17 +420,21 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         &mut self,
         application: &VulkanApplication,
         shader: ShaderSet<U>,
-        meshes: Vec<Mesh>,
+        pipeline_id: u32,
     ) {
         let mut pipeline = Pipeline::create(
             &application.device,
             self.swapchain.extent,
             &self.render_pass,
             shader,
+            pipeline_id,
         );
-        pipeline.meshes = meshes;
 
         self.pipelines.push(pipeline);
+    }
+
+    pub fn pick_object_pass(&mut self, render_context: &RenderContext) {
+        // self.object_picker.pick_object::<U>(self.last_x as usize, self.last_y as usize, self.last_key, render_context, &self.world);
     }
 
     pub fn render_meshes(&mut self, render_pipeline: &mut RenderPipeline<U>) {
@@ -414,10 +454,22 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         for pipeline in self.pipelines.iter() {
             render_pipeline.bind_pipeline(pipeline, &self.command_buffers);
 
-            for mesh in pipeline.meshes.iter() {
-                render_pipeline.set_mesh(mesh);
-                render_pipeline.push_mesh_constants();
-                render_pipeline.render_mesh();
+            for (id, (mesh, transform, pipeline_id)) in self
+                .world
+                .query::<(&GpuMeshMemory, &Transform, &u32)>()
+                .iter()
+            {
+                if *pipeline_id == pipeline.pipeline_id() {
+                    // Push the model matrix using push constants.
+                    let transform = MeshPushConstants {
+                        model_matrix: transform.model_transform(),
+                        texture_id: mesh.texture_id,
+                    };
+
+                    render_pipeline.set_mesh(mesh);
+                    render_pipeline.push_mesh_constants(transform);
+                    render_pipeline.render_mesh();
+                }
             }
         }
     }
@@ -495,11 +547,9 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         let surface_data = application.window.surface_data();
 
         self.swapchain = SwapChain::new(render_context, surface_data);
-        self.render_pass = RenderPass::create(
-            &application.instance,
-            &application.device,
-            self.swapchain.image_format,
-        );
+
+        self.render_pass = Self::setup_renderpass(self.swapchain.image_format, application);
+
         self.frame_buffers = FrameBuffers::create(
             &application.device,
             &self.render_pass,
@@ -522,6 +572,49 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         }
 
         self.current_frame = 0;
+    }
+
+    fn setup_renderpass(format: vk::Format, application: &VulkanApplication) -> RenderPass {
+        let mut dependecy = [vk::SubpassDependency::builder()
+            .src_stage_mask(
+                vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                    | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            )
+            .dst_stage_mask(
+                vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
+                    | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
+            )
+            .dst_access_mask(
+                vk::AccessFlags::COLOR_ATTACHMENT_READ
+                    | vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                    | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+            )
+            .dependency_flags(vk::DependencyFlags::BY_REGION)
+            .src_subpass(0)
+            .dst_subpass(1)
+            .build()];
+
+        let render_pass = RenderPassBuilder::builder()
+            .add_color_attachment(
+                0,
+                format,
+                vk::ImageLayout::PRESENT_SRC_KHR,
+                vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+            )
+            .add_depth_attachment(
+                1,
+                application.device.find_depth_format(&application.instance),
+            )
+            .add_subpasses(
+                vec![
+                    SubpassDescriptor::new().with_color(0).with_depth(1),
+                    SubpassDescriptor::new().with_color(0),
+                ],
+                &dependecy,
+            )
+            .build(&application.device);
+
+        render_pass
     }
 
     unsafe fn destroy_swapchain(&self, device: &LogicalDevice) {
@@ -551,7 +644,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         &self,
         application: &VulkanApplication,
         render_context: &RenderContext,
-    ) -> (ShaderSet<U>, Mesh) {
+    ) -> (ShaderSet<U>, GpuMeshMemory) {
         let (square_vertices, square_indices) =
             (square_vertices().to_vec(), square_indices().to_vec());
 
@@ -582,12 +675,15 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
             "assets\\shaders\\build\\grid_vert.spv",
             "assets\\shaders\\build\\grid_frag.spv",
             self.swapchain.images.len(),
-        );
-        builder.with_descriptors(descriptors);
+        )
+        .with_descriptors(descriptors);
 
         let build: ShaderSet<U> = builder.build();
 
-        (build, Mesh::new(grid_vertex_buffer, grid_index_buffer, -1))
+        (
+            build,
+            GpuMeshMemory::new(grid_vertex_buffer, grid_index_buffer, -1),
+        )
     }
 }
 
@@ -597,7 +693,7 @@ enum DrawCommand<'a> {
 }
 
 struct UiDrawElement<'a> {
-    mesh: &'a Mesh,
+    mesh: &'a GpuMeshMemory,
     commands: Vec<DrawCommands>,
     /// Upper-left position of the viewport to render.
     ///

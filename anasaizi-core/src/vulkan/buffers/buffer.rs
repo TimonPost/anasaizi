@@ -8,7 +8,7 @@ use crate::{
 use ash::{
     version::DeviceV1_0,
     vk,
-    vk::{Buffer, DeviceMemory},
+    vk::{Buffer, DeviceMemory, Extent2D, Extent3D, Offset3D},
 };
 
 /// Creates and allocates a vulkan buffer.
@@ -95,4 +95,49 @@ pub fn copy_buffer(
     }
 
     end_single_time_command(render_context, &command_buffer);
+}
+
+/// Copy one buffer over to an other buffer.
+///
+/// # Arguments
+/// - `submit_queue`: The queue that will be used to execute this copy command on.
+/// - `command_pool`: The pool that will be used to allocate the command buffer, used for copy operation, from.
+/// - `src_buffer`: The source buffer that will be copied to the `dst_buffer`.
+/// - `dst_buffer`: The destination buffer into which the data from `src_buffer` will be copied.
+/// - `size`: The size of data that will be copied. Offset is 0.
+pub fn copy_image_to_buffer(
+    render_context: &RenderContext,
+    src_image: vk::Image,
+    src_image_layout: vk::ImageLayout,
+    dst_buffer: vk::Buffer,
+    command_buffer: vk::CommandBuffer,
+    size: u64,
+    image_extent: Extent2D,
+) {
+    unsafe {
+        let copy_regions = [vk::BufferImageCopy {
+            buffer_offset: 0,
+            buffer_row_length: image_extent.width as u32,
+            buffer_image_height: image_extent.height as u32,
+            image_extent: Extent3D::builder()
+                .width(image_extent.width)
+                .height(image_extent.height)
+                .depth(1)
+                .build(),
+            image_offset: Offset3D { x: 0, y: 0, z: 0 },
+            image_subresource: vk::ImageSubresourceLayers::builder()
+                .layer_count(1)
+                .mip_level(0)
+                .aspect_mask(vk::ImageAspectFlags::COLOR)
+                .build(),
+        }];
+
+        render_context.device().cmd_copy_image_to_buffer(
+            command_buffer,
+            src_image,
+            src_image_layout,
+            dst_buffer,
+            &copy_regions,
+        );
+    }
 }

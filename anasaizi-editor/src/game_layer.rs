@@ -3,6 +3,7 @@ use anasaizi_core::{
     engine,
     engine::{Layer, RenderContext, VulkanApplication},
 };
+use hecs::World;
 use std::{
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -16,7 +17,7 @@ use winit::{
     platform::run_return::EventLoopExtRunReturn,
 };
 
-pub struct GameLayer {
+pub struct Application {
     input_receiver: Receiver<engine::Event>,
     input_sender: Sender<engine::Event>,
     last_frame: Instant,
@@ -24,11 +25,11 @@ pub struct GameLayer {
     input: Vec<engine::Event>,
 }
 
-impl GameLayer {
-    pub fn new() -> GameLayer {
+impl Application {
+    pub fn new() -> Application {
         let (tx, rx) = channel();
 
-        GameLayer {
+        Application {
             input_sender: tx,
             input_receiver: rx,
             last_frame: Instant::now(),
@@ -38,7 +39,7 @@ impl GameLayer {
     }
 }
 
-impl GameLayer {
+impl Application {
     pub fn tick(&mut self, event_loop: &mut EventLoop<()>) -> bool {
         let now = Instant::now();
         self.delta_time = (now - self.last_frame).as_millis();
@@ -58,8 +59,13 @@ impl GameLayer {
                         self.input_sender.send(engine::Event::Shutdown);
                         run = false;
                     }
-                    WindowEvent::CursorMoved { position, modifiers, .. } => {
-                        self.input_sender.send(engine::Event::MouseMove(position,modifiers));
+                    WindowEvent::CursorMoved {
+                        position,
+                        modifiers,
+                        ..
+                    } => {
+                        self.input_sender
+                            .send(engine::Event::MouseMove(position, modifiers));
                     }
                     WindowEvent::MouseWheel { delta, .. } => {
                         if let MouseScrollDelta::LineDelta(x, y) = delta {

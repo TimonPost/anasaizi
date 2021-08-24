@@ -1,3 +1,5 @@
+use nalgebra::{Matrix4, Vector3, Vector4};
+
 /// Defines in which direction a camera should move.
 pub enum CameraMovement {
     FORWARD,
@@ -110,6 +112,15 @@ impl Camera {
         self.reload_perspective();
         self.reload_matrix();
         self.is_dirty = false;
+    }
+
+    pub fn screen_to_world(&self, position: Vector4<f32>) -> Vector4<f32> {
+        let inverse_projection = self.projection().try_inverse().unwrap();
+        let inverse_view = self.view().try_inverse().unwrap();
+
+        let world_position = inverse_projection * inverse_view * position;
+
+        world_position
     }
 
     /// Processes mouse scroll.

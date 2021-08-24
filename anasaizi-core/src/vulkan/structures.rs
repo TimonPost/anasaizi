@@ -1,5 +1,6 @@
 use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
+use nalgebra::Vector4;
 use std::{ffi::CString, mem::size_of};
 
 #[derive(Copy, Clone)]
@@ -50,6 +51,11 @@ impl ValidationInfo {
             .map(|layer_name| CString::new(*layer_name).expect("Could not parse cstr"))
             .collect();
     }
+}
+
+pub struct ObjectIdPushConstants {
+    pub color: Vector4<f32>,
+    pub model_matrix: nalgebra::Matrix4<f32>,
 }
 
 pub struct MeshPushConstants {

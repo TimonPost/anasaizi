@@ -16,7 +16,7 @@ use crate::{
     vulkan::{CommandPool, LogicalDevice, Queue},
 };
 use ash::{version::DeviceV1_0, vk};
-pub use buffer::create_allocate_vk_buffer;
+pub use buffer::{copy_image_to_buffer, create_allocate_vk_buffer};
 use std::ptr;
 
 /// Creates a commandbuffer from the given pool which can be used to executed command on.

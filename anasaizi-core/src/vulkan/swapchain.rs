@@ -174,7 +174,7 @@ impl SwapChain {
         swapchain_imageviews
     }
 
-    fn create_depth_resources(
+    pub fn create_depth_resources(
         render_context: &RenderContext,
         swapchain_extent: vk::Extent2D,
     ) -> (Image, ImageView, vk::DeviceMemory) {

@@ -1,20 +1,21 @@
 use crate::{
-    model::Mesh,
+    engine::GpuMeshMemory,
     reexports::imgui::DrawData,
     utils::any_as_u8_slice,
     vulkan::{
-        CommandBuffers, CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants,
-        Pipeline, Queue, QueueFamilyIndices, UniformBufferObject, UniformBufferObjectTemplate,
-        VertexBuffer,
+        structures::ObjectIdPushConstants, CommandBuffers, CommandPool, IndexBuffer, Instance,
+        LogicalDevice, MeshPushConstants, Pipeline, Queue, QueueFamilyIndices, UniformBufferObject,
+        UniformBufferObjectTemplate, VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
+use nalgebra::Matrix4;
 use std::ptr;
 
 pub struct RenderPipeline<U: UniformBufferObjectTemplate> {
     active_command_buffer: *const CommandBuffer,
     device: *const LogicalDevice,
-    pub active_mesh: *const Mesh,
+    pub active_mesh: *const GpuMeshMemory,
     active_pipeline: *const Pipeline<U>,
 
     pub index_count: u32,
@@ -79,7 +80,7 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
         }
     }
 
-    pub(crate) fn set_mesh(&mut self, mesh: &Mesh) {
+    pub fn set_mesh(&mut self, mesh: &GpuMeshMemory) {
         self.active_mesh = mesh;
         self.index_count = mesh.indices_count() as u32;
     }
@@ -90,19 +91,27 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
         self.draw_indexed();
     }
 
-    pub fn push_mesh_constants(&self) {
+    pub fn push_mesh_constants<T: Sized>(&self, data: T) {
         // Push the model matrix using push constants.
         unsafe {
-            self.active_mesh().push_constants(
+            self.active_mesh().push_constants::<U, T>(
                 self.device(),
                 self.active_command_buffer(),
                 self.active_pipeline(),
+                data,
             );
         };
     }
 
     pub fn push_ui_constants(&self, draw_data: &DrawData) {
-        let orthographic = nalgebra::Orthographic3::new(0.0, draw_data.display_size[0], 0.0, -draw_data.display_size[1], -1.0, 1.0);
+        let orthographic = nalgebra::Orthographic3::new(
+            0.0,
+            draw_data.display_size[0],
+            0.0,
+            -draw_data.display_size[1],
+            -1.0,
+            1.0,
+        );
 
         let mut matrix = orthographic.to_homogeneous();
         matrix[(1, 1)] = matrix[(1, 1)] * -1.0;
@@ -145,7 +154,7 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
         unsafe { &*self.active_command_buffer }
     }
 
-    fn active_mesh(&self) -> &Mesh {
+    fn active_mesh(&self) -> &GpuMeshMemory {
         unsafe { &*self.active_mesh }
     }
 

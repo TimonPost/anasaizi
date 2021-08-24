@@ -1,12 +1,11 @@
 use crate::{
-    model::Mesh,
     utils::any_as_u8_slice,
     vulkan::{
         CommandPool, FrameBuffers, LogicalDevice, MeshPushConstants, Pipeline, RenderPass,
         UniformBufferObjectTemplate,
     },
 };
-use ash::{version::DeviceV1_0, vk};
+use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use std::ops::Deref;
 
 /// A Vulkan command buffer.
@@ -141,5 +140,14 @@ impl CommandBuffers {
     /// Frees the command buffer memory.
     pub unsafe fn free(&self, device: &LogicalDevice, command_pool: &CommandPool) {
         device.free_command_buffers(**command_pool, &self.command_buffers)
+    }
+}
+
+impl From<vk::CommandBuffer> for CommandBuffers {
+    fn from(command_buffer: CommandBuffer) -> Self {
+        CommandBuffers {
+            command_buffers: vec![command_buffer],
+            active_buffer: 0,
+        }
     }
 }

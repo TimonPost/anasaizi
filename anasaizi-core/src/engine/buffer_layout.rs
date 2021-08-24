@@ -150,14 +150,23 @@ mod tests {
         let first_layout = buffer_layout.get(0).unwrap();
         let second_layout = buffer_layout.get(1).unwrap();
 
-        assert_eq!( buffer_layout.attrib_desc[0].binding, 0);
-        assert_eq!( buffer_layout.attrib_desc[0].location, first_layout.layout_id as u32);
-        assert_eq!( buffer_layout.attrib_desc[0].format, first_layout.format);
-        assert_eq!( buffer_layout.attrib_desc[0].offset, 0);
+        assert_eq!(buffer_layout.attrib_desc[0].binding, 0);
+        assert_eq!(
+            buffer_layout.attrib_desc[0].location,
+            first_layout.layout_id as u32
+        );
+        assert_eq!(buffer_layout.attrib_desc[0].format, first_layout.format);
+        assert_eq!(buffer_layout.attrib_desc[0].offset, 0);
 
-        assert_eq!( buffer_layout.attrib_desc[1].binding, 0);
-        assert_eq!( buffer_layout.attrib_desc[1].location, second_layout.layout_id as u32);
-        assert_eq!( buffer_layout.attrib_desc[1].format, second_layout.format);
-        assert_eq!( buffer_layout.attrib_desc[1].offset, first_layout.stride as u32);
+        assert_eq!(buffer_layout.attrib_desc[1].binding, 0);
+        assert_eq!(
+            buffer_layout.attrib_desc[1].location,
+            second_layout.layout_id as u32
+        );
+        assert_eq!(buffer_layout.attrib_desc[1].format, second_layout.format);
+        assert_eq!(
+            buffer_layout.attrib_desc[1].offset,
+            first_layout.stride as u32
+        );
     }
 }
