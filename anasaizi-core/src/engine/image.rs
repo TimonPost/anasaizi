@@ -27,6 +27,7 @@ impl Texture {
     pub fn from_path(render_context: &RenderContext, image_path: &Path) -> Texture {
         let mut image_object = image::open(image_path).unwrap(); // this function is slow in debug mode.
         image_object = image_object.flipv();
+
         let (image_width, image_height) = (image_object.width(), image_object.height());
 
         let image_data = match &image_object {
@@ -35,7 +36,7 @@ impl Texture {
             | image::DynamicImage::ImageRgb8(_) => image_object.to_rgba8().into_raw(),
             image::DynamicImage::ImageLumaA8(_)
             | image::DynamicImage::ImageBgra8(_)
-            | image::DynamicImage::ImageRgba8(_) => image_object.into_bytes(),
+            | image::DynamicImage::ImageRgba8(_) => image_object.to_bytes(),
             _ => {
                 panic!("Invalid image format, image should be rgba compatible");
             }
@@ -338,12 +339,12 @@ impl Texture {
             s_type: vk::StructureType::SAMPLER_CREATE_INFO,
             p_next: ptr::null(),
             flags: vk::SamplerCreateFlags::empty(),
-            mag_filter: vk::Filter::LINEAR,
-            min_filter: vk::Filter::LINEAR,
+            mag_filter: vk::Filter::NEAREST,
+            min_filter: vk::Filter::NEAREST,
             mipmap_mode: vk::SamplerMipmapMode::LINEAR,
-            address_mode_u: vk::SamplerAddressMode::REPEAT,
-            address_mode_v: vk::SamplerAddressMode::REPEAT,
-            address_mode_w: vk::SamplerAddressMode::REPEAT,
+            address_mode_u: vk::SamplerAddressMode::MIRROR_CLAMP_TO_EDGE,
+            address_mode_v: vk::SamplerAddressMode::MIRROR_CLAMP_TO_EDGE,
+            address_mode_w: vk::SamplerAddressMode::MIRROR_CLAMP_TO_EDGE,
             mip_lod_bias: 0.0,
             anisotropy_enable: vk::TRUE,
             max_anisotropy: device.device_properties().limits.max_sampler_anisotropy,

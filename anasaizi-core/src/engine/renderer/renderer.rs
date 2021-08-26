@@ -505,9 +505,9 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
                         cmd_params:
                             DrawCmdParams {
                                 clip_rect,
-                                texture_id,
                                 vtx_offset,
                                 idx_offset,
+                                ..
                             },
                     } = command
                     {

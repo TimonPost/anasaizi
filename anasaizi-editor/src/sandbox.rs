@@ -34,17 +34,18 @@ const UI_PIPELINE_ID: u32 = 2;
 
 const VIKING_TEXTURE_ID: i32 = 0;
 const POST_TEXTURE_ID: i32 = 1;
+const WINDOW_TEXTURE_ID: i32 = 2;
 
 pub struct VulkanApp {
     vulkan_renderer: RenderLayer<UniformBufferObject>,
     application: VulkanApplication,
 
-    pub viking_room_texture: [Texture; 2],
+    pub viking_room_texture: [Texture; 3],
 
     count: f32,
-    pub viking_entity: Entity,
-    pub post_entity: Entity,
-    pub grid_entity: Entity,
+    // pub viking_entity: Entity,
+    // pub post_entity: Entity,
+    //pub grid_entity: Entity,
     // debug_utils_loader: ash::extensions::ext::DebugUtils,
     // debug_merssager: vk::DebugUtilsMessengerEXT,
 }
@@ -55,15 +56,18 @@ impl VulkanApp {
 
         let mut vulkan_renderer = RenderLayer::new(&application);
 
-        let (viking_vertices, viking_indices) = Object::load_model(Path::new("viking_room.obj"));
+        let (viking_vertices, viking_indices) = Object::load_model(Path::new("assets/obj/viking_room.obj"));
         let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
+        let (window_vertices, window_indices) = Object::load_model(Path::new("assets/obj/window.obj"));
+        //let (window_vertices, window_indices) = Object::load_model(Path::new("assets/obj/window.obj"));
 
         let render_context = vulkan_renderer.render_context(&application);
         vulkan_renderer.initialize(&application.window, &render_context);
 
         let main_shader_textures = [
-            Texture::create(&render_context, &Path::new("viking_room.png")),
-            Texture::create(&render_context, &Path::new("texture.jpg")),
+            Texture::create(&render_context, &Path::new("assets/textures/viking_room.png")),
+            Texture::create(&render_context, &Path::new("assets/textures/texture.jpg")),
+            Texture::create(&render_context, &Path::new("assets/textures/window.jpg")),
         ];
 
         let viking_mesh_memory = GpuMeshMemory::from_raw(
@@ -77,6 +81,12 @@ impl VulkanApp {
             post_vertices,
             post_indices,
             POST_TEXTURE_ID,
+        );
+        let window_mesh_memory = GpuMeshMemory::from_raw(
+            &render_context,
+            window_vertices,
+            window_indices,
+            WINDOW_TEXTURE_ID,
         );
 
         let shader_set =
@@ -94,6 +104,7 @@ impl VulkanApp {
             Transform::new(1.0),
             MAIN_MESH_PIPELINE_ID,
         ));
+
         let _post_entity = vulkan_renderer.world.spawn((
             post_mesh_memory,
             Transform::new(0.01)
@@ -101,6 +112,15 @@ impl VulkanApp {
                 .with_translate(Vector3::new(100.0, 0.0, 100.0)),
             MAIN_MESH_PIPELINE_ID,
         ));
+
+        let _window_entity = vulkan_renderer.world.spawn((
+            window_mesh_memory,
+            Transform::new(0.01)
+                .with_scale(0.01)
+                .with_translate(Vector3::new(100.0, 0.0, 100.0)),
+            MAIN_MESH_PIPELINE_ID,
+        ));
+
         let _grid_entity =
             vulkan_renderer
                 .world
@@ -115,9 +135,9 @@ impl VulkanApp {
             viking_room_texture: main_shader_textures,
             count: 0.0,
 
-            viking_entity: viking_entity,
-            post_entity: viking_entity,
-            grid_entity: viking_entity,
+           // viking_entity: viking_entity,
+            // post_entity: viking_entity,
+            // grid_entity: viking_entity,
             // debug_merssager,
             // debug_utils_loader
         }
@@ -210,7 +230,6 @@ impl VulkanApp {
         _ui_layer: &ImguiLayer,
         count: &mut f32,
         application: &VulkanApplication,
-        entity: Entity,
     ) {
         *count += 1.0 / 1000.0;
         let current_frame = vulkan_renderer.current_frame();
@@ -222,15 +241,6 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            let _game_entity = vulkan_renderer
-                .world
-                .get_mut::<Transform>(entity)
-                .unwrap();
-
-            // game_entity.rotate(Vector3::new(rotate[0], rotate[1], rotate[2]));
-            // game_entity.translate(Vector3::new(translate[0], translate[1], translate[2]));
-            // game_entity.scale(scale);
-            //
             //if camera.is_dirty() {
             let uniform_mut = pipeline.shader.uniform_mut();
             uniform_mut.view_matrix = view;
@@ -289,7 +299,6 @@ impl VulkanApp {
                 &ui_layers[0],
                 &mut self.count,
                 &application,
-                self.post_entity,
             );
 
             render_layers[0].ui_data = ui_layers[0].draw_data;

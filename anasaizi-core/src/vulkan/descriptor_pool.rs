@@ -276,7 +276,7 @@ impl ShaderIOBuilder {
         self.descriptor_layout_bindingen.push(
             vk::DescriptorSetLayoutBinding::builder()
                 .descriptor_type(descriptor_type)
-                .descriptor_count(2) // update texture count
+                .descriptor_count(textures.len() as u32) // update texture count
                 .stage_flags(stage_flags) //
                 .binding(binding_id)
                 .build(),

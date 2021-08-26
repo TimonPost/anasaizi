@@ -13,7 +13,7 @@ impl Object {
     /// - Position (x, y, z)
     /// - Texture Coordinates (u, v)
     pub fn load_model(model_path: &Path) -> (Vec<Vertex>, Vec<u32>) {
-        let model_obj = tobj::load_obj(model_path, &LoadOptions::default())
+        let model_obj = tobj::load_obj(model_path, &LoadOptions { triangulate: true, single_index: true, ..Default::default()})
             .expect("Failed to load model object!");
 
         let mut vertices = vec![];
@@ -36,7 +36,7 @@ impl Object {
                         mesh.positions[i * 3 + 2],
                     ),
                     color: Vector4::new(1.0, 1.0, 1.0, 0.0),
-                    tex_coord: Vector2::new(mesh.texcoords[i * 2], mesh.texcoords[i * 2 + 1]),
+                    tex_coord: Vector2::new(mesh.texcoords[(i * 2)], mesh.texcoords[(i * 2 + 1)]),
                 };
                 vertices.push(vertex);
             }
