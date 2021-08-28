@@ -2,7 +2,7 @@ use crate::{
     engine::{BufferLayout, VulkanApplication},
     vulkan::{
         DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer,
-        UniformBufferObjectTemplate,
+        UniformObjectTemplate,
     },
 };
 use ash::{
@@ -11,10 +11,12 @@ use ash::{
     vk::{DescriptorSetLayout, ShaderModule},
 };
 use std::{path::Path, ptr};
+use std::any::Any;
+use crate::vulkan::structures::UniformObjectClone;
 
-pub struct ShaderBuilder<'a, U: UniformBufferObjectTemplate> {
+pub struct ShaderBuilder<'a> {
     input_buffer_layout: Option<BufferLayout>,
-    descriptors: Option<ShaderIo<U>>,
+    descriptors: Option<ShaderIo>,
 
     vertex_shader: &'static str,
     fragment_shader: &'static str,
@@ -23,15 +25,15 @@ pub struct ShaderBuilder<'a, U: UniformBufferObjectTemplate> {
     application: &'a VulkanApplication,
 }
 
-impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
+impl<'a> ShaderBuilder<'a> {
     /// Creates a new shader builder.
     pub fn builder(
         application: &'a VulkanApplication,
         vertex_shader: &'static str,
         fragment_shader: &'static str,
         swapchain_images: usize,
-    ) -> ShaderBuilder<'a, U> {
-        ShaderBuilder::<'a, U> {
+    ) -> ShaderBuilder<'a> {
+        ShaderBuilder::<'a> {
             vertex_shader,
             fragment_shader,
             swapchain_images,
@@ -42,21 +44,21 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
         }
     }
 
-    pub fn with_descriptors(mut self, descriptors: ShaderIo<U>) -> ShaderBuilder<'a, U> {
+    pub fn with_descriptors(mut self, descriptors: ShaderIo) -> ShaderBuilder<'a> {
         self.descriptors = Some(descriptors);
         self
     }
 
     /// Build shader.
-    pub fn build(mut self) -> ShaderSet<U> {
-        let vertex_shader_code = ShaderSet::<U>::read_shader_code(Path::new(self.vertex_shader));
+    pub fn build(mut self) -> ShaderSet {
+        let vertex_shader_code = ShaderSet::read_shader_code(Path::new(self.vertex_shader));
         let vertex_shader_module =
-            ShaderSet::<U>::create_shader_module(&self.application.device, vertex_shader_code);
+            ShaderSet::create_shader_module(&self.application.device, vertex_shader_code);
 
         let fragment_shader_code =
-            ShaderSet::<U>::read_shader_code(Path::new(self.fragment_shader));
+            ShaderSet::read_shader_code(Path::new(self.fragment_shader));
         let fragment_shader_module =
-            ShaderSet::<U>::create_shader_module(&self.application.device, fragment_shader_code);
+            ShaderSet::create_shader_module(&self.application.device, fragment_shader_code);
 
         ShaderSet {
             vertex_shader_module,
@@ -73,14 +75,14 @@ impl<'a, U: UniformBufferObjectTemplate> ShaderBuilder<'a, U> {
 /// - Uniform buffer and object.
 /// - Input buffer layout
 /// - Descriptor pool, set, layout
-pub struct ShaderSet<U: UniformBufferObjectTemplate> {
+pub struct ShaderSet {
     vertex_shader_module: vk::ShaderModule,
     fragment_shader_module: ShaderModule,
 
-    pub io: ShaderIo<U>,
+    pub io: ShaderIo,
 }
 
-impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
+impl ShaderSet {
     pub fn get_descriptor_sets(&self, frame: usize, texture: String) -> Vec<vk::DescriptorSet> {
         vec![*self.io.descriptor_sets[frame]]
     }
@@ -90,7 +92,7 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
     }
 }
 
-impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
+impl ShaderSet {
     pub fn fragment_shader(&self) -> vk::ShaderModule {
         self.fragment_shader_module
     }
@@ -99,47 +101,58 @@ impl<U: UniformBufferObjectTemplate> ShaderSet<U> {
         self.vertex_shader_module
     }
 
-    pub fn uniform(&self) -> &U {
-        &self.io.uniform_buffer_object
+    pub fn add_uniform_object<U: UniformObjectTemplate+'static>(&mut self, uniform_object: U) {
+        self.io.uniform_buffer_objects.push(Box::new(uniform_object));
     }
 
-    pub fn uniform_mut(&mut self) -> &mut U {
-        &mut self.io.uniform_buffer_object
-    }
-
-    /// Write the uniform buffer object to shader memory.
-    pub fn update_uniform(&self, device: &LogicalDevice, current_image: usize) {
-        if self.io.uniform_buffer.is_none() {
+    pub fn update_uniform<U: UniformObjectTemplate+Clone+'static>(&mut self, device: &LogicalDevice, current_image: usize, object_index: usize, update_fn: &dyn Fn(&mut U)) {
+        if self.io.uniform_buffers.is_empty() {
             panic!("Trying to update shader uniform without uniform buffer.");
         }
 
-        let ubos = [self.io.uniform_buffer_object.clone()];
+        let uniform_object = if let Some(ubo) = self.io.uniform_buffer_objects.get_mut(object_index) {
+            ubo.clone()
+        } else {
+            panic!("Could not get uniformbuffer object with index: {}", object_index);
+        };
 
-        let buffer_size = (self.io.uniform_buffer_object.size() * ubos.len()) as u64;
+        let uniform_buffer = if let Some(uniform_buffer) = self.io.uniform_buffers.get(object_index) {
+            uniform_buffer
+        } else {
+            panic!("Could not get uniformbuffer with index: {}", object_index);
+        };
 
-        unsafe {
-            let data_ptr = device
-                .map_memory(
-                    self.io
-                        .uniform_buffer
-                        .as_ref()
-                        .unwrap()
+        let uniform_object_any = uniform_object.as_any();
+
+        if let Some(obj) = uniform_object_any.downcast_ref::<U>() {
+            let mut casted_uniform_object: U = (*obj).clone();
+
+            update_fn(&mut casted_uniform_object);
+
+            let updating_ubos = [casted_uniform_object];
+
+            let buffer_size = (obj.size() * updating_ubos.len()) as u64;
+
+            unsafe {
+                let data_ptr = device
+                    .map_memory(
+                        uniform_buffer
+                            .buffers_memory(current_image),
+                        0,
+                        buffer_size,
+                        vk::MemoryMapFlags::empty(),
+                    )
+                    .expect("Failed to Map Memory") as *mut U;
+
+                data_ptr.copy_from_nonoverlapping(updating_ubos.as_ptr(), updating_ubos.len());
+
+                device.unmap_memory(
+                    uniform_buffer
                         .buffers_memory(current_image),
-                    0,
-                    buffer_size,
-                    vk::MemoryMapFlags::empty(),
-                )
-                .expect("Failed to Map Memory") as *mut U;
-
-            data_ptr.copy_from_nonoverlapping(ubos.as_ptr(), ubos.len());
-
-            device.unmap_memory(
-                self.io
-                    .uniform_buffer
-                    .as_ref()
-                    .unwrap()
-                    .buffers_memory(current_image),
-            );
+                );
+            };
+        } else {
+            println!("Could not cast the uniform object to its specific implementation.");
         }
     }
 

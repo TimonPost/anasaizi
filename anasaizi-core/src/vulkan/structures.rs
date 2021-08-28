@@ -1,7 +1,8 @@
 use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
-use nalgebra::Vector4;
+use nalgebra::{Vector4, Vector3};
 use std::{ffi::CString, mem::size_of};
+use crate::reexports::imgui::__core::any::Any;
 
 #[derive(Copy, Clone)]
 pub struct QueueFamilyIndices {
@@ -68,21 +69,91 @@ pub struct UIPushConstants {
 }
 
 /// Template for an uniform buffer object.
-pub trait UniformBufferObjectTemplate: Default + Clone {
+pub trait UniformObjectTemplate: UniformObjectClone  {
     /// Returns the size of this buffer object.
     fn size(&self) -> usize;
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+}
+
+pub trait UniformObjectClone {
+    fn clone_box(&self) -> Box<dyn UniformObjectTemplate>;
+}
+
+impl<T> UniformObjectClone for T
+    where
+        T: 'static + UniformObjectTemplate + Clone+ Default,
+{
+    fn clone_box(&self) -> Box<dyn UniformObjectTemplate> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<dyn UniformObjectTemplate> {
+    fn clone(&self) -> Box<dyn UniformObjectTemplate> {
+        self.clone_box()
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct LightingUniformBufferObject {
+    pub shininess:f32,
+    pub specular_strength: f32,
+
+    pub ambient_strength: f32,
+
+    pub light_position: Vector3<f32>,
+    pub light_color: Vector3<f32>,
+
+    pub view_pos: Vector3<f32>,
+}
+
+impl Default for LightingUniformBufferObject {
+    fn default() -> Self {
+        LightingUniformBufferObject {
+            shininess: 32.0,
+            specular_strength: 0.5,
+            ambient_strength: 0.1,
+            light_position: Vector3::default(),
+            light_color: Vector3::new(1.0,1.0,1.0),
+            view_pos: Vector3::default(),
+        }
+    }
+}
+
+impl UniformObjectTemplate for LightingUniformBufferObject {
+    fn size(&self) -> usize {
+        size_of::<LightingUniformBufferObject>()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 /// Uniform buffer object.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct UniformBufferObject {
     pub view_matrix: nalgebra::Matrix4<f32>,
     pub projection_matrix: nalgebra::Matrix4<f32>,
 }
 
-impl UniformBufferObjectTemplate for UniformBufferObject {
+impl UniformObjectTemplate for UniformBufferObject {
     fn size(&self) -> usize {
         size_of::<UniformBufferObject>()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 

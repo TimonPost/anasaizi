@@ -7,7 +7,7 @@ use crate::{
     profile_fn,
     vulkan::{
         structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
-        ShaderSet, SwapChain, UniformBufferObjectTemplate,
+        ShaderSet, SwapChain, UniformObjectTemplate,
     },
 };
 
@@ -32,6 +32,8 @@ use ash::{version::DeviceV1_0, vk};
 use nalgebra::Vector4;
 use std::{mem, mem::swap, ptr, time::Instant};
 use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
+use crate::vulkan::UniformBufferObject;
+use std::mem::size_of;
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -81,7 +83,7 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     sync_objects
 }
 
-pub struct RenderLayer<U: UniformBufferObjectTemplate> {
+pub struct RenderLayer{
     pub swapchain: SwapChain,
     pub render_pass: RenderPass,
     pub graphics_queue: Queue,
@@ -91,9 +93,9 @@ pub struct RenderLayer<U: UniformBufferObjectTemplate> {
     frame_buffers: FrameBuffers,
     command_buffers: CommandBuffers,
 
-    pub pipelines: Vec<Pipeline<U>>,
+    pub pipelines: Vec<Pipeline>,
 
-    pub ui_pipeline: Option<Pipeline<U>>,
+    pub ui_pipeline: Option<Pipeline>,
     pub ui_mesh: *const GpuMeshMemory,
     pub ui_data: *const DrawData,
 
@@ -113,7 +115,7 @@ pub struct RenderLayer<U: UniformBufferObjectTemplate> {
     pub object_picker: ObjectPicker,
 }
 
-impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
+impl Layer for RenderLayer {
     fn initialize(&mut self, window: &Window, render_context: &RenderContext) {}
 
     fn on_event(&mut self, event: &Event) {
@@ -173,7 +175,7 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
         application: &VulkanApplication,
     ) {
         let device = render_context.device();
-        let mut render_pipeline = RenderPipeline::<U>::new(
+        let mut render_pipeline = RenderPipeline::new(
             &application.device,
             &self.command_buffers.current(),
             self.current_frame(),
@@ -310,7 +312,7 @@ impl<U: UniformBufferObjectTemplate> Layer for RenderLayer<U> {
     fn end_frame(&mut self) {}
 }
 
-impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
+impl RenderLayer {
     pub fn new(application: &VulkanApplication) -> Self {
         let device = &application.device;
         let instance = &application.instance;
@@ -357,7 +359,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         let texture_sampler = Texture::create_texture_sampler(&device);
 
         let command_buffers =
-            CommandBuffers::create::<U>(&application.device, &command_pool, frame_buffers.len());
+            CommandBuffers::create(&application.device, &command_pool, frame_buffers.len());
 
         let mut object_picker = ObjectPicker::new(
             application,
@@ -419,7 +421,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
     pub fn create_pipeline(
         &mut self,
         application: &VulkanApplication,
-        shader: ShaderSet<U>,
+        shader: ShaderSet,
         pipeline_id: u32,
     ) {
         let mut pipeline = Pipeline::create(
@@ -437,7 +439,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         // self.object_picker.pick_object::<U>(self.last_x as usize, self.last_y as usize, self.last_key, render_context, &self.world);
     }
 
-    pub fn render_meshes(&mut self, render_pipeline: &mut RenderPipeline<U>) {
+    pub fn render_meshes(&mut self, render_pipeline: &mut RenderPipeline) {
         render_pipeline.set_view_port(
             0.0,
             0.0,
@@ -474,7 +476,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         }
     }
 
-    pub fn render_ui(&mut self, render_pipeline: &mut RenderPipeline<U>) {
+    pub fn render_ui(&mut self, render_pipeline: &mut RenderPipeline) {
         if self.ui_data.is_null() || self.ui_mesh.is_null() {
             return;
         }
@@ -557,7 +559,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
             self.swapchain.depth_image_view.clone(),
             &self.swapchain.extent,
         );
-        self.command_buffers = CommandBuffers::create::<U>(
+        self.command_buffers = CommandBuffers::create(
             &application.device,
             &self.command_pool,
             self.frame_buffers.len(),
@@ -644,7 +646,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         &self,
         application: &VulkanApplication,
         render_context: &RenderContext,
-    ) -> (ShaderSet<U>, GpuMeshMemory) {
+    ) -> (ShaderSet, GpuMeshMemory) {
         let (square_vertices, square_indices) =
             (square_vertices().to_vec(), square_indices().to_vec());
 
@@ -665,10 +667,13 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
             .add_uniform_buffer(
                 0,
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                render_context,
+                self.swapchain.images.len(),
+                unsafe { size_of::<UniformBufferObject>() }
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(render_context, self.swapchain.images.len());
+            .build::<UniformBufferObject>(render_context, self.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(
             application,
@@ -678,7 +683,7 @@ impl<U: UniformBufferObjectTemplate> RenderLayer<U> {
         )
         .with_descriptors(descriptors);
 
-        let build: ShaderSet<U> = builder.build();
+        let build: ShaderSet = builder.build();
 
         (
             build,

@@ -21,6 +21,7 @@ use std::{
     time::Duration,
 };
 use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
+use anasaizi_core::vulkan::structures::LightingUniformBufferObject;
 
 pub struct TransformInput {
     pub object_translate_x: f32,
@@ -31,6 +32,30 @@ pub struct TransformInput {
     pub object_rotate_y: f32,
     pub object_rotate_z: f32,
     pub object_scale: f32,
+}
+
+#[derive(Clone)]
+pub struct LightingInput {
+    pub shininess: f32,
+    pub specular_strength: f32,
+
+    pub ambient_strength: f32,
+
+    pub light_position: [f32;3],
+    pub light_color: [f32;3],
+}
+
+impl From<LightingInput> for LightingUniformBufferObject {
+    fn from(input: LightingInput) -> Self {
+        LightingUniformBufferObject {
+            shininess: input.shininess,
+            ambient_strength: input.ambient_strength,
+            specular_strength: input.specular_strength,
+            light_position: Vector3::new(input.light_position[0],input.light_position[1],input.light_position[2]),
+            light_color:Vector3::new(input.light_color[0],input.light_color[1],input.light_color[2]),
+            view_pos: Default::default()
+        }
+    }
 }
 
 pub struct ImguiLayer {
@@ -45,13 +70,14 @@ pub struct ImguiLayer {
     world: *mut World,
 
     pub transform_input: TransformInput,
+    pub lighting_input: LightingInput,
     pub selected_entity: Option<Entity>,
 }
 
 impl ImguiLayer {
     pub fn new(
         application: &mut VulkanApplication,
-        _vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
+        _vulkan_renderer: &mut RenderLayer,
     ) -> ImguiLayer {
         let mut imgui = Context::create();
 
@@ -75,6 +101,13 @@ impl ImguiLayer {
                 object_rotate_x: 0.0,
                 object_rotate_y: 0.0,
                 object_rotate_z: 0.0,
+            },
+            lighting_input: LightingInput {
+                shininess: 32.0,
+                specular_strength: 0.5,
+                ambient_strength: 0.1,
+                light_position: [0.0,0.0,0.0],
+                light_color: [1.0,1.0,1.0],
             },
             selected_entity: None,
         }
@@ -119,7 +152,7 @@ impl Layer for ImguiLayer {
         let fonts_texture = {
             let mut fonts = self.imgui_context.fonts();
             let atlas_texture = fonts.build_rgba32_texture();
-            println!("{} {}", atlas_texture.width, atlas_texture.height);
+
             Texture::from_bytes(
                 render_context,
                 &atlas_texture.data,
@@ -214,62 +247,80 @@ impl Layer for ImguiLayer {
         let ui = self.imgui_context.frame();
 
         unsafe {
-            ui.text(im_str!("Object Properties"));
+            ui.text(im_str!("Light Properties"));
+
+            ui.input_float3(im_str!("Light Color"), &mut self.lighting_input.light_color).build();
+            ui.input_float3(im_str!("Light Position"), &mut self.lighting_input.light_position).build();
+
+            Slider::new(im_str!("Ambient Strength"))
+                .range(0.001..= 1.0)
+                .build(&ui, &mut self.lighting_input.ambient_strength);
+
+            Slider::new(im_str!("Specular Strength"))
+                .range(0.001..= 1.0)
+                .build(&ui, &mut self.lighting_input.specular_strength);
+
+            Slider::new(im_str!("Shininess"))
+                .range(16.0..= 252.0)
+                .build(&ui, &mut self.lighting_input.shininess);
+
+            ui.separator();
         }
+
 
         if let Some(entity_id) = self.selected_entity {
             unsafe {
-                for (id, transform) in (*self.world).query_mut::<&mut Transform>() {
-                    if id == entity_id {
-                        transform.translate(Vector3::new(
-                            self.transform_input.object_translate_x,
-                            self.transform_input.object_translate_y,
-                            self.transform_input.object_translate_z,
-                        ));
-                        transform.rotate(Vector3::new(
-                            self.transform_input.object_rotate_x,
-                            self.transform_input.object_rotate_y,
-                            self.transform_input.object_rotate_z,
-                        ));
-                        transform.scale(self.transform_input.object_scale as f32);
+                ui.spacing();
+                ui.text(im_str!("Selected Entity"));
+                let mut transform = (*self.world).get_mut::<Transform>(entity_id).unwrap();
 
-                        unsafe {
-                            ui.columns(3, im_str!("Translate"), true);
+                transform.translate(Vector3::new(
+                    self.transform_input.object_translate_x,
+                    self.transform_input.object_translate_y,
+                    self.transform_input.object_translate_z,
+                ));
+                transform.rotate(Vector3::new(
+                    self.transform_input.object_rotate_x,
+                    self.transform_input.object_rotate_y,
+                    self.transform_input.object_rotate_z,
+                ));
+                transform.scale(self.transform_input.object_scale as f32);
 
-                            Slider::new(im_str!("X##1"))
-                                .range(-15.0..=15.0)
-                                .build(&ui, &mut self.transform_input.object_translate_x);
-                            ui.next_column();
-                            Slider::new(im_str!("Y##1"))
-                                .range(-15.0..=15.0)
-                                .build(&ui, &mut self.transform_input.object_translate_y);
-                            ui.next_column();
-                            Slider::new(im_str!("Z##1"))
-                                .range(-15.0..=15.0)
-                                .build(&ui, &mut self.transform_input.object_translate_z);
-                            ui.separator();
-                            ui.next_column();
+                unsafe {
+                    ui.columns(3, im_str!("Translate"), true);
 
-                            ui.columns(3, im_str!("Rotate"), true);
+                    Slider::new(im_str!("X##10"))
+                        .range(-15.0..=15.0)
+                        .build(&ui, &mut self.transform_input.object_translate_x);
+                    ui.next_column();
+                    Slider::new(im_str!("Y##10"))
+                        .range(-15.0..=15.0)
+                        .build(&ui, &mut self.transform_input.object_translate_y);
+                    ui.next_column();
+                    Slider::new(im_str!("Z##10"))
+                        .range(-15.0..=15.0)
+                        .build(&ui, &mut self.transform_input.object_translate_z);
+                    ui.separator();
+                    ui.next_column();
 
-                            Slider::new(im_str!("X##2"))
-                                .range(0.0..=PI * 2.0)
-                                .build(&ui, &mut self.transform_input.object_rotate_x);
-                            ui.next_column();
-                            Slider::new(im_str!("Y##2"))
-                                .range(0.0..=PI * 2.0)
-                                .build(&ui, &mut self.transform_input.object_rotate_y);
-                            ui.next_column();
-                            Slider::new(im_str!("Z##2"))
-                                .range(0.0..=PI * 2.0)
-                                .build(&ui, &mut self.transform_input.object_rotate_z);
-                            ui.separator();
-                            ui.next_column();
-                            Slider::new(im_str!("Scale"))
-                                .range(transform.unit_scale())
-                                .build(&ui, &mut self.transform_input.object_scale);
-                        }
-                    }
+                    ui.columns(3, im_str!("Rotate"), true);
+
+                    Slider::new(im_str!("X##11"))
+                        .range(0.0..=PI * 2.0)
+                        .build(&ui, &mut self.transform_input.object_rotate_x);
+                    ui.next_column();
+                    Slider::new(im_str!("Y##11"))
+                        .range(0.0..=PI * 2.0)
+                        .build(&ui, &mut self.transform_input.object_rotate_y);
+                    ui.next_column();
+                    Slider::new(im_str!("Z##11"))
+                        .range(0.0..=PI * 2.0)
+                        .build(&ui, &mut self.transform_input.object_rotate_z);
+                    ui.separator();
+                    ui.next_column();
+                    Slider::new(im_str!("Scale"))
+                        .range(transform.unit_scale())
+                        .build(&ui, &mut self.transform_input.object_scale);
                 }
             }
         }

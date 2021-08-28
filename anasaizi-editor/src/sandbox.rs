@@ -27,27 +27,31 @@ use std::{
     path::Path,
     ptr,
 };
+use anasaizi_core::vulkan::structures::LightingUniformBufferObject;
+use std::mem::size_of;
+use anasaizi_core::engine::World;
 
 pub const MAIN_MESH_PIPELINE_ID: u32 = 0;
 const GRID_PIPELINE_ID: u32 = 1;
 const UI_PIPELINE_ID: u32 = 2;
+pub const LIGHTING_MESH_PIPELINE_ID: u32 = 3;
 
 const VIKING_TEXTURE_ID: i32 = 0;
 const POST_TEXTURE_ID: i32 = 1;
 const WINDOW_TEXTURE_ID: i32 = 2;
 
 pub struct VulkanApp {
-    vulkan_renderer: RenderLayer<UniformBufferObject>,
+    vulkan_renderer: RenderLayer,
     application: VulkanApplication,
 
-    pub viking_room_texture: [Texture; 3],
+    pub viking_room_texture: Vec<Texture>,
 
     count: f32,
-    // pub viking_entity: Entity,
+    pub light_entity: Entity,
     // pub post_entity: Entity,
     //pub grid_entity: Entity,
-    // debug_utils_loader: ash::extensions::ext::DebugUtils,
-    // debug_merssager: vk::DebugUtilsMessengerEXT,
+    debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
+    debug_merssager: Option<vk::DebugUtilsMessengerEXT>,
 }
 
 impl VulkanApp {
@@ -56,102 +60,127 @@ impl VulkanApp {
 
         let mut vulkan_renderer = RenderLayer::new(&application);
 
-        let (viking_vertices, viking_indices) = Object::load_model(Path::new("assets/obj/viking_room.obj"));
-        let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
-        let (window_vertices, window_indices) = Object::load_model(Path::new("assets/obj/window.obj"));
+        let (cube_vertices, cube_indices) = Object::load_model(Path::new("assets/obj/cube.obj"));
+        //let (viking_vertices, viking_indices) = Object::load_model(Path::new("assets/obj/cube.obj"));
+        // let (post_vertices, post_indices) = Object::load_model(Path::new("assets/obj/post.obj"));
+        // let (window_vertices, window_indices) = Object::load_model(Path::new("assets/obj/window.obj"));
         //let (window_vertices, window_indices) = Object::load_model(Path::new("assets/obj/window.obj"));
 
         let render_context = vulkan_renderer.render_context(&application);
         vulkan_renderer.initialize(&application.window, &render_context);
 
         let main_shader_textures = [
-            Texture::create(&render_context, &Path::new("assets/textures/viking_room.png")),
-            Texture::create(&render_context, &Path::new("assets/textures/texture.jpg")),
-            Texture::create(&render_context, &Path::new("assets/textures/window.jpg")),
+            Texture::create(&render_context, &Path::new("assets/textures/red.png")),
+            Texture::create(&render_context, &Path::new("assets/textures/white.png")),
+            // Texture::create(&render_context, &Path::new("assets/textures/texture.jpg")),
+            // Texture::create(&render_context, &Path::new("assets/textures/window.jpg")),
         ];
 
-        let viking_mesh_memory = GpuMeshMemory::from_raw(
+        let cube_mesh_memory = GpuMeshMemory::from_raw(
             &render_context,
-            viking_vertices,
-            viking_indices,
-            VIKING_TEXTURE_ID,
-        );
-        let post_mesh_memory = GpuMeshMemory::from_raw(
-            &render_context,
-            post_vertices,
-            post_indices,
-            POST_TEXTURE_ID,
-        );
-        let window_mesh_memory = GpuMeshMemory::from_raw(
-            &render_context,
-            window_vertices,
-            window_indices,
-            WINDOW_TEXTURE_ID,
+            cube_vertices.clone(),
+            cube_indices.clone(),
+            0,
         );
 
-        let shader_set =
+        let light_cube_mesh_memory = GpuMeshMemory::from_raw(
+            &render_context,
+            cube_vertices,
+            cube_indices,
+            1,
+        );
+
+        // let post_mesh_memory = GpuMeshMemory::from_raw(
+        //     &render_context,
+        //     post_vertices,
+        //     post_indices,
+        //     POST_TEXTURE_ID,
+        // );
+        // let window_mesh_memory = GpuMeshMemory::from_raw(
+        //     &render_context,
+        //     window_vertices,
+        //     window_indices,
+        //     WINDOW_TEXTURE_ID,
+        // );
+
+        let lighting_shader_set =
+            Self::setup_light_shader(&application, &vulkan_renderer, &main_shader_textures);
+
+        let main_shader_set =
             Self::setup_main_shader(&application, &vulkan_renderer, &main_shader_textures);
+
 
         let (grid_shader, grid_mesh) = vulkan_renderer.grid_mesh(&application, &render_context);
 
-        vulkan_renderer.create_pipeline(&application, shader_set, MAIN_MESH_PIPELINE_ID);
-        vulkan_renderer.create_pipeline(&application, grid_shader, GRID_PIPELINE_ID);
+       vulkan_renderer.create_pipeline(&application, main_shader_set, MAIN_MESH_PIPELINE_ID);
+       vulkan_renderer.create_pipeline(&application, lighting_shader_set, LIGHTING_MESH_PIPELINE_ID);
+       vulkan_renderer.create_pipeline(&application, grid_shader, GRID_PIPELINE_ID);
+
+        Self::initialize_uniform_objects(&mut vulkan_renderer);
 
         start_profiler();
 
-        let viking_entity = vulkan_renderer.world.spawn((
-            viking_mesh_memory,
-            Transform::new(1.0),
+        vulkan_renderer.world.spawn((
+            cube_mesh_memory,
+            Transform::new(1.0).with_scale(0.3).with_translate(Vector3::new(-1.0, 2.0, 3.0)),
+            LIGHTING_MESH_PIPELINE_ID,
+        ));
+
+        let light_entity = vulkan_renderer.world.spawn((
+            light_cube_mesh_memory,
+            Transform::new(1.0).with_scale(0.1).with_translate(Vector3::new(3.0, 10.0, -3.0)),
             MAIN_MESH_PIPELINE_ID,
         ));
 
-        let _post_entity = vulkan_renderer.world.spawn((
-            post_mesh_memory,
-            Transform::new(0.01)
-                .with_scale(0.01)
-                .with_translate(Vector3::new(100.0, 0.0, 100.0)),
-            MAIN_MESH_PIPELINE_ID,
-        ));
-
-        let _window_entity = vulkan_renderer.world.spawn((
-            window_mesh_memory,
-            Transform::new(0.01)
-                .with_scale(0.01)
-                .with_translate(Vector3::new(100.0, 0.0, 100.0)),
-            MAIN_MESH_PIPELINE_ID,
-        ));
+        // let _post_entity = vulkan_renderer.world.spawn((
+        //     post_mesh_memory,
+        //     Transform::new(0.01)
+        //         .with_scale(0.01)
+        //         .with_translate(Vector3::new(100.0, 0.0, 100.0)),
+        //     MAIN_MESH_PIPELINE_ID,
+        // ));
+        //
+        // let _window_entity = vulkan_renderer.world.spawn((
+        //     window_mesh_memory,
+        //     Transform::new(0.01)
+        //         .with_scale(0.01)
+        //         .with_translate(Vector3::new(100.0, 0.0, 100.0)),
+        //     MAIN_MESH_PIPELINE_ID,
+        // ));
 
         let _grid_entity =
             vulkan_renderer
                 .world
                 .spawn((grid_mesh, Transform::new(1.0), GRID_PIPELINE_ID));
 
-        //let (debug_utils_loader, debug_merssager) =
-        //    setup_debug_utils(true, &application.instance.entry(), &application.instance);
+        let (debug_utils_loader, debug_merssager) =
+           setup_debug_utils(true, &application.instance.entry(), &application.instance);
 
         VulkanApp {
             vulkan_renderer,
             application,
-            viking_room_texture: main_shader_textures,
+            viking_room_texture: Vec::from(main_shader_textures),
             count: 0.0,
 
            // viking_entity: viking_entity,
             // post_entity: viking_entity,
             // grid_entity: viking_entity,
-            // debug_merssager,
-            // debug_utils_loader
+            debug_merssager: Some(debug_merssager),
+            debug_utils_loader: Some(debug_utils_loader),
+            light_entity
         }
     }
 
-    pub fn setup_main_shader(
+    pub fn setup_light_shader(
         application: &VulkanApplication,
-        vulkan_renderer: &RenderLayer<UniformBufferObject>,
+        vulkan_renderer: &RenderLayer,
         textures: &[Texture],
-    ) -> ShaderSet<UniformBufferObject> {
+    ) -> ShaderSet {
         let input_buffer_layout = BufferLayout::new()
             .add_float_vec3(0)
             .add_float_vec4(1)
-            .add_float_vec2(2);
+            .add_float_vec2(2)
+            .add_float_vec3(3);
 
         let push_const_ranges = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
@@ -160,7 +189,14 @@ impl VulkanApp {
         }];
 
         let descriptors = ShaderIOBuilder::builder()
-            .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
+            .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                                &vulkan_renderer.render_context(application),
+                                vulkan_renderer.swapchain.images.len(),
+                                unsafe { size_of::<UniformBufferObject>() })
+            .add_uniform_buffer(4, vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                                &vulkan_renderer.render_context(application),
+                                vulkan_renderer.swapchain.images.len(),
+                                unsafe { size_of::<LightingUniformBufferObject>() })
             .sampler(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,
@@ -174,7 +210,53 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(
+            .build::<LightingUniformBufferObject>(
+                &vulkan_renderer.render_context(application),
+                vulkan_renderer.swapchain.images.len(),
+            );
+
+        ShaderBuilder::builder(application, "assets\\shaders\\build\\pong_lighting_vert.spv", "assets\\shaders\\build\\pong_lighting_frag.spv", 3)
+            .with_descriptors(descriptors)
+            .build()
+    }
+
+    pub fn setup_main_shader(
+        application: &VulkanApplication,
+        vulkan_renderer: &RenderLayer,
+        textures: &[Texture],
+    ) -> ShaderSet {
+        let input_buffer_layout = BufferLayout::new()
+            .add_float_vec3(0)
+            .add_float_vec4(1)
+            .add_float_vec2(2)
+            .add_float_vec3(3);
+
+        let push_const_ranges = [vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: mem::size_of::<MeshPushConstants>() as u32,
+        }];
+
+        let descriptors = ShaderIOBuilder::builder()
+            .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX,
+                                &vulkan_renderer.render_context(application),
+                                vulkan_renderer.swapchain.images.len(),
+                                unsafe { size_of::<UniformBufferObject>() }
+            )
+            .sampler(
+                1,
+                vk::ShaderStageFlags::FRAGMENT,
+                vulkan_renderer.texture_sampler.unwrap(),
+            )
+            .texture_array(
+                2,
+                vk::ShaderStageFlags::FRAGMENT,
+                &textures,
+                vulkan_renderer.texture_sampler.unwrap(),
+            )
+            .add_input_buffer_layout(input_buffer_layout)
+            .add_push_constant_ranges(&push_const_ranges)
+            .build::<UniformBufferObject>(
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
             );
@@ -186,13 +268,14 @@ impl VulkanApp {
 
     pub fn setup_ui_shader(
         application: &VulkanApplication,
-        vulkan_renderer: &RenderLayer<UniformBufferObject>,
+        vulkan_renderer: &RenderLayer,
         texture: &Texture,
-    ) -> ShaderSet<UniformBufferObject> {
+    ) -> ShaderSet {
         let input_buffer_layout = BufferLayout::new()
             .add_float_vec3(0)
             .add_float_vec4(1)
-            .add_float_vec2(2);
+            .add_float_vec2(2)
+            .add_float_vec3(3);
 
         let push_const_ranges = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
@@ -209,7 +292,7 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build(
+            .build::<UniformBufferObject>(
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
             );
@@ -225,15 +308,9 @@ impl VulkanApp {
     }
 
     #[profile(Sandbox)]
-    fn update_uniform(
-        vulkan_renderer: &mut RenderLayer<UniformBufferObject>,
-        _ui_layer: &ImguiLayer,
-        count: &mut f32,
-        application: &VulkanApplication,
+    fn initialize_uniform_objects(
+        vulkan_renderer: &mut RenderLayer,
     ) {
-        *count += 1.0 / 1000.0;
-        let current_frame = vulkan_renderer.current_frame();
-
         let (view, perspective) = {
             let camera = vulkan_renderer.camera();
             camera.reload();
@@ -241,25 +318,51 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            //if camera.is_dirty() {
-            let uniform_mut = pipeline.shader.uniform_mut();
-            uniform_mut.view_matrix = view;
-            uniform_mut.projection_matrix = perspective;
+            pipeline.shader.add_uniform_object(UniformBufferObject {
+                projection_matrix: perspective,
+                view_matrix: view
+            });
 
-            pipeline
-                .shader
-                .update_uniform(&application.device, current_frame);
-            // }
+            if pipeline.pipeline_id() == LIGHTING_MESH_PIPELINE_ID {
+                pipeline.shader.add_uniform_object(LightingUniformBufferObject::default());
+            }
         }
+    }
 
-        let uniform_mut = vulkan_renderer.object_picker.pipeline.shader.uniform_mut();
-        uniform_mut.view_matrix = view;
-        uniform_mut.projection_matrix = perspective;
-        vulkan_renderer
-            .object_picker
-            .pipeline
-            .shader
-            .update_uniform(&application.device, 0);
+    #[profile(Sandbox)]
+    fn update_uniform(
+        vulkan_renderer: &mut RenderLayer,
+        application: &VulkanApplication,
+        imgui_layer: &ImguiLayer,
+        light_entity: Entity,
+    ) {
+        let (view, perspective) = {
+            let camera = vulkan_renderer.camera();
+            camera.reload();
+            (camera.view(), camera.projection())
+        };
+
+        for pipeline in vulkan_renderer.pipelines.iter_mut() {
+            pipeline.shader.update_uniform::<UniformBufferObject>(&application.device, vulkan_renderer.current_frame, 0, &move |obj| {
+                obj.view_matrix = view.clone();
+                obj.projection_matrix = perspective.clone();
+            });
+
+            if pipeline.pipeline_id() == LIGHTING_MESH_PIPELINE_ID {
+                let light_entity = vulkan_renderer.world.get::<Transform>(light_entity).unwrap();
+                let light_pos = light_entity.translate_factor();
+                let camera_pos =  vulkan_renderer.camera.position();
+
+                pipeline.shader.update_uniform::<LightingUniformBufferObject>(&application.device, vulkan_renderer.current_frame, 1, &move |obj| {
+                    let lighting_input = imgui_layer.lighting_input.clone();
+                    obj.shininess = lighting_input.shininess;
+                    obj.ambient_strength = lighting_input.ambient_strength;
+                    obj.specular_strength = lighting_input.specular_strength;
+                    obj.view_pos= camera_pos;
+                    obj.light_position= light_pos;
+                });
+            }
+        }
     }
 
     pub fn main_loop(mut self, mut event_loop: EventLoop<()>) {
@@ -273,7 +376,7 @@ impl VulkanApp {
         let ui_shader =
             Self::setup_ui_shader(&application, &vulkan_renderer, &ui_layer.ui_font_texture);
         let pipeline =
-            Pipeline::ui_pipeline(&application.device, &vulkan_renderer.render_pass, ui_shader);
+            Pipeline::ui_pipeline(&application.device, &vulkan_renderer.render_pass, ui_shader, UI_PIPELINE_ID);
 
         vulkan_renderer.ui_pipeline = Some(pipeline);
 
@@ -296,9 +399,9 @@ impl VulkanApp {
 
             Self::update_uniform(
                 &mut render_layers[0],
-                &ui_layers[0],
-                &mut self.count,
                 &application,
+                &ui_layers[0],
+                self.light_entity,
             );
 
             render_layers[0].ui_data = ui_layers[0].draw_data;

@@ -5,18 +5,18 @@ use crate::{
     vulkan::{
         structures::ObjectIdPushConstants, CommandBuffers, CommandPool, IndexBuffer, Instance,
         LogicalDevice, MeshPushConstants, Pipeline, Queue, QueueFamilyIndices, UniformBufferObject,
-        UniformBufferObjectTemplate, VertexBuffer,
+        UniformObjectTemplate, VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
 use nalgebra::Matrix4;
 use std::ptr;
 
-pub struct RenderPipeline<U: UniformBufferObjectTemplate> {
+pub struct RenderPipeline {
     active_command_buffer: *const CommandBuffer,
     device: *const LogicalDevice,
     pub active_mesh: *const GpuMeshMemory,
-    active_pipeline: *const Pipeline<U>,
+    active_pipeline: *const Pipeline,
 
     pub index_count: u32,
     pub index_offset: u32,
@@ -25,12 +25,12 @@ pub struct RenderPipeline<U: UniformBufferObjectTemplate> {
     active_image_index: usize,
 }
 
-impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
+impl RenderPipeline {
     pub fn new(
         device: &LogicalDevice,
         command_buffer: &CommandBuffer,
         active_image: usize,
-    ) -> RenderPipeline<U> {
+    ) -> RenderPipeline{
         RenderPipeline {
             active_command_buffer: command_buffer,
             device,
@@ -45,7 +45,7 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
         }
     }
 
-    pub fn bind_pipeline(&mut self, pipeline: &Pipeline<U>, command_buffer: &CommandBuffers) {
+    pub fn bind_pipeline(&mut self, pipeline: &Pipeline, command_buffer: &CommandBuffers) {
         command_buffer.bind_pipeline(self.device(), pipeline);
         self.active_pipeline = pipeline;
     }
@@ -94,7 +94,7 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
     pub fn push_mesh_constants<T: Sized>(&self, data: T) {
         // Push the model matrix using push constants.
         unsafe {
-            self.active_mesh().push_constants::<U, T>(
+            self.active_mesh().push_constants::<T>(
                 self.device(),
                 self.active_command_buffer(),
                 self.active_pipeline(),
@@ -146,7 +146,7 @@ impl<U: UniformBufferObjectTemplate> RenderPipeline<U> {
         };
     }
 
-    fn active_pipeline(&self) -> &Pipeline<U> {
+    fn active_pipeline(&self) -> &Pipeline {
         unsafe { &*self.active_pipeline }
     }
 

@@ -2,34 +2,31 @@ use crate::{
     engine::RenderContext,
     vulkan::{
         buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline,
-        UniformBufferObjectTemplate,
+        UniformObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use std::{marker::PhantomData, mem::size_of};
 
 /// A uniform buffer that is feeded into the shader.
-pub struct UniformBuffer<U: UniformBufferObjectTemplate> {
+pub struct UniformBuffer {
     // There is a uniform buffer for each frame.
     buffer: Vec<vk::Buffer>,
     buffers_memory: Vec<vk::DeviceMemory>,
     frames_count: usize,
-
-    _data: PhantomData<U>,
+    pub uniform_object_size: usize
 }
 
-impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
+impl UniformBuffer {
     /// Creates a new uniform buffer.
-    pub fn new(render_context: &RenderContext, frames_count: usize) -> UniformBuffer<U> {
-        let buffer_size = size_of::<U>() as u64;
-
+    pub fn new(render_context: &RenderContext, frames_count: usize, buffer_object_sizebuffer_object_size: usize) -> UniformBuffer {
         let mut buffers = vec![];
         let mut buffers_memory = vec![];
 
         for _i in 0..frames_count {
             let (buffer, memory) = create_allocate_vk_buffer(
                 render_context,
-                buffer_size,
+                buffer_object_sizebuffer_object_size as u64,
                 vk::BufferUsageFlags::UNIFORM_BUFFER,
                 vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
             );
@@ -41,8 +38,7 @@ impl<U: UniformBufferObjectTemplate> UniformBuffer<U> {
             buffer: buffers,
             buffers_memory,
             frames_count,
-
-            _data: PhantomData,
+            uniform_object_size:buffer_object_sizebuffer_object_size
         }
     }
 

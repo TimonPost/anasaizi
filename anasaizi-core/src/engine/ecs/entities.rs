@@ -9,7 +9,7 @@ use crate::{
     vulkan,
     vulkan::{
         CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Queue,
-        UniformBufferObjectTemplate, VertexBuffer,
+        UniformObjectTemplate, VertexBuffer,
     },
 };
 use ash::{
@@ -106,9 +106,9 @@ impl Transform {
     }
 
     pub fn translate_factor(&self) -> Vector3<f32> {
-        let x = self.translate_transform[(3, 0)];
-        let y = self.translate_transform[(3, 0)];
-        let z = self.translate_transform[(3, 0)];
+        let x = self.translate_transform[(0, 3)];
+        let y = self.translate_transform[(1, 3)];
+        let z = self.translate_transform[(2, 3)];
 
         Vector3::new(x, y, z)
     }
@@ -222,11 +222,11 @@ impl GpuMeshMemory {
         self.index_buffer.destroy(device);
     }
 
-    pub fn push_constants<U: UniformBufferObjectTemplate, T>(
+    pub fn push_constants<T>(
         &self,
         device: &ash::Device,
         command_buffer: &CommandBuffer,
-        pipeline: &vulkan::Pipeline<U>,
+        pipeline: &vulkan::Pipeline,
         data: T,
     ) {
         unsafe {
@@ -263,6 +263,7 @@ impl GpuMeshMemory {
                             vertex.col[3] as f32 / 255.0,
                         ),
                         tex_coord: nalgebra::Vector2::new(vertex.uv[0], vertex.uv[1]),
+                        normal: Vector3::default()
                     }
                 })
                 .collect::<Vec<Vertex>>();

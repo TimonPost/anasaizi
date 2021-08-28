@@ -16,3 +16,4 @@ pub mod image;
 mod keycode;
 mod layer;
 mod renderer;
+mod light;

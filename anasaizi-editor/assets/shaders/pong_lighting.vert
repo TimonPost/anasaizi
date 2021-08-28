@@ -10,9 +10,11 @@ layout(location = 1) in vec4 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
-layout(location = 0) out vec4 fragColor;
-layout(location = 1) out vec2 fragTexCoord;
-layout(location = 2) out flat int imgIndex;
+layout(location = 0) out vec4 outFragColor;
+layout(location = 1) out vec2 outFragTexCoord;
+layout(location = 2) out flat int outImgIndex;
+layout(location = 3) out vec3 outFragPos;
+layout(location = 4) out vec3 outNormal;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
@@ -26,7 +28,10 @@ layout(push_constant) uniform MeshPushConstants {
 
 void main() {
     gl_Position = ubo.proj * ubo.view * push_constants.model * vec4(inPosition, 1.0);
-    fragColor = inColor;
-    fragTexCoord = inTexCoord;
-    imgIndex = push_constants.imgIndex;
+    outFragPos = vec3(push_constants.model * vec4(inPosition, 1.0));
+
+    outFragColor = inColor;
+    outFragTexCoord = inTexCoord;
+    outImgIndex = push_constants.imgIndex;
+    outNormal = mat3(transpose(inverse(push_constants.model))) * inNormal;
 }

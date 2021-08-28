@@ -2,7 +2,7 @@ use crate::{
     utils::any_as_u8_slice,
     vulkan::{
         CommandPool, FrameBuffers, LogicalDevice, MeshPushConstants, Pipeline, RenderPass,
-        UniformBufferObjectTemplate,
+        UniformObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
@@ -47,7 +47,7 @@ impl CommandBuffers {
         let clear_values = [
             vk::ClearValue {
                 color: vk::ClearColorValue {
-                    float32: [0.1, 0.1, 0.1, 1.0],
+                    float32: [0.0, 0.0,0.0, 0.0],
                 },
             },
             vk::ClearValue {
@@ -78,10 +78,10 @@ impl CommandBuffers {
     }
 
     /// Binds a pipeline to the current render session.
-    pub fn bind_pipeline<U: UniformBufferObjectTemplate>(
+    pub fn bind_pipeline(
         &self,
         device: &LogicalDevice,
-        pipeline: &Pipeline<U>,
+        pipeline: &Pipeline,
     ) {
         let command_buffer = self.current();
 
@@ -109,7 +109,7 @@ impl CommandBuffers {
         self.command_buffers[self.active_buffer]
     }
 
-    pub fn create<U: UniformBufferObjectTemplate>(
+    pub fn create(
         device: &LogicalDevice,
         command_pool: &CommandPool,
         framebuffers_count: usize,

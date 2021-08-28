@@ -1,7 +1,7 @@
 use crate::{
     engine::{image::Texture, BufferLayout, RenderContext, VulkanApplication},
     reexports::imgui::__core::option::IterMut,
-    vulkan::{LogicalDevice, MeshPushConstants, UniformBuffer, UniformBufferObjectTemplate},
+    vulkan::{LogicalDevice, MeshPushConstants, UniformBuffer, UniformObjectTemplate},
 };
 use ash::{
     version::DeviceV1_0,
@@ -24,18 +24,12 @@ impl DescriptorSet {
     pub fn new(
         device: &ash::Device,
         descriptor_set: vk::DescriptorSet,
-        descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
-        descriptor_info: &[vk::DescriptorBufferInfo],
+        mut descriptor_write_sets: Vec<vk::WriteDescriptorSet>
     ) -> DescriptorSet {
         let mut descriptor_write_sets = descriptor_write_sets;
-        for mut descriptor in descriptor_write_sets.iter_mut() {
-            if descriptor.descriptor_type == vk::DescriptorType::UNIFORM_BUFFER {
-                descriptor.p_buffer_info = descriptor_info.as_ptr();
-                descriptor.descriptor_count = descriptor_info.len() as u32
-            }
-            descriptor.dst_set = descriptor_set;
+        for descriptor_write_set in descriptor_write_sets.iter_mut() {
+            descriptor_write_set.dst_set = descriptor_set;
         }
-
         unsafe {
             device.update_descriptor_sets(&descriptor_write_sets, &[]);
         }
@@ -97,12 +91,12 @@ impl DescriptorPool {
     }
 
     /// Creates descriptor sets.
-    pub fn create_descriptor_sets<U: UniformBufferObjectTemplate>(
+    pub fn create_descriptor_sets(
         &self,
         device: &ash::Device,
         descriptor_set_layout: vk::DescriptorSetLayout,
         descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
-        uniform_buffer: &Option<UniformBuffer<U>>,
+        uniform_buffers: &mut Vec<UniformBuffer>
     ) -> Vec<DescriptorSet> {
         let mut layouts: Vec<vk::DescriptorSetLayout> = vec![];
 
@@ -129,26 +123,37 @@ impl DescriptorPool {
         let mut descriptor_set = vec![];
 
         for (i, descritptor_set) in descriptor_sets.iter().enumerate() {
-            let descriptor_buffer_info = {
-                if let Some(uniform_buffer) = uniform_buffer {
-                    vec![vk::DescriptorBufferInfo {
-                        buffer: uniform_buffer.buffers(i),
-                        offset: 0,
-                        range: std::mem::size_of::<U>() as u64,
-                    }]
-                } else {
-                    vec![]
-                }
-            };
 
-            let mut write_sets = vec![];
+            let mut descriptor_buffer_infos = HashMap::new();
+
+           let mut write_sets = vec![];
             write_sets.extend_from_slice(&descriptor_write_sets);
+
+            let mut uniform_buffer_index = 0;
+            for descriptor_write_set in write_sets.iter_mut() {
+                if descriptor_write_set.descriptor_type == vk::DescriptorType::UNIFORM_BUFFER {
+                    let uniform_buffer = &mut uniform_buffers[uniform_buffer_index];
+                    let frame_uniform_buffer = uniform_buffer.buffers(i);
+
+                    descriptor_buffer_infos.insert((uniform_buffer_index), vk::DescriptorBufferInfo {
+                        buffer: frame_uniform_buffer,
+                        offset: 0,
+                        range: uniform_buffer.uniform_object_size as u64,
+                    });
+
+                    let buffer_info = descriptor_buffer_infos.get(&(uniform_buffer_index)).unwrap();
+
+                    descriptor_write_set.p_buffer_info = buffer_info;
+                    descriptor_write_set.descriptor_count = 1;
+
+                    uniform_buffer_index += 1;
+                }
+            }
 
             descriptor_set.push(DescriptorSet::new(
                 device,
                 *descritptor_set,
-                write_sets,
-                &descriptor_buffer_info,
+                write_sets
             ));
         }
 
@@ -175,6 +180,8 @@ pub struct ShaderIOBuilder {
     descriptor_types: Vec<vk::DescriptorType>,
     descriptor_layout_bindingen: Vec<vk::DescriptorSetLayoutBinding>,
 
+    uniform_buffers: Vec<UniformBuffer>,
+
     write_descriptor_sets: Vec<vk::WriteDescriptorSet>,
 
     input_buffer_layout: Option<BufferLayout>,
@@ -198,6 +205,7 @@ impl ShaderIOBuilder {
             descriptor_image_info: vec![],
             dynamic_descriptor_image_info: vec![],
             sampler: vec![],
+            uniform_buffers: vec![]
         }
     }
 
@@ -322,7 +330,6 @@ impl ShaderIOBuilder {
         self.descriptor_layout_bindingen
             .push(descriptor_layout_binding);
         self.descriptor_types.push(descriptor_type);
-
         self
     }
 
@@ -330,7 +337,11 @@ impl ShaderIOBuilder {
         mut self,
         binding_id: u32,
         stage_flags: ShaderStageFlags,
+        render_context: &RenderContext,
+        frames: usize,
+        buffer_object_size: usize
     ) -> ShaderIOBuilder {
+        let buffer  = UniformBuffer::new(render_context, frames, buffer_object_size);
         let descriptor_type = vk::DescriptorType::UNIFORM_BUFFER;
 
         let write_descriptor_set = vk::WriteDescriptorSet::builder()
@@ -351,6 +362,7 @@ impl ShaderIOBuilder {
             .push(descriptor_layout_binding);
         self.descriptor_types.push(descriptor_type);
 
+        self.uniform_buffers.push(buffer);
         self
     }
 
@@ -363,11 +375,11 @@ impl ShaderIOBuilder {
         self
     }
 
-    pub fn build<U: UniformBufferObjectTemplate>(
+    pub fn build<U: UniformObjectTemplate+ 'static + Default>(
         mut self,
         render_context: &RenderContext,
         frames: usize,
-    ) -> ShaderIo<U> {
+    ) -> ShaderIo {
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
             .bindings(&self.descriptor_layout_bindingen)
             .build();
@@ -379,55 +391,45 @@ impl ShaderIOBuilder {
                 .expect("failed to create descriptor set layout!")
         };
 
-        let uniform_buffer = {
-            if self
-                .descriptor_types
-                .contains(&vk::DescriptorType::UNIFORM_BUFFER)
-            {
-                Some(UniformBuffer::<U>::new(&render_context, frames))
-            } else {
-                None
-            }
-        };
-
         self.descriptor_types
-            .push(vk::DescriptorType::INPUT_ATTACHMENT);
+            .push(vk::DescriptorType::INPUT_ATTACHMENT); // TODO: this is not required I think+
+
         let descriptor_pool =
             DescriptorPool::new(&render_context.device(), &self.descriptor_types, frames);
 
-        let descriptor_sets = descriptor_pool.create_descriptor_sets::<U>(
+        let descriptor_sets = descriptor_pool.create_descriptor_sets(
             &render_context.device(),
             descriptor_set_layout,
             self.write_descriptor_sets,
-            &uniform_buffer,
+            &mut self.uniform_buffers
         );
 
         ShaderIo {
             descriptor_pool,
             descriptor_sets,
-            uniform_buffer,
+            uniform_buffer_objects: Vec::with_capacity(self.uniform_buffers.len()),
+            uniform_buffers: self.uniform_buffers,
             descriptor_set_layout,
             input_buffer_layout: self.input_buffer_layout.unwrap(),
             push_constant_ranges: self.push_constant_ranges,
-            uniform_buffer_object: Default::default(),
         }
     }
 }
 
-pub struct ShaderIo<U: UniformBufferObjectTemplate> {
+pub struct ShaderIo {
     pub descriptor_pool: DescriptorPool,
     pub descriptor_sets: Vec<DescriptorSet>,
-    pub uniform_buffer: Option<UniformBuffer<U>>,
+    pub uniform_buffers: Vec<UniformBuffer>,
     pub descriptor_set_layout: vk::DescriptorSetLayout,
     pub input_buffer_layout: BufferLayout,
     pub push_constant_ranges: Vec<vk::PushConstantRange>,
-    pub uniform_buffer_object: U,
+    pub uniform_buffer_objects: Vec<Box<dyn UniformObjectTemplate>>,
 }
 
-impl<U: UniformBufferObjectTemplate> ShaderIo<U> {
+impl ShaderIo {
     pub unsafe fn destroy(&self, device: &LogicalDevice) {
         self.descriptor_pool.destroy(device);
-        if let Some(buffer) = &self.uniform_buffer {
+        for buffer in &self.uniform_buffers {
             buffer.destroy(device);
         }
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);

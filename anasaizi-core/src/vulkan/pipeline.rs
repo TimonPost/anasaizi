@@ -1,32 +1,31 @@
-use crate::vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain, UniformBufferObjectTemplate};
+use crate::vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain, UniformObjectTemplate};
 use ash::{version::DeviceV1_0, vk, vk::PipelineLayout};
 use std::{ffi::CString, mem, ops::Deref, ptr};
 
 /// A Vulkan Pipeline.
 ///
 /// A pipeline is a definition of how the GPU processes a vertices and textures all the way to the pixels in the render targets.
-pub struct Pipeline<U: UniformBufferObjectTemplate> {
+pub struct Pipeline {
     pipeline: vk::Pipeline,
     layout: vk::PipelineLayout,
-    pub shader: ShaderSet<U>,
+    pub shader: ShaderSet,
     pipeline_id: u32,
 }
 
-impl<U: UniformBufferObjectTemplate> Pipeline<U> {
+impl Pipeline {
     /// Creates a new `Pipeline`.
     pub fn create(
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        mut shader_set: ShaderSet<U>,
+        mut shader_set: ShaderSet,
         pipeline_id: u32,
-    ) -> Pipeline<U> {
+    ) -> Pipeline {
         let (pipeline, layout) = Self::build_pipeline(
             device,
             swapchain_extent,
             render_pass,
             &mut shader_set,
-            pipeline_id,
         );
 
         Pipeline {
@@ -41,8 +40,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
         device: &LogicalDevice,
         swapchain_extent: vk::Extent2D,
         render_pass: &RenderPass,
-        shader_set: &mut ShaderSet<U>,
-        pipeline_id: u32,
+        shader_set: &mut ShaderSet,
     ) -> (ash::vk::Pipeline, PipelineLayout) {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
@@ -183,9 +181,9 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
     pub fn object_pick_pipeline(
         device: &LogicalDevice,
         render_pass: &RenderPass,
-        mut shader_set: ShaderSet<U>,
+        mut shader_set: ShaderSet,
         extend: &vk::Extent2D,
-    ) -> Pipeline<U> {
+    ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
         let shader_stages = [
@@ -330,8 +328,9 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
     pub fn ui_pipeline(
         device: &LogicalDevice,
         render_pass: &RenderPass,
-        mut shader_set: ShaderSet<U>,
-    ) -> Pipeline<U> {
+        mut shader_set: ShaderSet,
+        pipeline_id: u32,
+    ) -> Pipeline {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
         let shader_states_infos = [
@@ -422,9 +421,9 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
 
         Pipeline {
             layout: pipeline_layout,
-            pipeline: pipeline,
+            pipeline,
             shader: shader_set,
-            pipeline_id: 100,
+            pipeline_id,
         }
     }
 
@@ -448,7 +447,6 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
             swapchain.extent,
             render_pass,
             &mut self.shader,
-            self.pipeline_id,
         );
         self.pipeline = pipeline;
         self.layout = layout;
@@ -471,7 +469,7 @@ impl<U: UniformBufferObjectTemplate> Pipeline<U> {
     }
 }
 
-impl<U: UniformBufferObjectTemplate> Deref for Pipeline<U> {
+impl Deref for Pipeline {
     type Target = vk::Pipeline;
 
     fn deref(&self) -> &Self::Target {

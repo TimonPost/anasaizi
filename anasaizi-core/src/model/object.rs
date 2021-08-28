@@ -37,6 +37,11 @@ impl Object {
                     ),
                     color: Vector4::new(1.0, 1.0, 1.0, 0.0),
                     tex_coord: Vector2::new(mesh.texcoords[(i * 2)], mesh.texcoords[(i * 2 + 1)]),
+                    normal: Vector3::new(
+                    mesh.normals[i * 3],
+                    mesh.normals[i * 3 + 1],
+                    mesh.normals[i * 3 + 2],
+                    ),
                 };
                 vertices.push(vertex);
             }

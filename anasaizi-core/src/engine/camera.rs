@@ -70,6 +70,10 @@ impl Camera {
         }
     }
 
+    pub fn position(&self) -> Vector3<f32> {
+        Vector3::new(self.position.x, self.position.y, self.position.z)
+    }
+
     /// Returns the projection matrix.
     pub fn projection(&self) -> nalgebra::Matrix4<f32> {
         self.projection_matrix

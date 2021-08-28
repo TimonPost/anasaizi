@@ -8,7 +8,7 @@ use crate::{
         begin_single_time_command, copy_image_to_buffer, create_allocate_vk_buffer,
         end_single_time_command, structures::ObjectIdPushConstants, CommandBuffers, FrameBuffers,
         ImageView, Pipeline, RenderPass, RenderPassBuilder, ShaderBuilder, ShaderIOBuilder,
-        SubpassDescriptor, SwapChain, UniformBufferObject, UniformBufferObjectTemplate,
+        SubpassDescriptor, SwapChain, UniformBufferObject, UniformObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk};
@@ -17,29 +17,29 @@ use std::{mem, mem::size_of, os::raw::c_void};
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
 
 pub struct ObjectPicker {
-    dimensions: [u32; 2],
-
-    // Tells the GPU where to write the color
-    render_pass: RenderPass,
-    pub pipeline: Pipeline<UniformBufferObject>,
-
-    // Two attachments -> color and depth
-    frame_buffers: FrameBuffers,
-
-    // color attachment
-    image: vk::Image,
-    image_view: vk::ImageView,
-    image_memory: vk::DeviceMemory,
-
-    // depth attachment
-    depth_image: vk::Image,
-    depth_image_view: vk::ImageView,
-    depth_image_memory: vk::DeviceMemory,
-
-    buffer_memory: vk::DeviceMemory,
-    buffer: vk::Buffer,
-    buffer_size: u64,
-    image_extend: vk::Extent2D,
+    // dimensions: [u32; 2],
+    //
+    // // Tells the GPU where to write the color
+    // render_pass: RenderPass,
+    // pub pipeline: Pipeline,
+    //
+    // // Two attachments -> color and depth
+    // frame_buffers: FrameBuffers,
+    //
+    // // color attachment
+    // image: vk::Image,
+    // image_view: vk::ImageView,
+    // image_memory: vk::DeviceMemory,
+    //
+    // // depth attachment
+    // depth_image: vk::Image,
+    // depth_image_view: vk::ImageView,
+    // depth_image_memory: vk::DeviceMemory,
+    //
+    // buffer_memory: vk::DeviceMemory,
+    // buffer: vk::Buffer,
+    // buffer_size: u64,
+    // image_extend: vk::Extent2D,
 }
 
 impl ObjectPicker {
@@ -49,189 +49,189 @@ impl ObjectPicker {
         width: usize,
         height: usize,
     ) -> ObjectPicker {
-        let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
-
-        let push_const_ranges = [vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: size_of::<ObjectIdPushConstants>() as u32,
-        }];
-
-        let descriptors = ShaderIOBuilder::builder()
-            .add_input_buffer_layout(input_buffer_layout)
-            .add_push_constant_ranges(&push_const_ranges)
-            .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
-            .build(render_context, 1);
-
-        let mut builder = ShaderBuilder::builder(
-            application,
-            "assets/shaders/build/mouse_pick_vert.spv",
-            "assets/shaders/build/mouse_pick_frag.spv",
-            1,
-        )
-        .with_descriptors(descriptors);
-        let mut shader = builder.build();
-
-        let image_extend = vk::Extent2D {
-            width: width as u32,
-            height: height as u32,
-        };
-
-        let (image, image_memory) = Texture::create_image(
-            render_context,
-            width as u32,
-            height as u32,
-            vk::Format::B8G8R8A8_SRGB,
-            vk::ImageTiling::OPTIMAL,
-            vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::COLOR_ATTACHMENT,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        );
-
-        let image_view = ImageView::create(
-            render_context.device(),
-            image,
-            vk::Format::B8G8R8A8_SRGB,
-            vk::ImageAspectFlags::COLOR,
-        );
-
-        let (depth_image, depth_image_view, depth_image_memory) =
-            SwapChain::create_depth_resources(render_context, image_extend);
-
-        let mut dependecies = [
-            vk::SubpassDependency::builder()
-                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-                .dst_stage_mask(vk::PipelineStageFlags::TRANSFER)
-                .src_access_mask(
-                    vk::AccessFlags::COLOR_ATTACHMENT_WRITE
-                        | vk::AccessFlags::COLOR_ATTACHMENT_READ,
-                )
-                .dst_access_mask(vk::AccessFlags::TRANSFER_READ)
-                .src_subpass(0)
-                .dst_subpass(vk::SUBPASS_EXTERNAL)
-                .dependency_flags(vk::DependencyFlags::VIEW_LOCAL_KHR)
-                .build(),
-            vk::SubpassDependency::builder()
-                .src_stage_mask(vk::PipelineStageFlags::TRANSFER)
-                .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-                .src_access_mask(vk::AccessFlags::TRANSFER_READ)
-                .dst_access_mask(
-                    vk::AccessFlags::COLOR_ATTACHMENT_WRITE
-                        | vk::AccessFlags::COLOR_ATTACHMENT_READ,
-                )
-                .src_subpass(vk::SUBPASS_EXTERNAL)
-                .dst_subpass(0)
-                .dependency_flags(vk::DependencyFlags::VIEW_LOCAL_KHR)
-                .build(),
-            vk::SubpassDependency::builder()
-                .src_stage_mask(vk::PipelineStageFlags::LATE_FRAGMENT_TESTS)
-                .dst_stage_mask(vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
-                .dst_access_mask(
-                    vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
-                        | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-                )
-                .src_subpass(vk::SUBPASS_EXTERNAL)
-                .dst_subpass(0)
-                .dependency_flags(vk::DependencyFlags::BY_REGION)
-                .build(),
-            vk::SubpassDependency::builder()
-                .src_stage_mask(vk::PipelineStageFlags::LATE_FRAGMENT_TESTS)
-                .dst_stage_mask(vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
-                .src_access_mask(vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)
-                .src_subpass(0)
-                .dst_subpass(vk::SUBPASS_EXTERNAL)
-                .dependency_flags(vk::DependencyFlags::BY_REGION)
-                .build(),
-        ];
-
-        let render_pass = RenderPassBuilder::builder()
-            .add_color_attachment(
-                0,
-                vk::Format::B8G8R8A8_SRGB,
-                vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
-                vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-            )
-            .add_depth_attachment(
-                1,
-                application.device.find_depth_format(&application.instance),
-            )
-            .add_subpasses(
-                vec![SubpassDescriptor::new().with_color(0).with_depth(1)],
-                &dependecies,
-            )
-            .build(&application.device);
-
-        let pipeline = Pipeline::object_pick_pipeline(
-            &application.device,
-            &render_pass,
-            shader,
-            &image_extend,
-        );
-
-        let frame_buffers = FrameBuffers::create(
-            &application.device,
-            &render_pass,
-            &vec![*image_view.clone()],
-            depth_image_view.clone(),
-            &image_extend,
-        );
-
-        let image_size = (std::mem::size_of::<u8>() as u32 * (width * height * 4_usize) as u32)
-            as vk::DeviceSize;
-
-        let buffer = create_allocate_vk_buffer(
-            render_context,
-            image_size,
-            vk::BufferUsageFlags::all(),
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT
-                | vk::MemoryPropertyFlags::HOST_CACHED,
-        );
+        // let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
+        //
+        // let push_const_ranges = [vk::PushConstantRange {
+        //     stage_flags: vk::ShaderStageFlags::VERTEX,
+        //     offset: 0,
+        //     size: size_of::<ObjectIdPushConstants>() as u32,
+        // }];
+        //
+        // let descriptors = ShaderIOBuilder::builder()
+        //     .add_input_buffer_layout(input_buffer_layout)
+        //     .add_push_constant_ranges(&push_const_ranges)
+        //     .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX)
+        //     .build::<UniformBufferObject>(render_context, 1);
+        //
+        // let mut builder = ShaderBuilder::builder(
+        //     application,
+        //     "assets/shaders/build/mouse_pick_vert.spv",
+        //     "assets/shaders/build/mouse_pick_frag.spv",
+        //     1,
+        // )
+        // .with_descriptors(descriptors);
+        // let mut shader = builder.build();
+        //
+        // let image_extend = vk::Extent2D {
+        //     width: width as u32,
+        //     height: height as u32,
+        // };
+        //
+        // let (image, image_memory) = Texture::create_image(
+        //     render_context,
+        //     width as u32,
+        //     height as u32,
+        //     vk::Format::B8G8R8A8_SRGB,
+        //     vk::ImageTiling::OPTIMAL,
+        //     vk::ImageUsageFlags::TRANSFER_SRC | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+        //     vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        // );
+        //
+        // let image_view = ImageView::create(
+        //     render_context.device(),
+        //     image,
+        //     vk::Format::B8G8R8A8_SRGB,
+        //     vk::ImageAspectFlags::COLOR,
+        // );
+        //
+        // let (depth_image, depth_image_view, depth_image_memory) =
+        //     SwapChain::create_depth_resources(render_context, image_extend);
+        //
+        // let mut dependecies = [
+        //     vk::SubpassDependency::builder()
+        //         .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+        //         .dst_stage_mask(vk::PipelineStageFlags::TRANSFER)
+        //         .src_access_mask(
+        //             vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+        //                 | vk::AccessFlags::COLOR_ATTACHMENT_READ,
+        //         )
+        //         .dst_access_mask(vk::AccessFlags::TRANSFER_READ)
+        //         .src_subpass(0)
+        //         .dst_subpass(vk::SUBPASS_EXTERNAL)
+        //         .dependency_flags(vk::DependencyFlags::VIEW_LOCAL_KHR)
+        //         .build(),
+        //     vk::SubpassDependency::builder()
+        //         .src_stage_mask(vk::PipelineStageFlags::TRANSFER)
+        //         .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+        //         .src_access_mask(vk::AccessFlags::TRANSFER_READ)
+        //         .dst_access_mask(
+        //             vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+        //                 | vk::AccessFlags::COLOR_ATTACHMENT_READ,
+        //         )
+        //         .src_subpass(vk::SUBPASS_EXTERNAL)
+        //         .dst_subpass(0)
+        //         .dependency_flags(vk::DependencyFlags::VIEW_LOCAL_KHR)
+        //         .build(),
+        //     vk::SubpassDependency::builder()
+        //         .src_stage_mask(vk::PipelineStageFlags::LATE_FRAGMENT_TESTS)
+        //         .dst_stage_mask(vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
+        //         .dst_access_mask(
+        //             vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
+        //                 | vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+        //         )
+        //         .src_subpass(vk::SUBPASS_EXTERNAL)
+        //         .dst_subpass(0)
+        //         .dependency_flags(vk::DependencyFlags::BY_REGION)
+        //         .build(),
+        //     vk::SubpassDependency::builder()
+        //         .src_stage_mask(vk::PipelineStageFlags::LATE_FRAGMENT_TESTS)
+        //         .dst_stage_mask(vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
+        //         .src_access_mask(vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)
+        //         .src_subpass(0)
+        //         .dst_subpass(vk::SUBPASS_EXTERNAL)
+        //         .dependency_flags(vk::DependencyFlags::BY_REGION)
+        //         .build(),
+        // ];
+        //
+        // let render_pass = RenderPassBuilder::builder()
+        //     .add_color_attachment(
+        //         0,
+        //         vk::Format::B8G8R8A8_SRGB,
+        //         vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+        //         vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+        //     )
+        //     .add_depth_attachment(
+        //         1,
+        //         application.device.find_depth_format(&application.instance),
+        //     )
+        //     .add_subpasses(
+        //         vec![SubpassDescriptor::new().with_color(0).with_depth(1)],
+        //         &dependecies,
+        //     )
+        //     .build(&application.device);
+        //
+        // let pipeline = Pipeline::object_pick_pipeline(
+        //     &application.device,
+        //     &render_pass,
+        //     shader,
+        //     &image_extend,
+        // );
+        //
+        // let frame_buffers = FrameBuffers::create(
+        //     &application.device,
+        //     &render_pass,
+        //     &vec![*image_view.clone()],
+        //     depth_image_view.clone(),
+        //     &image_extend,
+        // );
+        //
+        // let image_size = (std::mem::size_of::<u8>() as u32 * (width * height * 4_usize) as u32)
+        //     as vk::DeviceSize;
+        //
+        // let buffer = create_allocate_vk_buffer(
+        //     render_context,
+        //     image_size,
+        //     vk::BufferUsageFlags::all(),
+        //     vk::MemoryPropertyFlags::HOST_VISIBLE
+        //         | vk::MemoryPropertyFlags::HOST_COHERENT
+        //         | vk::MemoryPropertyFlags::HOST_CACHED,
+        // );
 
         ObjectPicker {
-            frame_buffers,
-            render_pass,
-            pipeline,
-
-            image,
-            image_view: *image_view,
-            image_memory,
-
-            depth_image,
-            depth_image_view: *depth_image_view,
-            depth_image_memory,
-
-            dimensions: [width as u32, height as u32],
-            buffer: buffer.0,
-            buffer_memory: buffer.1,
-
-            buffer_size: image_size,
-            image_extend,
+            // frame_buffers,
+            // render_pass,
+            // pipeline,
+            //
+            // image,
+            // image_view: *image_view,
+            // image_memory,
+            //
+            // depth_image,
+            // depth_image_view: *depth_image_view,
+            // depth_image_memory,
+            //
+            // dimensions: [width as u32, height as u32],
+            // buffer: buffer.0,
+            // buffer_memory: buffer.1,
+            //
+            // buffer_size: image_size,
+            // image_extend,
         }
     }
 
-    fn create_pushconstants(id: usize, model_matrix: Matrix4<f32>) -> ObjectIdPushConstants {
-        ObjectIdPushConstants {
-            color: Vector4::new(
-                ((id & 0xFF) as f32) / 255.0,
-                ((id >> 8) & 0xFF) as f32 / 255.0,
-                ((id >> 16) & 0xFF) as f32 / 255.0,
-                1.0,
-            ), // Transparent means no entity.,
-            model_matrix,
-        }
-    }
-
-    /// Get the ID from a RGBA value. transparent means None
-    fn get_entity_id(r: u8, g: u8, b: u8, a: u8) -> Option<usize> {
-        if a == 0 {
-            None
-        } else {
-            Some((r as usize) | (g as usize) << 8 | (b as usize) << 16)
-        }
-    }
+    // fn create_pushconstants(id: usize, model_matrix: Matrix4<f32>) -> ObjectIdPushConstants {
+    //     ObjectIdPushConstants {
+    //         color: Vector4::new(
+    //             ((id & 0xFF) as f32) / 255.0,
+    //             ((id >> 8) & 0xFF) as f32 / 255.0,
+    //             ((id >> 16) & 0xFF) as f32 / 255.0,
+    //             1.0,
+    //         ), // Transparent means no entity.,
+    //         model_matrix,
+    //     }
+    // }
+    //
+    // /// Get the ID from a RGBA value. transparent means None
+    // fn get_entity_id(r: u8, g: u8, b: u8, a: u8) -> Option<usize> {
+    //     if a == 0 {
+    //         None
+    //     } else {
+    //         Some((r as usize) | (g as usize) << 8 | (b as usize) << 16)
+    //     }
+    // }
 
     /// Return either ID of picked object or None if did not click on anything
-    pub fn pick_object<U: UniformBufferObjectTemplate>(
+    pub fn pick_object<U: UniformObjectTemplate>(
         &mut self,
         x: usize,
         y: usize,
