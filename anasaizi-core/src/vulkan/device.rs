@@ -4,11 +4,12 @@ use std::fmt::Formatter;
 
 use crate::{
     utils::vk_to_string,
-    vulkan::{Instance, QueueFamilyIndices, QueueFamilyProperties, SurfaceData, Version},
+    vulkan::{Instance, QueueFamilyProperties, SurfaceData, Version},
 };
 
 use crate::engine::Extensions;
 use std::{fmt, ops::Deref};
+use crate::vulkan::structures::QueueFamilyIndices;
 
 /// A Vulkan logical device.
 ///

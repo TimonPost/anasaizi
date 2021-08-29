@@ -2,7 +2,6 @@ use crate::{
     engine::RenderContext,
     vulkan::{
         buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline,
-        UniformObjectTemplate,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};

@@ -8,8 +8,8 @@ use crate::{
     utils::any_as_u8_slice,
     vulkan,
     vulkan::{
-        CommandPool, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, Queue,
-        UniformObjectTemplate, VertexBuffer,
+        CommandPool, IndexBuffer, Instance, LogicalDevice, Queue,
+         VertexBuffer,
     },
 };
 use ash::{

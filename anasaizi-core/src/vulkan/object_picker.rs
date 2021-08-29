@@ -1,20 +1,5 @@
-use crate::{
-    engine::{
-        image::Texture, BufferLayout, GpuMeshMemory, RenderContext, RenderLayer, RenderPipeline,
-        Transform, VulkanApplication, World,
-    },
-    utils::any_as_u8_slice,
-    vulkan::{
-        begin_single_time_command, copy_image_to_buffer, create_allocate_vk_buffer,
-        end_single_time_command, structures::ObjectIdPushConstants, CommandBuffers, FrameBuffers,
-        ImageView, Pipeline, RenderPass, RenderPassBuilder, ShaderBuilder, ShaderIOBuilder,
-        SubpassDescriptor, SwapChain, UniformBufferObject, UniformObjectTemplate,
-    },
-};
-use ash::{version::DeviceV1_0, vk};
-use nalgebra::{Matrix4, Vector4};
-use std::{mem, mem::size_of, os::raw::c_void};
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode};
+use crate::engine::{RenderContext, UniformObjectTemplate, VulkanApplication, World};
+use winit::event::KeyboardInput;
 
 pub struct ObjectPicker {
     // dimensions: [u32; 2],

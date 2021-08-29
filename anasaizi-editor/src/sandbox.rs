@@ -1,6 +1,6 @@
 use anasaizi_core::vulkan::{
-    MeshPushConstants, Pipeline,
-    ShaderBuilder, ShaderIOBuilder, ShaderSet, UniformBufferObject,
+    Pipeline,
+    ShaderBuilder, ShaderIOBuilder, ShaderSet,
 };
 use ash::vk;
 use winit::event_loop::EventLoop;
@@ -17,7 +17,7 @@ use crate::{game_layer::Application, imgui_layer::ImguiLayer};
 use anasaizi_core::{
     engine::{BufferLayout, GpuMeshMemory, Layer, Transform},
     reexports::nalgebra::{Vector3},
-    vulkan::structures::{UIPushConstants},
+    engine::{UIPushConstants},
 };
 
 use hecs::{Entity};
@@ -27,9 +27,10 @@ use std::{
     path::Path,
     ptr,
 };
-use anasaizi_core::vulkan::structures::LightingUniformBufferObject;
 use std::mem::size_of;
-use anasaizi_core::engine::World;
+use anasaizi_core::engine::{World, MatrixUniformObject, LightUniformObject, MaterialUniformObject, MeshPushConstants};
+use anasaizi_core::reexports::nalgebra::Vector;
+use std::time::{Instant, Duration};
 
 pub const MAIN_MESH_PIPELINE_ID: u32 = 0;
 const GRID_PIPELINE_ID: u32 = 1;
@@ -52,6 +53,98 @@ pub struct VulkanApp {
     //pub grid_entity: Entity,
     debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     debug_merssager: Option<vk::DebugUtilsMessengerEXT>,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum Material {
+    Emerald,
+    Jade,
+    Obsidian,
+    Pearl,
+    Ruby,
+    Turquoise,
+    Brass,
+    Bronze,
+    Chrome
+}
+
+impl Material {
+    pub fn get_vectors(&self) -> (Vector3<f32>, Vector3<f32>, Vector3<f32>, f32) {
+        if self == &Material::Emerald {
+            (
+                Vector3::new(0.0215, 0.1745, 0.0215),
+                Vector3::new(0.07568, 0.61424, 0.07568),
+                Vector3::new(0.633, 0.727811, 0.633),
+                0.6
+            )
+        }
+        else if self == &Material::Jade {
+            (
+                Vector3::new(0.135, 0.2225, 0.1575),
+                Vector3::new(0.54, 0.89, 0.63),
+                Vector3::new(0.316228, 0.316228, 0.316228),
+                0.1
+            )
+        }
+        else if self == &Material::Obsidian {
+            (
+                Vector3::new(0.05375, 0.05, 0.0662),
+                Vector3::new(0.18275, 0.17, 0.22525),
+                Vector3::new(0.332741, 0.328634, 0.346435),
+                0.3
+            )
+        }
+        else  if self == &Material::Pearl {
+            (
+                Vector3::new(0.25, 0.20725, 0.2072),
+                Vector3::new(1.0, 0.829, 0.829),
+                Vector3::new(0.296648, 0.296648, 0.296648),
+                0.0088
+            )
+        }
+        else if self == &Material::Ruby {
+            (
+                Vector3::new(0.1745, 0.01175, 0.0117),
+                Vector3::new(0.61424, 0.04136, 0.04136),
+                Vector3::new(0.727811, 0.626959, 0.626959),
+                0.6
+            )
+        }
+        else if self == &Material::Turquoise {
+            (
+                Vector3::new(0.1, 0.18725, 0.1745),
+                Vector3::new(0.396, 0.74151, 0.69102),
+                Vector3::new(0.297254, 0.30829, 0.306678),
+                0.1
+            )
+        }
+        else if self == &Material::Brass {
+            (
+                Vector3::new(0.329412, 0.223529, 0.027451),
+                Vector3::new(0.780392, 0.568627, 0.113725),
+                Vector3::new(0.992157, 0.941176, 0.807843),
+                0.21794872
+            )
+        }
+        else if self == &Material::Bronze {
+            (
+                Vector3::new(0.2125, 0.1275, 0.054),
+                Vector3::new(0.714, 0.4284, 0.18144),
+                Vector3::new(0.393548, 0.271906, 0.166721),
+                0.2
+            )
+        }
+        else if self == &Material::Chrome {
+            (
+                Vector3::new(0.25, 0.25, 0.25),
+                Vector3::new(0.4, 0.4, 0.4),
+                Vector3::new(0.774597, 0.774597, 0.774597),
+                0.6
+            )
+        }else {
+            panic!("No such material supported.")
+        }
+    }
 }
 
 impl VulkanApp {
@@ -122,7 +215,7 @@ impl VulkanApp {
 
         vulkan_renderer.world.spawn((
             cube_mesh_memory,
-            Transform::new(1.0).with_scale(0.3).with_translate(Vector3::new(-1.0, 2.0, 3.0)),
+            Transform::new(1.0).with_scale(0.2).with_translate(Vector3::new(-1.0, 2.0, 3.0)),
             LIGHTING_MESH_PIPELINE_ID,
         ));
 
@@ -192,11 +285,16 @@ impl VulkanApp {
             .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                                 &vulkan_renderer.render_context(application),
                                 vulkan_renderer.swapchain.images.len(),
-                                unsafe { size_of::<UniformBufferObject>() })
-            .add_uniform_buffer(4, vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                                unsafe { size_of::<MatrixUniformObject>() })
+            .add_uniform_buffer(4, vk::ShaderStageFlags::FRAGMENT,
                                 &vulkan_renderer.render_context(application),
                                 vulkan_renderer.swapchain.images.len(),
-                                unsafe { size_of::<LightingUniformBufferObject>() })
+                                unsafe { size_of::<MaterialUniformObject>() })
+            .add_uniform_buffer(5, vk::ShaderStageFlags::FRAGMENT,
+                                &vulkan_renderer.render_context(application),
+                                vulkan_renderer.swapchain.images.len(),
+                                unsafe { size_of::<LightUniformObject>() })
+
             .sampler(
                 1,
                 vk::ShaderStageFlags::FRAGMENT,
@@ -210,7 +308,7 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build::<LightingUniformBufferObject>(
+            .build(
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
             );
@@ -241,7 +339,7 @@ impl VulkanApp {
             .add_uniform_buffer(0, vk::ShaderStageFlags::VERTEX,
                                 &vulkan_renderer.render_context(application),
                                 vulkan_renderer.swapchain.images.len(),
-                                unsafe { size_of::<UniformBufferObject>() }
+                                unsafe { size_of::<MatrixUniformObject>() }
             )
             .sampler(
                 1,
@@ -256,7 +354,7 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build::<UniformBufferObject>(
+            .build(
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
             );
@@ -292,7 +390,7 @@ impl VulkanApp {
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build::<UniformBufferObject>(
+            .build(
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
             );
@@ -318,19 +416,21 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            pipeline.shader.add_uniform_object(UniformBufferObject {
+            pipeline.shader.add_uniform_object(MatrixUniformObject {
                 projection_matrix: perspective,
                 view_matrix: view
             });
 
             if pipeline.pipeline_id() == LIGHTING_MESH_PIPELINE_ID {
-                pipeline.shader.add_uniform_object(LightingUniformBufferObject::default());
+                pipeline.shader.add_uniform_object(MaterialUniformObject::default());
+                pipeline.shader.add_uniform_object(LightUniformObject::default());
             }
         }
     }
 
     #[profile(Sandbox)]
     fn update_uniform(
+        material: Material,
         vulkan_renderer: &mut RenderLayer,
         application: &VulkanApplication,
         imgui_layer: &ImguiLayer,
@@ -343,23 +443,33 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            pipeline.shader.update_uniform::<UniformBufferObject>(&application.device, vulkan_renderer.current_frame, 0, &move |obj| {
+            pipeline.shader.update_uniform::<MatrixUniformObject>(&application.device, vulkan_renderer.current_frame, 0, &move |obj| {
                 obj.view_matrix = view.clone();
                 obj.projection_matrix = perspective.clone();
             });
 
             if pipeline.pipeline_id() == LIGHTING_MESH_PIPELINE_ID {
+                pipeline.shader.update_uniform::<MaterialUniformObject>(&application.device, vulkan_renderer.current_frame, 1, &move |obj| {
+                    let (ambient, diffuse, specular, shininess) = material.get_vectors();
+
+                    obj.specular = specular;
+                    obj.diffuse = diffuse;
+                    obj.ambient = ambient;
+                    obj.shininess = shininess;
+                });
+
                 let light_entity = vulkan_renderer.world.get::<Transform>(light_entity).unwrap();
                 let light_pos = light_entity.translate_factor();
                 let camera_pos =  vulkan_renderer.camera.position();
 
-                pipeline.shader.update_uniform::<LightingUniformBufferObject>(&application.device, vulkan_renderer.current_frame, 1, &move |obj| {
-                    let lighting_input = imgui_layer.lighting_input.clone();
-                    obj.shininess = lighting_input.shininess;
-                    obj.ambient_strength = lighting_input.ambient_strength;
-                    obj.specular_strength = lighting_input.specular_strength;
+                pipeline.shader.update_uniform::<LightUniformObject>(&application.device, vulkan_renderer.current_frame, 2, &move |obj| {
                     obj.view_pos= camera_pos;
-                    obj.light_position= light_pos;
+                    obj.position= light_pos;
+                    obj.light_color = Vector3::new(1.0,1.0,1.0);
+
+                    obj.specular = Vector3::new(0.5, 0.5, 0.5);
+                    obj.diffuse = Vector3::new(0.5, 0.5, 0.5);
+                    obj.ambient = Vector3::new(0.2, 0.2, 0.2);
                 });
             }
         }
@@ -384,6 +494,11 @@ impl VulkanApp {
 
         let mut ui_layers = vec![ui_layer];
 
+        let mut rand_counter = Instant::now();
+        let materials = vec![Material::Emerald, Material::Jade, Material::Obsidian, Material::Pearl, Material::Ruby, Material::Turquoise, Material::Brass, Material::Bronze, Material::Chrome];
+        let mut active_material = materials[0];
+        let mut next_index = 0;
+
         let mut game_runs = true;
         while game_runs {
             game_runs = game_layer.tick(&mut event_loop);
@@ -397,7 +512,19 @@ impl VulkanApp {
             game_layer.run_layers(&mut ui_layers, &render_context, &application);
             game_layer.after_frame();
 
+            if rand_counter.elapsed() >= Duration::from_millis(2000) {
+                rand_counter = Instant::now();
+                active_material = materials[next_index];
+
+                if next_index == materials.len() -1 {
+                    next_index = 0;
+                } else {
+                    next_index += 1;
+                }
+            }
+
             Self::update_uniform(
+                active_material,
                 &mut render_layers[0],
                 &application,
                 &ui_layers[0],

@@ -15,9 +15,7 @@ pub use pipeline::Pipeline;
 pub use queue::{Queue, QueueFamilyProperties};
 pub use render_pass::{RenderPass, RenderPassBuilder, SubpassDescriptor};
 pub use shader::{ShaderBuilder, ShaderSet};
-pub use structures::{
-    MeshPushConstants, QueueFamilyIndices, UniformBufferObject, UniformObjectTemplate,
-};
+
 pub use surface::SurfaceData;
 pub use swapchain::{SwapChain, SwapChainSupportDetails};
 pub use version::Version;

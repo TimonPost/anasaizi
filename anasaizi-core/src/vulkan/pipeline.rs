@@ -1,4 +1,4 @@
-use crate::vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain, UniformObjectTemplate};
+use crate::vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain};
 use ash::{version::DeviceV1_0, vk, vk::PipelineLayout};
 use std::{ffi::CString, mem, ops::Deref, ptr};
 

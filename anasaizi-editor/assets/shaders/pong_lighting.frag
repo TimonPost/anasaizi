@@ -17,42 +17,40 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
-layout(binding = 4) uniform LightUniformBufferObject {
+layout(binding = 4) uniform Material {
     float shininess;
-    float specularStrenght;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+} material;
 
-    float ambientStrenght;
+layout(binding = 5) uniform Light {
+    vec3 position;
 
-    vec3 lightPos;
-    vec3 lightColor;
+    vec3 lightAmbient;
+    vec3 lightDiffuse;
+    vec3 lightSpecular;
 
     vec3 viewPos;
-} lightUbo;
+    vec3 lightColor;
+} light;
 
 void main() {
-    vec3 objectColor = vec3(fragColor.rgb * texture(sampler2D(textures[imgIndex], samp), fragTexCoord).rgb);
-    vec3 lightDir = normalize(lightUbo.lightPos - fragPos);
-
-    /// Calculate ambient lighting.
-    vec3 ambient = lightUbo.ambientStrenght * lightUbo.lightColor;
-
-    /// Calculate the diffuse color.
+    // difuse
     vec3 norm = normalize(normal);
-    // 1. Find the light direction.
-
-    // 2. Generate a value that becomes less as the angle becomes bigger.
+    vec3 lightDir = normalize(light.position - fragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    // 3. Dimm the light based up on this value.
-    vec3 diffuse = diff * lightUbo.lightColor;
 
-    /// Calculate specular lighting.
-    vec3 viewDir = normalize(lightUbo.viewPos - fragPos);
+    // specular
+    vec3 viewDir = normalize(light.viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), lightUbo.shininess);
-    vec3 specular = lightUbo.specularStrenght * spec * lightUbo.lightColor;
+    vec3 ambient  = light.lightAmbient * material.ambient;
+    vec3 diffuse  = light.lightDiffuse * (diff * material.diffuse);
+    vec3 specular = light.lightSpecular * (spec * material.specular);
 
-    /// Add ambient and diffuse and use this factor for color brightness.
-    vec3 result = (ambient + diffuse + specular) * objectColor;
-    outColor =  vec4(result, 1.0);
+    vec3 result = ambient + diffuse + specular;
+    outColor = vec4(result, 1.0);
+
 }

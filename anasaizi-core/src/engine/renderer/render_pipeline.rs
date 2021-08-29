@@ -3,14 +3,15 @@ use crate::{
     reexports::imgui::DrawData,
     utils::any_as_u8_slice,
     vulkan::{
-        structures::ObjectIdPushConstants, CommandBuffers, CommandPool, IndexBuffer, Instance,
-        LogicalDevice, MeshPushConstants, Pipeline, Queue, QueueFamilyIndices, UniformBufferObject,
-        UniformObjectTemplate, VertexBuffer,
+         CommandBuffers, CommandPool, IndexBuffer, Instance,
+        LogicalDevice, Pipeline, Queue,
+         VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
 use nalgebra::Matrix4;
 use std::ptr;
+use crate::vulkan::structures::QueueFamilyIndices;
 
 pub struct RenderPipeline {
     active_command_buffer: *const CommandBuffer,

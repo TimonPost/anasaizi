@@ -2,7 +2,6 @@ use crate::{
     engine::{BufferLayout, VulkanApplication},
     vulkan::{
         DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer,
-        UniformObjectTemplate,
     },
 };
 use ash::{
@@ -12,7 +11,7 @@ use ash::{
 };
 use std::{path::Path, ptr};
 use std::any::Any;
-use crate::vulkan::structures::UniformObjectClone;
+use crate::engine::UniformObjectTemplate;
 
 pub struct ShaderBuilder<'a> {
     input_buffer_layout: Option<BufferLayout>,

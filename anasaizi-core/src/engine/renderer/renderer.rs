@@ -7,7 +7,7 @@ use crate::{
     profile_fn,
     vulkan::{
         structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
-        ShaderSet, SwapChain, UniformObjectTemplate,
+        ShaderSet, SwapChain
     },
 };
 
@@ -23,7 +23,7 @@ use crate::{
     reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
     utils::any_as_u8_slice,
     vulkan::{
-        Application, IndexBuffer, Instance, LogicalDevice, MeshPushConstants, ObjectPicker,
+        Application, IndexBuffer, Instance, LogicalDevice, ObjectPicker,
         Pipeline, RenderPassBuilder, ShaderBuilder, ShaderIOBuilder, SubpassDescriptor,
         VertexBuffer, Window,
     },
@@ -32,8 +32,8 @@ use ash::{version::DeviceV1_0, vk};
 use nalgebra::Vector4;
 use std::{mem, mem::swap, ptr, time::Instant};
 use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
-use crate::vulkan::UniformBufferObject;
 use std::mem::size_of;
+use crate::engine::{MatrixUniformObject, MeshPushConstants};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -669,11 +669,11 @@ impl RenderLayer {
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                 render_context,
                 self.swapchain.images.len(),
-                unsafe { size_of::<UniformBufferObject>() }
+                unsafe { size_of::<MatrixUniformObject>() }
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
-            .build::<UniformBufferObject>(render_context, self.swapchain.images.len());
+            .build(render_context, self.swapchain.images.len());
 
         let mut builder = ShaderBuilder::builder(
             application,

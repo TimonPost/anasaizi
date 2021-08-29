@@ -1,7 +1,7 @@
 use crate::{
     engine::{image::Texture, BufferLayout, RenderContext, VulkanApplication},
     reexports::imgui::__core::option::IterMut,
-    vulkan::{LogicalDevice, MeshPushConstants, UniformBuffer, UniformObjectTemplate},
+    vulkan::{LogicalDevice, UniformBuffer,},
 };
 use ash::{
     version::DeviceV1_0,
@@ -12,6 +12,7 @@ use ash::{
     },
 };
 use std::{collections::HashMap, mem, ops::Deref, ptr};
+use crate::engine::UniformObjectTemplate;
 
 /// Think of a single descriptor as a handle or pointer into a resource.
 /// That resource being a Buffer or a Image, and also holds other information, such as the size of the buffer, or the type of sampler if it’s for an image.
@@ -375,7 +376,7 @@ impl ShaderIOBuilder {
         self
     }
 
-    pub fn build<U: UniformObjectTemplate+ 'static + Default>(
+    pub fn build(
         mut self,
         render_context: &RenderContext,
         frames: usize,

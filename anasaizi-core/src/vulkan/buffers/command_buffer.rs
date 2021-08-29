@@ -1,8 +1,7 @@
 use crate::{
     utils::any_as_u8_slice,
     vulkan::{
-        CommandPool, FrameBuffers, LogicalDevice, MeshPushConstants, Pipeline, RenderPass,
-        UniformObjectTemplate,
+        CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};

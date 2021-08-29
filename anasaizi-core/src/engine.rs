@@ -6,6 +6,10 @@ pub use extensions::Extensions;
 pub use keycode::Event;
 pub use layer::Layer;
 pub use renderer::{RenderContext, RenderLayer, RenderPipeline, FRAGMENT_SHADER, VERTEX_SHADER};
+pub use uniform_objects::{
+    MaterialUniformObject, LightUniformObject, MatrixUniformObject, UniformObjectTemplate, UniformObjectClone
+};
+pub use push_constants:: {ObjectIdPushConstants, UIPushConstants, MeshPushConstants};
 
 mod application;
 mod buffer_layout;
@@ -17,3 +21,7 @@ mod keycode;
 mod layer;
 mod renderer;
 mod light;
+mod uniform_objects;
+mod push_constants;
+
+

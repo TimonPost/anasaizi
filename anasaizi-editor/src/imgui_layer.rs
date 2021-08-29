@@ -12,7 +12,7 @@ use anasaizi_core::{
         imgui_winit_support::{HiDpiMode, WinitPlatform},
         nalgebra::Vector3,
     },
-    vulkan::{UniformBufferObject, Window},
+    vulkan::{Window},
 };
 use hecs::Entity;
 use std::{
@@ -21,7 +21,6 @@ use std::{
     time::Duration,
 };
 use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
-use anasaizi_core::vulkan::structures::LightingUniformBufferObject;
 
 pub struct TransformInput {
     pub object_translate_x: f32,
@@ -43,19 +42,6 @@ pub struct LightingInput {
 
     pub light_position: [f32;3],
     pub light_color: [f32;3],
-}
-
-impl From<LightingInput> for LightingUniformBufferObject {
-    fn from(input: LightingInput) -> Self {
-        LightingUniformBufferObject {
-            shininess: input.shininess,
-            ambient_strength: input.ambient_strength,
-            specular_strength: input.specular_strength,
-            light_position: Vector3::new(input.light_position[0],input.light_position[1],input.light_position[2]),
-            light_color:Vector3::new(input.light_color[0],input.light_color[1],input.light_color[2]),
-            view_pos: Default::default()
-        }
-    }
 }
 
 pub struct ImguiLayer {

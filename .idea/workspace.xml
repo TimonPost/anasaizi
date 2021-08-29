@@ -27,32 +27,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d8af4a9a-66e1-46b8-8ba8-a7c69334eed1" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/light.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/pong_lighting.vert" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/push_constants.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/uniform_objects.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/camera.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/camera.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/ecs/entities.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/ecs/entities.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/render_pipeline.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/render_pipeline.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/engine/renderer/renderer.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/math/vertex.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/math/vertex.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/model/object.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/model/object.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/command_buffer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/uniform_buffer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/buffers/uniform_buffer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/descriptor_pool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/descriptor_pool.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/device.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/device.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/object_picker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/object_picker.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/pipeline.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/pipeline.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/shader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/shader.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-core/src/vulkan/structures.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-core/src/vulkan/structures.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/obj/cube.mtl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/obj/cube.obj" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/obj/cube.obj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build-shaders.bat" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build-shaders.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/ui_vert.spv" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/ui_vert.spv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/vert.spv" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/vert.spv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/ui_frag.frag" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/ui_frag.frag" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/ui_vert.vert" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/ui_vert.vert" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/vertex.vert" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/vertex.vert" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/pong_lighting_frag.spv" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/build/pong_lighting_frag.spv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/pong_lighting.frag" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/assets/shaders/pong_lighting.frag" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/imgui_layer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/imgui_layer.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" beforeDir="false" afterPath="$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs" afterDir="false" />
     </list>
@@ -110,6 +102,11 @@
     </key>
   </component>
   <component name="RunManager" selected="Cargo.Run">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Expand anasaizi_core::engine::application [anasaizi-core]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="expand --lib --color=always --theme=GitHub --tests engine::application" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$/anasaizi-core" />
@@ -198,11 +195,6 @@
       <option name="redirectInputPath" value="" />
       <method v="2">
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <recent_temporary>
@@ -307,7 +299,8 @@
       <workItem from="1630001734598" duration="161000" />
       <workItem from="1630001925695" duration="4600000" />
       <workItem from="1630064334160" duration="17097000" />
-      <workItem from="1630142997523" duration="18132000" />
+      <workItem from="1630142997523" duration="24979000" />
+      <workItem from="1630235079897" duration="3479000" />
     </task>
     <servers />
   </component>
@@ -364,46 +357,46 @@
     </state>
     <state x="-1500" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1624536012235" />
     <state x="1060" y="280" key="FileChooserDialogImpl/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628771250470" />
-    <state width="2234" height="272" key="GridCell.Tab.0.bottom" timestamp="1630167780244">
+    <state width="2517" height="272" key="GridCell.Tab.0.bottom" timestamp="1630241855109">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="258" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1629309379733" />
-    <state width="2234" height="272" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630167780244" />
-    <state width="2234" height="272" key="GridCell.Tab.0.center" timestamp="1630167780244">
+    <state width="2517" height="272" key="GridCell.Tab.0.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630241855109" />
+    <state width="2517" height="272" key="GridCell.Tab.0.center" timestamp="1630241855109">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="258" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1629309379733" />
-    <state width="2234" height="272" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630167780244" />
-    <state width="2234" height="272" key="GridCell.Tab.0.left" timestamp="1630167780244">
+    <state width="2517" height="272" key="GridCell.Tab.0.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630241855109" />
+    <state width="2517" height="272" key="GridCell.Tab.0.left" timestamp="1630241855109">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="258" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1629309379732" />
-    <state width="2234" height="272" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630167780244" />
-    <state width="2234" height="272" key="GridCell.Tab.0.right" timestamp="1630167780244">
+    <state width="2517" height="272" key="GridCell.Tab.0.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630241855109" />
+    <state width="2517" height="272" key="GridCell.Tab.0.right" timestamp="1630241855109">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="258" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1629309379733" />
-    <state width="2234" height="272" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630167780244" />
-    <state width="1258" height="274" key="GridCell.Tab.1.bottom" timestamp="1630163715007">
+    <state width="2517" height="272" key="GridCell.Tab.0.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630241855109" />
+    <state width="1258" height="274" key="GridCell.Tab.1.bottom" timestamp="1630179199895">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="1258" height="274" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630163715007" />
-    <state width="1258" height="274" key="GridCell.Tab.1.center" timestamp="1630163715007">
+    <state width="1258" height="274" key="GridCell.Tab.1.bottom/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630179199895" />
+    <state width="1258" height="274" key="GridCell.Tab.1.center" timestamp="1630179199895">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="1258" height="274" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630163715007" />
-    <state width="1258" height="274" key="GridCell.Tab.1.left" timestamp="1630163715007">
+    <state width="1258" height="274" key="GridCell.Tab.1.center/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630179199895" />
+    <state width="1258" height="274" key="GridCell.Tab.1.left" timestamp="1630179199895">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="1258" height="274" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630163715007" />
-    <state width="1258" height="274" key="GridCell.Tab.1.right" timestamp="1630163715007">
+    <state width="1258" height="274" key="GridCell.Tab.1.left/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630179199895" />
+    <state width="1258" height="274" key="GridCell.Tab.1.right" timestamp="1630179199895">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state width="2517" height="250" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627149847727" />
-    <state width="1258" height="274" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630163715007" />
+    <state width="1258" height="274" key="GridCell.Tab.1.right/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630179199895" />
     <state x="781" y="170" key="SettingsEditor" timestamp="1628709382036">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
@@ -420,11 +413,11 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="1097" y="439" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1629827130364" />
-    <state x="-447" y="-9" width="2164" height="737" maximized="true" key="dock-window-1" timestamp="1630166367248">
-      <screen x="0" y="0" width="2560" height="1050" />
+    <state x="-2247" y="0" width="2134" height="737" maximized="true" key="dock-window-1" timestamp="1630239624799">
+      <screen x="-2560" y="0" width="2560" height="1050" />
     </state>
     <state x="-358" y="-21" width="1908" height="810" maximized="true" key="dock-window-1/-2560.0.2560.1050/0.0.2560.1050@-2560.0.2560.1050" timestamp="1627147726144" />
-    <state x="-447" y="-9" width="2164" height="737" maximized="true" key="dock-window-1/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630166367248" />
+    <state x="-2247" y="0" width="2134" height="737" maximized="true" key="dock-window-1/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630239624799" />
     <state x="-1845" y="0" width="1429" height="823" maximized="true" key="dock-window-2" timestamp="1628962809362">
       <screen x="-2560" y="0" width="2560" height="1050" />
     </state>
@@ -441,10 +434,10 @@
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
     <state x="936" y="243" key="run.anything.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1628770485602" />
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1630166653504">
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup" timestamp="1630175872334">
       <screen x="0" y="0" width="2560" height="1050" />
     </state>
-    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630166653504" />
+    <state x="943" y="227" width="672" height="678" key="search.everywhere.popup/-2560.0.2560.1050/0.0.2560.1050@0.0.2560.1050" timestamp="1630175872334" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -458,11 +451,6 @@
           <url>file://$PROJECT_DIR$/anasaizi-core/src/engine/ecs/entities.rs</url>
           <line>156</line>
           <option name="timeStamp" value="4" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/anasaizi-editor/src/sandbox.rs</url>
-          <line>355</line>
-          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
