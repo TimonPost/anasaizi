@@ -29,7 +29,7 @@ use std::{
 };
 use std::mem::size_of;
 use anasaizi_core::engine::{World, MatrixUniformObject, LightUniformObject, MaterialUniformObject, MeshPushConstants};
-use anasaizi_core::reexports::nalgebra::Vector;
+use anasaizi_core::reexports::nalgebra::{Vector, Vector4};
 use std::time::{Instant, Duration};
 
 pub const MAIN_MESH_PIPELINE_ID: u32 = 0;
@@ -165,6 +165,8 @@ impl VulkanApp {
         let main_shader_textures = [
             Texture::create(&render_context, &Path::new("assets/textures/red.png")),
             Texture::create(&render_context, &Path::new("assets/textures/white.png")),
+            Texture::create(&render_context, &Path::new("assets/textures/container.png")),
+            Texture::create(&render_context, &Path::new("assets/textures/container_specular.png")),
             // Texture::create(&render_context, &Path::new("assets/textures/texture.jpg")),
             // Texture::create(&render_context, &Path::new("assets/textures/window.jpg")),
         ];
@@ -173,7 +175,7 @@ impl VulkanApp {
             &render_context,
             cube_vertices.clone(),
             cube_indices.clone(),
-            0,
+            2,
         );
 
         let light_cube_mesh_memory = GpuMeshMemory::from_raw(
@@ -452,10 +454,9 @@ impl VulkanApp {
                 pipeline.shader.update_uniform::<MaterialUniformObject>(&application.device, vulkan_renderer.current_frame, 1, &move |obj| {
                     let (ambient, diffuse, specular, shininess) = material.get_vectors();
 
-                    obj.specular = specular;
-                    obj.diffuse = diffuse;
-                    obj.ambient = ambient;
-                    obj.shininess = shininess;
+                    obj.specular_texture_id = 3;
+                    obj.shininess = 64.0;
+                    obj.diffuse_texture_id = 2;
                 });
 
                 let light_entity = vulkan_renderer.world.get::<Transform>(light_entity).unwrap();
@@ -463,13 +464,13 @@ impl VulkanApp {
                 let camera_pos =  vulkan_renderer.camera.position();
 
                 pipeline.shader.update_uniform::<LightUniformObject>(&application.device, vulkan_renderer.current_frame, 2, &move |obj| {
-                    obj.view_pos= camera_pos;
-                    obj.position= light_pos;
-                    obj.light_color = Vector3::new(1.0,1.0,1.0);
+                    obj.view_pos= Vector4::new(camera_pos[0], camera_pos[1], camera_pos[2], 1.0);;
+                    obj.position= Vector4::new(light_pos[0], light_pos[1], light_pos[2], 1.0);
+                    obj.light_color = Vector4::new(1.0,1.0,1.0, 1.0);
 
-                    obj.specular = Vector3::new(0.5, 0.5, 0.5);
-                    obj.diffuse = Vector3::new(0.5, 0.5, 0.5);
-                    obj.ambient = Vector3::new(0.2, 0.2, 0.2);
+                    obj.specular = Vector4::new(0.5, 0.5, 0.5, 1.0);
+                    obj.diffuse = Vector4::new(0.5, 0.5, 0.5, 1.0);
+                    obj.ambient = Vector4::new(0.2, 0.2, 0.2, 1.0);
                 });
             }
         }

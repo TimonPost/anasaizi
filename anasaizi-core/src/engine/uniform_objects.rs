@@ -1,5 +1,5 @@
 use std::mem::size_of;
-use nalgebra::Vector3;
+use nalgebra::{Vector3, Vector4};
 use std::any::Any;
 
 /// Template for an uniform buffer object.
@@ -32,26 +32,25 @@ impl Clone for Box<dyn UniformObjectTemplate> {
 
 #[derive(Clone, Copy)]
 pub struct LightUniformObject {
-    pub position: Vector3<f32>,
+    pub position: Vector4<f32>,
 
-    pub ambient: Vector3<f32>,
-    pub diffuse: Vector3<f32>,
-    pub specular: Vector3<f32>,
+    pub ambient: Vector4<f32>,
+    pub diffuse: Vector4<f32>,
+    pub specular: Vector4<f32>,
 
-    pub view_pos: Vector3<f32>,
-    pub light_color: Vector3<f32>,
+    pub view_pos: Vector4<f32>,
+    pub light_color: Vector4<f32>,
 }
 
 impl Default for LightUniformObject {
     fn default() -> Self {
         LightUniformObject {
-            position: Vector3::default(),
-            light_color: Vector3::new(1.0,1.0,1.0),
-            view_pos: Vector3::default(),
-            ambient : Vector3::new(0.1,0.1,0.1),
-            specular: Vector3::new(1.0,1.0,1.0),
-            diffuse: Vector3::new(1.0,1.0,1.0),
-
+            position: Vector4::default(),
+            light_color: Vector4::new(1.0,1.0,1.0, 1.0),
+            view_pos: Vector4::default(),
+            ambient : Vector4::new(0.1,0.1,0.1, 1.0),
+            specular: Vector4::new(1.0,1.0,1.0, 1.0),
+            diffuse: Vector4::new(1.0,1.0,1.0, 1.0),
         }
     }
 }
@@ -107,18 +106,16 @@ impl Default for MatrixUniformObject {
 #[derive(Clone, Copy)]
 pub struct MaterialUniformObject{
     pub shininess:f32,
-    pub ambient: Vector3<f32>,
-    pub diffuse: Vector3<f32>,
-    pub specular: Vector3<f32>,
+    pub diffuse_texture_id: u32,
+    pub specular_texture_id: u32
 }
 
 impl MaterialUniformObject {
-    pub fn new(shininess: f32, ambient: Vector3<f32>, diffuse: Vector3<f32>, specular: Vector3<f32>) -> MaterialUniformObject {
+    pub fn new(shininess: f32, diffuse_texture_id: u32, specular_texture_id: u32) -> MaterialUniformObject {
         MaterialUniformObject {
             shininess,
-            ambient,
-            diffuse,
-            specular
+            diffuse_texture_id,
+            specular_texture_id
         }
     }
 }
@@ -139,6 +136,6 @@ impl UniformObjectTemplate for MaterialUniformObject {
 
 impl Default for MaterialUniformObject {
     fn default() -> Self {
-        MaterialUniformObject::new(32.0, Vector3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,0.0))
+        MaterialUniformObject::new(32.0, 2, 3)
     }
 }

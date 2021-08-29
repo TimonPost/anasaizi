@@ -121,6 +121,8 @@ impl ShaderSet {
             panic!("Could not get uniformbuffer with index: {}", object_index);
         };
 
+        assert_eq!(uniform_buffer.uniform_object_size, uniform_object.size());
+
         let uniform_object_any = uniform_object.as_any();
 
         if let Some(obj) = uniform_object_any.downcast_ref::<U>() {

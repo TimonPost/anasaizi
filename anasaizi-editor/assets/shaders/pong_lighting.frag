@@ -18,37 +18,40 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(binding = 4) uniform Material {
-    float shininess;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+    float     shininess;
+    int       diffuse;
+    int       specular;
 } material;
 
 layout(binding = 5) uniform Light {
-    vec3 position;
+    vec4 position;
 
-    vec3 lightAmbient;
-    vec3 lightDiffuse;
-    vec3 lightSpecular;
+    vec4 lightAmbient;
+    vec4 lightDiffuse;
+    vec4 lightSpecular;
 
-    vec3 viewPos;
-    vec3 lightColor;
+    vec4 viewPos;
+    vec4 lightColor;
 } light;
 
 void main() {
+    vec3 diffuse_texture = texture(sampler2D(textures[material.diffuse], samp), fragTexCoord).rgb;
+    vec3 specular_texture = texture(sampler2D(textures[material.specular], samp), fragTexCoord).rgb;
+
     // difuse
     vec3 norm = normalize(normal);
-    vec3 lightDir = normalize(light.position - fragPos);
+    vec3 lightDir = normalize(light.position.xyz - fragPos);
     float diff = max(dot(norm, lightDir), 0.0);
 
     // specular
-    vec3 viewDir = normalize(light.viewPos - fragPos);
+    vec3 viewDir = normalize(light.viewPos.xyz - fragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
+
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
-    vec3 ambient  = light.lightAmbient * material.ambient;
-    vec3 diffuse  = light.lightDiffuse * (diff * material.diffuse);
-    vec3 specular = light.lightSpecular * (spec * material.specular);
+    vec3 ambient  = light.lightAmbient.xyz * diffuse_texture;
+    vec3 diffuse = light.lightDiffuse.xyz * diff * diffuse_texture;
+    vec3 specular = light.lightSpecular.xyz * spec * specular_texture;
 
     vec3 result = ambient + diffuse + specular;
     outColor = vec4(result, 1.0);
