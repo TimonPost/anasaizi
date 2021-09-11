@@ -1,4 +1,3 @@
-use hecs::Entity;
 use nalgebra::Vector4;
 use std::ops::{Deref, DerefMut};
 

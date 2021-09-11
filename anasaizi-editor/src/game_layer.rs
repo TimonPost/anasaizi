@@ -49,14 +49,14 @@ impl Application {
             let winit_event = winit::event::Event::to_static(winit_event).unwrap();
             let ark = Arc::from(winit_event.clone());
 
-            self.input_sender.send(engine::Event::Raw(ark));
+            self.input_sender.send(engine::Event::Raw(ark)).unwrap();
 
             match winit_event {
                 winit::event::Event::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                         stop_profiler();
-                        self.input_sender.send(engine::Event::Shutdown);
+                        self.input_sender.send(engine::Event::Shutdown).unwrap();
                         run = false;
                     }
                     WindowEvent::CursorMoved {
@@ -65,7 +65,8 @@ impl Application {
                         ..
                     } => {
                         self.input_sender
-                            .send(engine::Event::MouseMove(position, modifiers));
+                            .send(engine::Event::MouseMove(position, modifiers))
+                            .unwrap();
                     }
                     WindowEvent::MouseWheel { delta, .. } => {
                         if let MouseScrollDelta::LineDelta(x, y) = delta {
@@ -73,11 +74,14 @@ impl Application {
                         }
                     }
                     WindowEvent::KeyboardInput { input, .. } => {
-                        self.input_sender.send(engine::Event::Keyboard(input));
+                        self.input_sender
+                            .send(engine::Event::Keyboard(input))
+                            .unwrap();
                     }
                     WindowEvent::MouseInput { state, button, .. } => {
                         self.input_sender
-                            .send(engine::Event::MouseInput(state, button));
+                            .send(engine::Event::MouseInput(state, button))
+                            .unwrap();
                     }
                     _ => {}
                 },

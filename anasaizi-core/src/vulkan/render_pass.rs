@@ -1,6 +1,6 @@
-use crate::vulkan::{Instance, LogicalDevice};
+use crate::vulkan::LogicalDevice;
 use ash::{version::DeviceV1_0, vk};
-use std::{mem::zeroed, ops::Deref};
+use std::ops::Deref;
 
 pub struct SubpassDescriptor {
     color: (bool, usize),
@@ -126,7 +126,7 @@ impl RenderPassBuilder {
         self
     }
 
-    pub fn build(mut self, device: &LogicalDevice) -> RenderPass {
+    pub fn build(self, device: &LogicalDevice) -> RenderPass {
         let renderpass_create_info = vk::RenderPassCreateInfo::builder()
             .attachments(&self.attachments)
             .subpasses(&self.subpasses)

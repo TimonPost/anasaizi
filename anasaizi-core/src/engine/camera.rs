@@ -1,4 +1,4 @@
-use nalgebra::{Matrix4, Vector3, Vector4};
+use nalgebra::{Vector3, Vector4};
 
 /// Defines in which direction a camera should move.
 pub enum CameraMovement {

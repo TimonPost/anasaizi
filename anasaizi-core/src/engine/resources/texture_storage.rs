@@ -120,7 +120,7 @@ impl TextureStorage {
     }
 
     pub fn insert(&mut self, texture_id: TextureId, texture: StoredTexture) {
-        let mut entry = self
+        let entry = self
             .textures
             .entry(texture_id.category())
             .or_insert(TextureCollection::new());

@@ -1,4 +1,4 @@
-use nalgebra::{Vector3, Vector4};
+use nalgebra::Vector4;
 use std::{any::Any, mem::size_of};
 
 /// Template for an uniform buffer object.

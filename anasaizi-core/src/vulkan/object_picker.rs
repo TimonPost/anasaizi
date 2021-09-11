@@ -29,10 +29,10 @@ pub struct ObjectPicker {
 
 impl ObjectPicker {
     pub fn new(
-        application: &VulkanApplication,
-        render_context: &RenderContext,
-        width: usize,
-        height: usize,
+        _application: &VulkanApplication,
+        _render_context: &RenderContext,
+        _width: usize,
+        _height: usize,
     ) -> ObjectPicker {
         // let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
         //
@@ -218,11 +218,11 @@ impl ObjectPicker {
     /// Return either ID of picked object or None if did not click on anything
     pub fn pick_object<U: UniformObjectTemplate>(
         &mut self,
-        x: usize,
-        y: usize,
-        last_key: KeyboardInput,
-        render_context: &RenderContext,
-        world: &mut World,
+        _x: usize,
+        _y: usize,
+        _last_key: KeyboardInput,
+        _render_context: &RenderContext,
+        _world: &mut World,
     ) {
 
         // let command_buffer = begin_single_time_command(render_context);

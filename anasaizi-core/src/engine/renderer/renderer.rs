@@ -11,8 +11,6 @@ use crate::{
     },
 };
 
-use anasaizi_profile::profile;
-
 use crate::{
     engine::{
         renderer::render_pipeline::RenderPipeline, BufferLayout, GpuMeshMemory, Layer,
@@ -22,21 +20,15 @@ use crate::{
     libs::imgui::{DrawCmd, DrawCmdParams, DrawData},
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
-    utils::any_as_u8_slice,
     vulkan::{
-        Application, IndexBuffer, Instance, LogicalDevice, ObjectPicker, Pipeline,
-        RenderPassBuilder, ShaderBuilder, ShaderIOBuilder, SubpassDescriptor, VertexBuffer, Window,
+        IndexBuffer, LogicalDevice, ObjectPicker, Pipeline, RenderPassBuilder, ShaderBuilder,
+        ShaderIOBuilder, SubpassDescriptor, VertexBuffer, Window,
     },
 };
 use ash::{version::DeviceV1_0, vk};
-use nalgebra::Vector4;
-use std::{
-    mem,
-    mem::{size_of, swap},
-    ptr,
-    time::Instant,
-};
-use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
+
+use std::{mem, mem::size_of, ptr};
+use winit::event::{ElementState, MouseButton, VirtualKeyCode};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -123,11 +115,11 @@ pub struct RenderLayer {
 }
 
 impl Layer for RenderLayer {
-    fn initialize(&mut self, window: &Window, render_context: &RenderContext) {}
+    fn initialize(&mut self, _window: &Window, _render_context: &RenderContext) {}
 
     fn on_event(&mut self, event: &Event) {
         match event {
-            Event::MouseMove(position, modifiers) => {
+            Event::MouseMove(position, _modifiers) => {
                 if self.mouse_down {
                     // safe the position where the mouse starts moving.
                     if !self.start_position_set {
@@ -200,12 +192,12 @@ impl Layer for RenderLayer {
 
     fn on_update(
         &mut self,
-        delta_time: u128,
+        _delta_time: u128,
         render_context: &RenderContext,
         application: &VulkanApplication,
     ) {
         let device = render_context.device();
-        let mut render_pipeline = RenderPipeline::new(
+        let _render_pipeline = RenderPipeline::new(
             &application.device,
             &self.command_buffers.current(),
             self.current_frame(),
@@ -345,7 +337,7 @@ impl Layer for RenderLayer {
 impl RenderLayer {
     pub fn new(application: &VulkanApplication) -> Self {
         let device = &application.device;
-        let instance = &application.instance;
+        let _instance = &application.instance;
 
         let graphics_queue = Queue::create(
             &device,
@@ -391,7 +383,7 @@ impl RenderLayer {
         let command_buffers =
             CommandBuffers::create(&application.device, &command_pool, frame_buffers.len());
 
-        let mut object_picker = ObjectPicker::new(
+        let object_picker = ObjectPicker::new(
             application,
             &render_context,
             swapchain.extent.width as usize,
@@ -458,7 +450,7 @@ impl RenderLayer {
         shader: ShaderSet,
         pipeline_id: u32,
     ) {
-        let mut pipeline = Pipeline::create(
+        let pipeline = Pipeline::create(
             &application.device,
             self.swapchain.extent,
             &self.render_pass,
@@ -469,7 +461,7 @@ impl RenderLayer {
         self.pipelines.push(pipeline);
     }
 
-    pub fn pick_object_pass(&mut self, render_context: &RenderContext) {
+    pub fn pick_object_pass(&mut self, _render_context: &RenderContext) {
         // self.object_picker.pick_object::<U>(self.last_x as usize, self.last_y as usize, self.last_key, render_context, &self.world);
     }
 
@@ -627,7 +619,7 @@ impl RenderLayer {
     }
 
     fn setup_renderpass(format: vk::Format, application: &VulkanApplication) -> RenderPass {
-        let mut dependecy = [vk::SubpassDependency::builder()
+        let dependecy = [vk::SubpassDependency::builder()
             .src_stage_mask(
                 vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
                     | vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS,
@@ -713,7 +705,7 @@ impl RenderLayer {
             size: mem::size_of::<MeshPushConstants>() as u32,
         }];
 
-        let mut descriptors = ShaderIOBuilder::builder()
+        let descriptors = ShaderIOBuilder::builder()
             .add_uniform_buffer(
                 0,
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
@@ -725,7 +717,7 @@ impl RenderLayer {
             .add_push_constant_ranges(&push_const_ranges)
             .build(render_context, self.swapchain.images.len());
 
-        let mut builder = ShaderBuilder::builder(
+        let builder = ShaderBuilder::builder(
             application,
             "assets\\shaders\\build\\grid_vert.spv",
             "assets\\shaders\\build\\grid_frag.spv",

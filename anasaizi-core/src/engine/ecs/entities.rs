@@ -1,5 +1,5 @@
 use crate::{
-    engine::{RenderContext, VulkanApplication},
+    engine::RenderContext,
     libs::{
         imgui::{DrawData, __core::ops::RangeInclusive},
         nalgebra::{Matrix4, Vector3},
@@ -7,14 +7,9 @@ use crate::{
     math::Vertex,
     utils::any_as_u8_slice,
     vulkan,
-    vulkan::{CommandPool, IndexBuffer, Instance, LogicalDevice, Queue, VertexBuffer},
+    vulkan::{IndexBuffer, LogicalDevice, VertexBuffer},
 };
-use ash::{
-    version::DeviceV1_0,
-    vk,
-    vk::{CommandBuffer, Pipeline},
-};
-use std::ops::Range;
+use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Transform {

@@ -1,9 +1,6 @@
 use crate::{
     engine::RenderContext,
-    vulkan::{
-        begin_single_time_command, end_single_time_command, CommandPool, Instance, LogicalDevice,
-        Queue,
-    },
+    vulkan::{begin_single_time_command, end_single_time_command},
 };
 use ash::{
     version::DeviceV1_0,
@@ -111,7 +108,7 @@ pub fn copy_image_to_buffer(
     src_image_layout: vk::ImageLayout,
     dst_buffer: vk::Buffer,
     command_buffer: vk::CommandBuffer,
-    size: u64,
+    _size: u64,
     image_extent: Extent2D,
 ) {
     unsafe {

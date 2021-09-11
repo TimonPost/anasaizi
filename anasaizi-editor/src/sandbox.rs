@@ -5,42 +5,30 @@ use anasaizi_profile::profile;
 
 use anasaizi_core::{
     debug::start_profiler,
-    engine::{image::Texture, RenderLayer, VulkanApplication, FRAGMENT_SHADER, VERTEX_SHADER},
-    libs::ash::{self, vk},
+    engine::{
+        image::Texture, resources::TextureLoader, BufferLayout, GpuMeshMemory, Layer,
+        LightUniformObject, MatrixUniformObject, MeshPushConstants, PBRMaps, PBRMeshPushConstants,
+        RenderLayer, Transform, UIPushConstants, VulkanApplication, FRAGMENT_SHADER, VERTEX_SHADER,
+    },
+    libs::{
+        ash::{self, vk},
+        hecs::Entity,
+        image::GenericImageView,
+        nalgebra::{Vector3, Vector4},
+    },
     model::Object,
 };
 
 use crate::{game_layer::Application, imgui_layer::ImguiLayer};
-use anasaizi_core::{
-    engine::{BufferLayout, GpuMeshMemory, Layer, Transform, UIPushConstants},
-    libs::{hecs::Entity, nalgebra::Vector3},
-};
-
-use anasaizi_core::{
-    engine::{
-        LightUniformObject, MaterialUniformObject, MatrixUniformObject, MeshPushConstants, PBRMaps,
-        PBRMeshPushConstants, RenderContext, World,
-    },
-    libs::nalgebra::{Vector, Vector4},
-};
 
 use std::{
-    collections::HashMap,
     ffi::{c_void, CStr},
     mem,
     mem::size_of,
     path::Path,
     ptr,
-    sync::{Arc, Mutex},
-    thread,
     time::{Duration, Instant},
 };
-
-use anasaizi_core::{
-    engine::resources::TextureLoader,
-    libs::{image, image::GenericImageView},
-};
-use std::path::PathBuf;
 
 pub const MAIN_MESH_PIPELINE_ID: u32 = 0;
 const GRID_PIPELINE_ID: u32 = 1;
@@ -59,94 +47,9 @@ pub struct VulkanApp {
 
     count: f32,
     pub light_entity: Entity,
-    // pub post_entity: Entity,
-    //pub grid_entity: Entity,
+
     debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     debug_merssager: Option<vk::DebugUtilsMessengerEXT>,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq)]
-enum Material {
-    Emerald,
-    Jade,
-    Obsidian,
-    Pearl,
-    Ruby,
-    Turquoise,
-    Brass,
-    Bronze,
-    Chrome,
-}
-
-impl Material {
-    pub fn get_vectors(&self) -> (Vector3<f32>, Vector3<f32>, Vector3<f32>, f32) {
-        if self == &Material::Emerald {
-            (
-                Vector3::new(0.0215, 0.1745, 0.0215),
-                Vector3::new(0.07568, 0.61424, 0.07568),
-                Vector3::new(0.633, 0.727811, 0.633),
-                0.6,
-            )
-        } else if self == &Material::Jade {
-            (
-                Vector3::new(0.135, 0.2225, 0.1575),
-                Vector3::new(0.54, 0.89, 0.63),
-                Vector3::new(0.316228, 0.316228, 0.316228),
-                0.1,
-            )
-        } else if self == &Material::Obsidian {
-            (
-                Vector3::new(0.05375, 0.05, 0.0662),
-                Vector3::new(0.18275, 0.17, 0.22525),
-                Vector3::new(0.332741, 0.328634, 0.346435),
-                0.3,
-            )
-        } else if self == &Material::Pearl {
-            (
-                Vector3::new(0.25, 0.20725, 0.2072),
-                Vector3::new(1.0, 0.829, 0.829),
-                Vector3::new(0.296648, 0.296648, 0.296648),
-                0.0088,
-            )
-        } else if self == &Material::Ruby {
-            (
-                Vector3::new(0.1745, 0.01175, 0.0117),
-                Vector3::new(0.61424, 0.04136, 0.04136),
-                Vector3::new(0.727811, 0.626959, 0.626959),
-                0.6,
-            )
-        } else if self == &Material::Turquoise {
-            (
-                Vector3::new(0.1, 0.18725, 0.1745),
-                Vector3::new(0.396, 0.74151, 0.69102),
-                Vector3::new(0.297254, 0.30829, 0.306678),
-                0.1,
-            )
-        } else if self == &Material::Brass {
-            (
-                Vector3::new(0.329412, 0.223529, 0.027451),
-                Vector3::new(0.780392, 0.568627, 0.113725),
-                Vector3::new(0.992157, 0.941176, 0.807843),
-                0.21794872,
-            )
-        } else if self == &Material::Bronze {
-            (
-                Vector3::new(0.2125, 0.1275, 0.054),
-                Vector3::new(0.714, 0.4284, 0.18144),
-                Vector3::new(0.393548, 0.271906, 0.166721),
-                0.2,
-            )
-        } else if self == &Material::Chrome {
-            (
-                Vector3::new(0.25, 0.25, 0.25),
-                Vector3::new(0.4, 0.4, 0.4),
-                Vector3::new(0.774597, 0.774597, 0.774597),
-                0.6,
-            )
-        } else {
-            panic!("No such material supported.")
-        }
-    }
 }
 
 impl VulkanApp {
@@ -429,10 +332,10 @@ impl VulkanApp {
 
     #[profile(Sandbox)]
     fn update_uniform(
-        material: Material,
+        _material: Material,
         vulkan_renderer: &mut RenderLayer,
         application: &VulkanApplication,
-        imgui_layer: &ImguiLayer,
+        _imgui_layer: &ImguiLayer,
         light_entity: Entity,
     ) {
         let (view, perspective) = {
@@ -481,7 +384,7 @@ impl VulkanApp {
         }
     }
 
-    pub fn main_loop(mut self, mut event_loop: EventLoop<()>) {
+    pub fn main_loop(self, mut event_loop: EventLoop<()>) {
         let mut application = self.application;
         let mut vulkan_renderer = self.vulkan_renderer;
         let render_context = vulkan_renderer.render_context(&application);

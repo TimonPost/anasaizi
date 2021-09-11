@@ -1,9 +1,5 @@
-use crate::{
-    utils::any_as_u8_slice,
-    vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass},
-};
+use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass};
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
-use std::ops::Deref;
 
 /// A Vulkan command buffer.
 ///

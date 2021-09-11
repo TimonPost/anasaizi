@@ -1,6 +1,6 @@
 use crate::{
     engine::{Event, RenderContext, VulkanApplication},
-    vulkan::{CommandPool, Queue, Window},
+    vulkan::Window,
 };
 
 pub trait Layer {

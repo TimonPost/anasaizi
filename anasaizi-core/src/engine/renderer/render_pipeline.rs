@@ -3,12 +3,12 @@ use crate::{
     libs::imgui::DrawData,
     utils::any_as_u8_slice,
     vulkan::{
-        structures::QueueFamilyIndices, CommandBuffers, CommandPool, IndexBuffer, Instance,
-        LogicalDevice, Pipeline, Queue, VertexBuffer,
+        structures::QueueFamilyIndices, CommandBuffers, CommandPool, Instance, LogicalDevice,
+        Pipeline, Queue,
     },
 };
-use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
-use nalgebra::Matrix4;
+use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
+
 use std::ptr;
 
 pub struct RenderPipeline {

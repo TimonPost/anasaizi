@@ -1,13 +1,9 @@
 use crate::{
     engine::{BufferLayout, UniformObjectTemplate, VulkanApplication},
-    vulkan::{DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer},
+    vulkan::{LogicalDevice, ShaderIo},
 };
-use ash::{
-    version::DeviceV1_0,
-    vk,
-    vk::{DescriptorSetLayout, ShaderModule},
-};
-use std::{any::Any, path::Path, ptr};
+use ash::{version::DeviceV1_0, vk, vk::ShaderModule};
+use std::{path::Path, ptr};
 
 pub struct ShaderBuilder<'a> {
     input_buffer_layout: Option<BufferLayout>,
@@ -45,7 +41,7 @@ impl<'a> ShaderBuilder<'a> {
     }
 
     /// Build shader.
-    pub fn build(mut self) -> ShaderSet {
+    pub fn build(self) -> ShaderSet {
         let vertex_shader_code = ShaderSet::read_shader_code(Path::new(self.vertex_shader));
         let vertex_shader_module =
             ShaderSet::create_shader_module(&self.application.device, vertex_shader_code);
@@ -77,7 +73,7 @@ pub struct ShaderSet {
 }
 
 impl ShaderSet {
-    pub fn get_descriptor_sets(&self, frame: usize, texture: String) -> Vec<vk::DescriptorSet> {
+    pub fn get_descriptor_sets(&self, frame: usize, _texture: String) -> Vec<vk::DescriptorSet> {
         vec![*self.io.descriptor_sets[frame]]
     }
 

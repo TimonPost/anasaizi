@@ -4,7 +4,6 @@ mod texture_storage;
 pub use texture_loader::TextureLoader;
 pub use texture_storage::{StoredTexture, TextureCollection, TextureId, TextureStorage};
 
-use crate::engine::RenderContext;
 use image::GenericImageView;
 use std::sync::{Arc, Mutex};
 

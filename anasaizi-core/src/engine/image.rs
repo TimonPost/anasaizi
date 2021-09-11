@@ -1,13 +1,13 @@
 use crate::{
     engine::RenderContext,
     vulkan::{
-        begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, CommandPool,
-        ImageView, Instance, LogicalDevice, Queue,
+        begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, ImageView,
+        LogicalDevice,
     },
 };
 use ash::{version::DeviceV1_0, vk};
 use image::GenericImageView;
-use std::{fs, path::Path, ptr};
+use std::{path::Path, ptr};
 
 /// A vulkan texture that contains an image, imageview, and device memory.
 #[derive(Clone)]

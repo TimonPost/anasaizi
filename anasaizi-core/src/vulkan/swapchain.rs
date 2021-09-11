@@ -2,7 +2,7 @@ use ash::vk;
 
 use crate::{
     engine::{image::Texture, RenderContext},
-    vulkan::{ImageView, Instance, LogicalDevice, SurfaceData},
+    vulkan::{ImageView, LogicalDevice, SurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::vk::Image;

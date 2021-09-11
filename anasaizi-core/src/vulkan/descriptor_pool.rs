@@ -1,19 +1,13 @@
 use crate::{
-    engine::{
-        image::Texture, BufferLayout, RenderContext, UniformObjectTemplate, VulkanApplication,
-    },
-    libs::imgui::__core::option::IterMut,
+    engine::{image::Texture, BufferLayout, RenderContext, UniformObjectTemplate},
     vulkan::{LogicalDevice, UniformBuffer},
 };
 use ash::{
     version::DeviceV1_0,
     vk,
-    vk::{
-        PipelineLayout, PipelineVertexInputStateCreateInfo,
-        PipelineVertexInputStateCreateInfoBuilder, PushConstantRange, ShaderStageFlags,
-    },
+    vk::{PipelineLayout, PipelineVertexInputStateCreateInfo, PushConstantRange, ShaderStageFlags},
 };
-use std::{collections::HashMap, mem, ops::Deref, ptr};
+use std::{collections::HashMap, ops::Deref, ptr};
 
 /// Think of a single descriptor as a handle or pointer into a resource.
 /// That resource being a Buffer or a Image, and also holds other information, such as the size of the buffer, or the type of sampler if it’s for an image.
@@ -26,7 +20,7 @@ impl DescriptorSet {
     pub fn new(
         device: &ash::Device,
         descriptor_set: vk::DescriptorSet,
-        mut descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
+        descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
     ) -> DescriptorSet {
         let mut descriptor_write_sets = descriptor_write_sets;
         for descriptor_write_set in descriptor_write_sets.iter_mut() {
@@ -137,7 +131,7 @@ impl DescriptorPool {
                     let frame_uniform_buffer = uniform_buffer.buffers(i);
 
                     descriptor_buffer_infos.insert(
-                        (uniform_buffer_index),
+                        uniform_buffer_index,
                         vk::DescriptorBufferInfo {
                             buffer: frame_uniform_buffer,
                             offset: 0,

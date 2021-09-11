@@ -1,9 +1,8 @@
 use crate::{
     engine::RenderContext,
-    vulkan::{buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline},
+    vulkan::{buffers::buffer::create_allocate_vk_buffer, LogicalDevice},
 };
-use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
-use std::{marker::PhantomData, mem::size_of};
+use ash::{version::DeviceV1_0, vk};
 
 /// A uniform buffer that is feeded into the shader.
 pub struct UniformBuffer {
