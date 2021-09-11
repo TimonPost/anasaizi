@@ -1,8 +1,6 @@
 use crate::{
     engine::RenderContext,
-    vulkan::{
-        buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline,
-    },
+    vulkan::{buffers::buffer::create_allocate_vk_buffer, Instance, LogicalDevice, Pipeline},
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use std::{marker::PhantomData, mem::size_of};
@@ -13,12 +11,16 @@ pub struct UniformBuffer {
     buffer: Vec<vk::Buffer>,
     buffers_memory: Vec<vk::DeviceMemory>,
     frames_count: usize,
-    pub uniform_object_size: usize
+    pub uniform_object_size: usize,
 }
 
 impl UniformBuffer {
     /// Creates a new uniform buffer.
-    pub fn new(render_context: &RenderContext, frames_count: usize, buffer_object_sizebuffer_object_size: usize) -> UniformBuffer {
+    pub fn new(
+        render_context: &RenderContext,
+        frames_count: usize,
+        buffer_object_sizebuffer_object_size: usize,
+    ) -> UniformBuffer {
         let mut buffers = vec![];
         let mut buffers_memory = vec![];
 
@@ -37,7 +39,7 @@ impl UniformBuffer {
             buffer: buffers,
             buffers_memory,
             frames_count,
-            uniform_object_size:buffer_object_sizebuffer_object_size
+            uniform_object_size: buffer_object_sizebuffer_object_size,
         }
     }
 

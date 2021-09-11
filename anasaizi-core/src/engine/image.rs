@@ -7,7 +7,7 @@ use crate::{
 };
 use ash::{version::DeviceV1_0, vk};
 use image::GenericImageView;
-use std::{path::Path, ptr};
+use std::{fs, path::Path, ptr};
 
 /// A vulkan texture that contains an image, imageview, and device memory.
 #[derive(Clone)]

@@ -7,7 +7,7 @@ use crate::{
     profile_fn,
     vulkan::{
         structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
-        ShaderSet, SwapChain
+        ShaderSet, SwapChain,
     },
 };
 
@@ -16,24 +16,27 @@ use anasaizi_profile::profile;
 use crate::{
     engine::{
         renderer::render_pipeline::RenderPipeline, BufferLayout, GpuMeshMemory, Layer,
-        RenderContext, Transform, World,
+        MatrixUniformObject, MeshPushConstants, PBRMaps, PBRMeshPushConstants, RenderContext,
+        Transform, World,
     },
+    libs::imgui::{DrawCmd, DrawCmdParams, DrawData},
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
-    reexports::imgui::{DrawCmd, DrawCmdParams, DrawData},
     utils::any_as_u8_slice,
     vulkan::{
-        Application, IndexBuffer, Instance, LogicalDevice, ObjectPicker,
-        Pipeline, RenderPassBuilder, ShaderBuilder, ShaderIOBuilder, SubpassDescriptor,
-        VertexBuffer, Window,
+        Application, IndexBuffer, Instance, LogicalDevice, ObjectPicker, Pipeline,
+        RenderPassBuilder, ShaderBuilder, ShaderIOBuilder, SubpassDescriptor, VertexBuffer, Window,
     },
 };
 use ash::{version::DeviceV1_0, vk};
 use nalgebra::Vector4;
-use std::{mem, mem::swap, ptr, time::Instant};
+use std::{
+    mem,
+    mem::{size_of, swap},
+    ptr,
+    time::Instant,
+};
 use winit::event::{ElementState, KeyboardInput, ModifiersState, MouseButton, VirtualKeyCode};
-use std::mem::size_of;
-use crate::engine::{MatrixUniformObject, MeshPushConstants};
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
@@ -83,7 +86,7 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
     sync_objects
 }
 
-pub struct RenderLayer{
+pub struct RenderLayer {
     pub swapchain: SwapChain,
     pub render_pass: RenderPass,
     pub graphics_queue: Queue,
@@ -104,8 +107,12 @@ pub struct RenderLayer{
     sync_object: SyncObjects,
 
     pub camera: Camera,
-    pub last_y: f64,
-    pub last_x: f64,
+    pub start_move_y: f64,
+    pub start_move_x: f64,
+    pub offset_move_y: f64,
+    pub offset_move_x: f64,
+
+    pub start_position_set: bool,
 
     pub current_frame: usize,
     delta_time: f32,
@@ -121,14 +128,35 @@ impl Layer for RenderLayer {
     fn on_event(&mut self, event: &Event) {
         match event {
             Event::MouseMove(position, modifiers) => {
-                if modifiers.ctrl() {
-                    let xoffset = position.x - self.last_x;
-                    let yoffset = self.last_y - position.y;
+                if self.mouse_down {
+                    // safe the position where the mouse starts moving.
+                    if !self.start_position_set {
+                        self.start_move_x = position.x;
+                        self.start_move_y = position.y;
+                        self.start_position_set = true;
+                    }
 
-                    self.last_x = position.x;
-                    self.last_y = position.y;
+                    // calculate the differences in the new position and start position. After that subtract the offset processed in previous frames.
+                    let x_from_start = (position.x - self.start_move_x) - self.offset_move_x;
+                    let y_from_start = (self.start_move_y - position.y) - self.offset_move_y;
 
-                    self.camera.process_mouse(self.delta_time, xoffset, yoffset)
+                    // update the moved offsets for the above statement.
+                    self.offset_move_y += y_from_start;
+                    self.offset_move_x += x_from_start;
+
+                    // process the offset moved since the last received mouse position.
+                    self.camera.process_mouse(
+                        self.delta_time,
+                        x_from_start as f64,
+                        y_from_start as f64,
+                    );
+                }
+
+                // Reset mouse position
+                if !self.mouse_down && self.start_position_set {
+                    self.start_position_set = false;
+                    self.offset_move_x = 0.0;
+                    self.offset_move_y = 0.0;
                 }
             }
             Event::Keyboard(input) => {
@@ -158,8 +186,10 @@ impl Layer for RenderLayer {
             Event::MouseInput(state, button) => {
                 if *button == MouseButton::Left && *state == ElementState::Pressed {
                     self.mouse_down = true;
+                    println!("Mouse down");
                 } else if *button == MouseButton::Left && *state == ElementState::Released {
                     self.mouse_down = false;
+                    println!("Mouse up");
                 }
             }
             _ => {}
@@ -301,10 +331,10 @@ impl Layer for RenderLayer {
         });
 
         // TODO: pick object
-        if self.mouse_down {
-            self.pick_object_pass(&render_context);
-            self.mouse_down = false;
-        }
+        // if self.mouse_down {
+        //     self.pick_object_pass(&render_context);
+        //     self.mouse_down = false;
+        // }
 
         self.current_frame = (self.current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -388,16 +418,20 @@ impl RenderLayer {
 
             camera,
 
-            last_x: 400.0,
-            last_y: 300.0,
+            start_move_x: 400.0,
+            start_move_y: 300.0,
+            offset_move_x: 0.0,
+            offset_move_y: 0.0,
             current_frame: 0,
+            start_position_set: false,
+
             ui_pipeline: None,
             ui_mesh: std::ptr::null(),
             ui_data: std::ptr::null(),
             delta_time: 0.0,
 
             world: World::new(),
-            mouse_down: true,
+            mouse_down: false,
         }
     }
 
@@ -462,14 +496,30 @@ impl RenderLayer {
                 .iter()
             {
                 if *pipeline_id == pipeline.pipeline_id() {
-                    // Push the model matrix using push constants.
-                    let transform = MeshPushConstants {
-                        model_matrix: transform.model_transform(),
-                        texture_id: mesh.texture_id,
-                    };
-
                     render_pipeline.set_mesh(mesh);
-                    render_pipeline.push_mesh_constants(transform);
+
+                    if let Ok(maps) = self.world.get::<PBRMaps>(id) {
+                        // Push the model matrix using push constants.
+                        let push_constants = PBRMeshPushConstants {
+                            model_matrix: transform.model_transform(),
+                            albedo_map: maps.albedo,
+                            normal_map: maps.normal,
+                            metallic_map: maps.metalness,
+                            roughness_map: maps.roughness,
+                            ao_map: maps.ao,
+                        };
+
+                        render_pipeline.push_mesh_constants(push_constants);
+                    } else {
+                        // Push the model matrix using push constants.
+                        let transform = MeshPushConstants {
+                            model_matrix: transform.model_transform(),
+                            texture_id: mesh.texture_id,
+                        };
+
+                        render_pipeline.push_mesh_constants(transform);
+                    }
+
                     render_pipeline.render_mesh();
                 }
             }
@@ -669,7 +719,7 @@ impl RenderLayer {
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                 render_context,
                 self.swapchain.images.len(),
-                unsafe { size_of::<MatrixUniformObject>() }
+                unsafe { size_of::<MatrixUniformObject>() },
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)

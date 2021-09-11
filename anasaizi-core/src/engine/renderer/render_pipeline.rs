@@ -1,17 +1,15 @@
 use crate::{
     engine::GpuMeshMemory,
-    reexports::imgui::DrawData,
+    libs::imgui::DrawData,
     utils::any_as_u8_slice,
     vulkan::{
-         CommandBuffers, CommandPool, IndexBuffer, Instance,
-        LogicalDevice, Pipeline, Queue,
-         VertexBuffer,
+        structures::QueueFamilyIndices, CommandBuffers, CommandPool, IndexBuffer, Instance,
+        LogicalDevice, Pipeline, Queue, VertexBuffer,
     },
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer, Device};
 use nalgebra::Matrix4;
 use std::ptr;
-use crate::vulkan::structures::QueueFamilyIndices;
 
 pub struct RenderPipeline {
     active_command_buffer: *const CommandBuffer,
@@ -31,7 +29,7 @@ impl RenderPipeline {
         device: &LogicalDevice,
         command_buffer: &CommandBuffer,
         active_image: usize,
-    ) -> RenderPipeline{
+    ) -> RenderPipeline {
         RenderPipeline {
             active_command_buffer: command_buffer,
             device,

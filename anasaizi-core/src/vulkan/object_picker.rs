@@ -3,28 +3,28 @@ use winit::event::KeyboardInput;
 
 pub struct ObjectPicker {
     // dimensions: [u32; 2],
-    //
-    // // Tells the GPU where to write the color
-    // render_pass: RenderPass,
-    // pub pipeline: Pipeline,
-    //
-    // // Two attachments -> color and depth
-    // frame_buffers: FrameBuffers,
-    //
-    // // color attachment
-    // image: vk::Image,
-    // image_view: vk::ImageView,
-    // image_memory: vk::DeviceMemory,
-    //
-    // // depth attachment
-    // depth_image: vk::Image,
-    // depth_image_view: vk::ImageView,
-    // depth_image_memory: vk::DeviceMemory,
-    //
-    // buffer_memory: vk::DeviceMemory,
-    // buffer: vk::Buffer,
-    // buffer_size: u64,
-    // image_extend: vk::Extent2D,
+//
+// // Tells the GPU where to write the color
+// render_pass: RenderPass,
+// pub pipeline: Pipeline,
+//
+// // Two attachments -> color and depth
+// frame_buffers: FrameBuffers,
+//
+// // color attachment
+// image: vk::Image,
+// image_view: vk::ImageView,
+// image_memory: vk::DeviceMemory,
+//
+// // depth attachment
+// depth_image: vk::Image,
+// depth_image_view: vk::ImageView,
+// depth_image_memory: vk::DeviceMemory,
+//
+// buffer_memory: vk::DeviceMemory,
+// buffer: vk::Buffer,
+// buffer_size: u64,
+// image_extend: vk::Extent2D,
 }
 
 impl ObjectPicker {

@@ -21,12 +21,8 @@ impl Pipeline {
         mut shader_set: ShaderSet,
         pipeline_id: u32,
     ) -> Pipeline {
-        let (pipeline, layout) = Self::build_pipeline(
-            device,
-            swapchain_extent,
-            render_pass,
-            &mut shader_set,
-        );
+        let (pipeline, layout) =
+            Self::build_pipeline(device, swapchain_extent, render_pass, &mut shader_set);
 
         Pipeline {
             layout,
@@ -442,12 +438,8 @@ impl Pipeline {
         device.destroy_pipeline(self.pipeline, None);
         device.destroy_pipeline_layout(self.layout, None);
 
-        let (pipeline, layout) = Self::build_pipeline(
-            device,
-            swapchain.extent,
-            render_pass,
-            &mut self.shader,
-        );
+        let (pipeline, layout) =
+            Self::build_pipeline(device, swapchain.extent, render_pass, &mut self.shader);
         self.pipeline = pipeline;
         self.layout = layout;
     }

@@ -1,17 +1,13 @@
 use crate::{
-    engine::{BufferLayout, VulkanApplication},
-    vulkan::{
-        DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer,
-    },
+    engine::{BufferLayout, UniformObjectTemplate, VulkanApplication},
+    vulkan::{DescriptorPool, DescriptorSet, LogicalDevice, ShaderIo, UniformBuffer},
 };
 use ash::{
     version::DeviceV1_0,
     vk,
     vk::{DescriptorSetLayout, ShaderModule},
 };
-use std::{path::Path, ptr};
-use std::any::Any;
-use crate::engine::UniformObjectTemplate;
+use std::{any::Any, path::Path, ptr};
 
 pub struct ShaderBuilder<'a> {
     input_buffer_layout: Option<BufferLayout>,
@@ -54,8 +50,7 @@ impl<'a> ShaderBuilder<'a> {
         let vertex_shader_module =
             ShaderSet::create_shader_module(&self.application.device, vertex_shader_code);
 
-        let fragment_shader_code =
-            ShaderSet::read_shader_code(Path::new(self.fragment_shader));
+        let fragment_shader_code = ShaderSet::read_shader_code(Path::new(self.fragment_shader));
         let fragment_shader_module =
             ShaderSet::create_shader_module(&self.application.device, fragment_shader_code);
 
@@ -100,22 +95,35 @@ impl ShaderSet {
         self.vertex_shader_module
     }
 
-    pub fn add_uniform_object<U: UniformObjectTemplate+'static>(&mut self, uniform_object: U) {
-        self.io.uniform_buffer_objects.push(Box::new(uniform_object));
+    pub fn add_uniform_object<U: UniformObjectTemplate + 'static>(&mut self, uniform_object: U) {
+        self.io
+            .uniform_buffer_objects
+            .push(Box::new(uniform_object));
     }
 
-    pub fn update_uniform<U: UniformObjectTemplate+Clone+'static>(&mut self, device: &LogicalDevice, current_image: usize, object_index: usize, update_fn: &dyn Fn(&mut U)) {
+    pub fn update_uniform<U: UniformObjectTemplate + Clone + 'static>(
+        &mut self,
+        device: &LogicalDevice,
+        current_image: usize,
+        object_index: usize,
+        update_fn: &dyn Fn(&mut U),
+    ) {
         if self.io.uniform_buffers.is_empty() {
             panic!("Trying to update shader uniform without uniform buffer.");
         }
 
-        let uniform_object = if let Some(ubo) = self.io.uniform_buffer_objects.get_mut(object_index) {
+        let uniform_object = if let Some(ubo) = self.io.uniform_buffer_objects.get_mut(object_index)
+        {
             ubo.clone()
         } else {
-            panic!("Could not get uniformbuffer object with index: {}", object_index);
+            panic!(
+                "Could not get uniformbuffer object with index: {}",
+                object_index
+            );
         };
 
-        let uniform_buffer = if let Some(uniform_buffer) = self.io.uniform_buffers.get(object_index) {
+        let uniform_buffer = if let Some(uniform_buffer) = self.io.uniform_buffers.get(object_index)
+        {
             uniform_buffer
         } else {
             panic!("Could not get uniformbuffer with index: {}", object_index);
@@ -137,8 +145,7 @@ impl ShaderSet {
             unsafe {
                 let data_ptr = device
                     .map_memory(
-                        uniform_buffer
-                            .buffers_memory(current_image),
+                        uniform_buffer.buffers_memory(current_image),
                         0,
                         buffer_size,
                         vk::MemoryMapFlags::empty(),
@@ -147,10 +154,7 @@ impl ShaderSet {
 
                 data_ptr.copy_from_nonoverlapping(updating_ubos.as_ptr(), updating_ubos.len());
 
-                device.unmap_memory(
-                    uniform_buffer
-                        .buffers_memory(current_image),
-                );
+                device.unmap_memory(uniform_buffer.buffers_memory(current_image));
             };
         } else {
             println!("Could not cast the uniform object to its specific implementation.");

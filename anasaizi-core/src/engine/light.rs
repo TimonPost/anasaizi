@@ -1,5 +1,5 @@
-use crate::reexports::nalgebra::Vector3;
+use crate::libs::nalgebra::Vector3;
 
 pub struct AmbientLight {
-    pub color: Vector3<f32>
+    pub color: Vector3<f32>,
 }

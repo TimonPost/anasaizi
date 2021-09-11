@@ -1,16 +1,13 @@
 use crate::{
     engine::{RenderContext, VulkanApplication},
-    math::Vertex,
-    reexports::{
+    libs::{
         imgui::{DrawData, __core::ops::RangeInclusive},
         nalgebra::{Matrix4, Vector3},
     },
+    math::Vertex,
     utils::any_as_u8_slice,
     vulkan,
-    vulkan::{
-        CommandPool, IndexBuffer, Instance, LogicalDevice, Queue,
-         VertexBuffer,
-    },
+    vulkan::{CommandPool, IndexBuffer, Instance, LogicalDevice, Queue, VertexBuffer},
 };
 use ash::{
     version::DeviceV1_0,
@@ -116,6 +113,14 @@ impl Transform {
     pub fn model_transform(&self) -> nalgebra::Matrix4<f32> {
         return self.rotate_transform * self.scale_transform * self.translate_transform;
     }
+}
+
+pub struct PBRMaps {
+    pub albedo: u32,
+    pub ao: u32,
+    pub metalness: u32,
+    pub normal: u32,
+    pub roughness: u32,
 }
 
 /// Mesh that holds the allocated vertex, index buffer and the model transformation.
@@ -263,7 +268,7 @@ impl GpuMeshMemory {
                             vertex.col[3] as f32 / 255.0,
                         ),
                         tex_coord: nalgebra::Vector2::new(vertex.uv[0], vertex.uv[1]),
-                        normal: Vector3::default()
+                        normal: Vector3::default(),
                     }
                 })
                 .collect::<Vec<Vertex>>();

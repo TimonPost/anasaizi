@@ -1,7 +1,9 @@
 use crate::{
-    engine::{image::Texture, BufferLayout, RenderContext, VulkanApplication},
-    reexports::imgui::__core::option::IterMut,
-    vulkan::{LogicalDevice, UniformBuffer,},
+    engine::{
+        image::Texture, BufferLayout, RenderContext, UniformObjectTemplate, VulkanApplication,
+    },
+    libs::imgui::__core::option::IterMut,
+    vulkan::{LogicalDevice, UniformBuffer},
 };
 use ash::{
     version::DeviceV1_0,
@@ -12,7 +14,6 @@ use ash::{
     },
 };
 use std::{collections::HashMap, mem, ops::Deref, ptr};
-use crate::engine::UniformObjectTemplate;
 
 /// Think of a single descriptor as a handle or pointer into a resource.
 /// That resource being a Buffer or a Image, and also holds other information, such as the size of the buffer, or the type of sampler if it’s for an image.
@@ -25,7 +26,7 @@ impl DescriptorSet {
     pub fn new(
         device: &ash::Device,
         descriptor_set: vk::DescriptorSet,
-        mut descriptor_write_sets: Vec<vk::WriteDescriptorSet>
+        mut descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
     ) -> DescriptorSet {
         let mut descriptor_write_sets = descriptor_write_sets;
         for descriptor_write_set in descriptor_write_sets.iter_mut() {
@@ -97,7 +98,7 @@ impl DescriptorPool {
         device: &ash::Device,
         descriptor_set_layout: vk::DescriptorSetLayout,
         descriptor_write_sets: Vec<vk::WriteDescriptorSet>,
-        uniform_buffers: &mut Vec<UniformBuffer>
+        uniform_buffers: &mut Vec<UniformBuffer>,
     ) -> Vec<DescriptorSet> {
         let mut layouts: Vec<vk::DescriptorSetLayout> = vec![];
 
@@ -124,10 +125,9 @@ impl DescriptorPool {
         let mut descriptor_set = vec![];
 
         for (i, descritptor_set) in descriptor_sets.iter().enumerate() {
-
             let mut descriptor_buffer_infos = HashMap::new();
 
-           let mut write_sets = vec![];
+            let mut write_sets = vec![];
             write_sets.extend_from_slice(&descriptor_write_sets);
 
             let mut uniform_buffer_index = 0;
@@ -136,13 +136,18 @@ impl DescriptorPool {
                     let uniform_buffer = &mut uniform_buffers[uniform_buffer_index];
                     let frame_uniform_buffer = uniform_buffer.buffers(i);
 
-                    descriptor_buffer_infos.insert((uniform_buffer_index), vk::DescriptorBufferInfo {
-                        buffer: frame_uniform_buffer,
-                        offset: 0,
-                        range: uniform_buffer.uniform_object_size as u64,
-                    });
+                    descriptor_buffer_infos.insert(
+                        (uniform_buffer_index),
+                        vk::DescriptorBufferInfo {
+                            buffer: frame_uniform_buffer,
+                            offset: 0,
+                            range: uniform_buffer.uniform_object_size as u64,
+                        },
+                    );
 
-                    let buffer_info = descriptor_buffer_infos.get(&(uniform_buffer_index)).unwrap();
+                    let buffer_info = descriptor_buffer_infos
+                        .get(&(uniform_buffer_index))
+                        .unwrap();
 
                     descriptor_write_set.p_buffer_info = buffer_info;
                     descriptor_write_set.descriptor_count = 1;
@@ -151,11 +156,7 @@ impl DescriptorPool {
                 }
             }
 
-            descriptor_set.push(DescriptorSet::new(
-                device,
-                *descritptor_set,
-                write_sets
-            ));
+            descriptor_set.push(DescriptorSet::new(device, *descritptor_set, write_sets));
         }
 
         descriptor_set
@@ -206,7 +207,7 @@ impl ShaderIOBuilder {
             descriptor_image_info: vec![],
             dynamic_descriptor_image_info: vec![],
             sampler: vec![],
-            uniform_buffers: vec![]
+            uniform_buffers: vec![],
         }
     }
 
@@ -340,9 +341,9 @@ impl ShaderIOBuilder {
         stage_flags: ShaderStageFlags,
         render_context: &RenderContext,
         frames: usize,
-        buffer_object_size: usize
+        buffer_object_size: usize,
     ) -> ShaderIOBuilder {
-        let buffer  = UniformBuffer::new(render_context, frames, buffer_object_size);
+        let buffer = UniformBuffer::new(render_context, frames, buffer_object_size);
         let descriptor_type = vk::DescriptorType::UNIFORM_BUFFER;
 
         let write_descriptor_set = vk::WriteDescriptorSet::builder()
@@ -376,11 +377,7 @@ impl ShaderIOBuilder {
         self
     }
 
-    pub fn build(
-        mut self,
-        render_context: &RenderContext,
-        frames: usize,
-    ) -> ShaderIo {
+    pub fn build(mut self, render_context: &RenderContext, frames: usize) -> ShaderIo {
         let layout_create_info = vk::DescriptorSetLayoutCreateInfo::builder()
             .bindings(&self.descriptor_layout_bindingen)
             .build();
@@ -402,7 +399,7 @@ impl ShaderIOBuilder {
             &render_context.device(),
             descriptor_set_layout,
             self.write_descriptor_sets,
-            &mut self.uniform_buffers
+            &mut self.uniform_buffers,
         );
 
         ShaderIo {

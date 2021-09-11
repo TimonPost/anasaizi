@@ -1,8 +1,6 @@
 use crate::{
     utils::any_as_u8_slice,
-    vulkan::{
-        CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass,
-    },
+    vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass},
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 use std::ops::Deref;
@@ -46,7 +44,7 @@ impl CommandBuffers {
         let clear_values = [
             vk::ClearValue {
                 color: vk::ClearColorValue {
-                    float32: [0.0, 0.0,0.0, 0.0],
+                    float32: [0.0, 0.0, 0.0, 0.0],
                 },
             },
             vk::ClearValue {
@@ -77,11 +75,7 @@ impl CommandBuffers {
     }
 
     /// Binds a pipeline to the current render session.
-    pub fn bind_pipeline(
-        &self,
-        device: &LogicalDevice,
-        pipeline: &Pipeline,
-    ) {
+    pub fn bind_pipeline(&self, device: &LogicalDevice, pipeline: &Pipeline) {
         let command_buffer = self.current();
 
         unsafe {

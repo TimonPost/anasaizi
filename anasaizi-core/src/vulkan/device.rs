@@ -7,9 +7,8 @@ use crate::{
     vulkan::{Instance, QueueFamilyProperties, SurfaceData, Version},
 };
 
-use crate::engine::Extensions;
+use crate::{engine::Extensions, vulkan::structures::QueueFamilyIndices};
 use std::{fmt, ops::Deref};
-use crate::vulkan::structures::QueueFamilyIndices;
 
 /// A Vulkan logical device.
 ///

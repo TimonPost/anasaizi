@@ -1,9 +1,8 @@
-use std::mem::size_of;
 use nalgebra::{Vector3, Vector4};
-use std::any::Any;
+use std::{any::Any, mem::size_of};
 
 /// Template for an uniform buffer object.
-pub trait UniformObjectTemplate : UniformObjectClone  {
+pub trait UniformObjectTemplate: UniformObjectClone {
     /// Returns the size of this buffer object.
     fn size(&self) -> usize;
     fn as_any(&self) -> &dyn std::any::Any;
@@ -15,8 +14,8 @@ pub trait UniformObjectClone {
 }
 
 impl<T> UniformObjectClone for T
-    where
-        T: 'static + UniformObjectTemplate + Clone+ Default,
+where
+    T: 'static + UniformObjectTemplate + Clone + Default,
 {
     fn clone_box(&self) -> Box<dyn UniformObjectTemplate> {
         Box::new(self.clone())
@@ -33,11 +32,6 @@ impl Clone for Box<dyn UniformObjectTemplate> {
 #[derive(Clone, Copy)]
 pub struct LightUniformObject {
     pub position: Vector4<f32>,
-
-    pub ambient: Vector4<f32>,
-    pub diffuse: Vector4<f32>,
-    pub specular: Vector4<f32>,
-
     pub view_pos: Vector4<f32>,
     pub light_color: Vector4<f32>,
 }
@@ -46,11 +40,8 @@ impl Default for LightUniformObject {
     fn default() -> Self {
         LightUniformObject {
             position: Vector4::default(),
-            light_color: Vector4::new(1.0,1.0,1.0, 1.0),
+            light_color: Vector4::new(1.0, 1.0, 1.0, 1.0),
             view_pos: Vector4::default(),
-            ambient : Vector4::new(0.1,0.1,0.1, 1.0),
-            specular: Vector4::new(1.0,1.0,1.0, 1.0),
-            diffuse: Vector4::new(1.0,1.0,1.0, 1.0),
         }
     }
 }
@@ -104,18 +95,22 @@ impl Default for MatrixUniformObject {
 
 /// Uniform buffer object.
 #[derive(Clone, Copy)]
-pub struct MaterialUniformObject{
-    pub shininess:f32,
+pub struct MaterialUniformObject {
+    pub shininess: f32,
     pub diffuse_texture_id: u32,
-    pub specular_texture_id: u32
+    pub specular_texture_id: u32,
 }
 
 impl MaterialUniformObject {
-    pub fn new(shininess: f32, diffuse_texture_id: u32, specular_texture_id: u32) -> MaterialUniformObject {
+    pub fn new(
+        shininess: f32,
+        diffuse_texture_id: u32,
+        specular_texture_id: u32,
+    ) -> MaterialUniformObject {
         MaterialUniformObject {
             shininess,
             diffuse_texture_id,
-            specular_texture_id
+            specular_texture_id,
         }
     }
 }

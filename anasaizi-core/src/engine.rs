@@ -5,13 +5,17 @@ pub use ecs::*;
 pub use extensions::Extensions;
 pub use keycode::Event;
 pub use layer::Layer;
+pub use push_constants::{
+    MeshPushConstants, ObjectIdPushConstants, PBRMeshPushConstants, UIPushConstants,
+};
 pub use renderer::{RenderContext, RenderLayer, RenderPipeline, FRAGMENT_SHADER, VERTEX_SHADER};
 pub use uniform_objects::{
-    MaterialUniformObject, LightUniformObject, MatrixUniformObject, UniformObjectTemplate, UniformObjectClone
+    LightUniformObject, MaterialUniformObject, MatrixUniformObject, UniformObjectClone,
+    UniformObjectTemplate,
 };
-pub use push_constants:: {ObjectIdPushConstants, UIPushConstants, MeshPushConstants};
 
 mod application;
+mod assets;
 mod buffer_layout;
 mod camera;
 mod ecs;
@@ -19,9 +23,8 @@ mod extensions;
 pub mod image;
 mod keycode;
 mod layer;
-mod renderer;
 mod light;
-mod uniform_objects;
 mod push_constants;
-
-
+mod renderer;
+pub mod resources;
+mod uniform_objects;

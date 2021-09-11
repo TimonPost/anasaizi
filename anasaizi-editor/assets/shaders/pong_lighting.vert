@@ -10,11 +10,16 @@ layout(location = 1) in vec4 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
-layout(location = 0) out vec4 outFragColor;
-layout(location = 1) out vec2 outFragTexCoord;
-layout(location = 2) out flat int outImgIndex;
-layout(location = 3) out vec3 outFragPos;
-layout(location = 4) out vec3 outNormal;
+layout(location = 0) out vec4 out_FragColor;
+layout(location = 1) out vec2 out_FragTexCoord;
+layout(location = 2) out vec3 out_FragPos;
+layout(location = 3) out vec3 out_Normal;
+
+layout(location = 4) out flat int out_albedoMap;
+layout(location = 5) out flat int out_normalMap;
+layout(location = 6) out flat int out_metallicMap;
+layout(location = 7) out flat int out_roughnessMap;
+layout(location = 8) out flat int out_aoMap;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
@@ -23,15 +28,24 @@ layout(binding = 0) uniform UniformBufferObject {
 
 layout(push_constant) uniform MeshPushConstants {
     mat4 model;
-    int imgIndex;
+    int albedoMap;
+    int normalMap;
+    int metallicMap;
+    int roughnessMap;
+    int aoMap;
 } push_constants;
 
 void main() {
     gl_Position = ubo.proj * ubo.view * push_constants.model * vec4(inPosition, 1.0);
-    outFragPos = vec3(push_constants.model * vec4(inPosition, 1.0));
 
-    outFragColor = inColor;
-    outFragTexCoord = inTexCoord;
-    outImgIndex = push_constants.imgIndex;
-    outNormal = mat3(transpose(inverse(push_constants.model))) * inNormal;
+    out_FragColor = inColor;
+    out_FragPos = vec3(push_constants.model * vec4(inPosition, 1.0));
+    out_FragTexCoord = inTexCoord;
+    out_Normal = mat3(transpose(inverse(push_constants.model))) * inNormal;
+
+    out_albedoMap = push_constants.albedoMap;
+    out_normalMap = push_constants.normalMap;
+    out_metallicMap = push_constants.metallicMap;
+    out_roughnessMap = push_constants.roughnessMap;
+    out_aoMap = push_constants.aoMap;
 }

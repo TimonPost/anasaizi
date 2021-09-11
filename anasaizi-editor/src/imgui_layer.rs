@@ -1,25 +1,19 @@
-
 use anasaizi_core::{
     engine::{
         image::Texture, Event, GpuMeshMemory, Layer, RenderContext, RenderLayer, Transform,
         VulkanApplication, World,
     },
-    reexports::{
+    libs::{
+        hecs::Entity,
         imgui::{
-            im_str, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, Slider,
-            TextureId,
+            im_str, Context, DrawData, FontConfig, FontGlyphRanges, FontSource, Slider, TextureId,
         },
         imgui_winit_support::{HiDpiMode, WinitPlatform},
         nalgebra::Vector3,
     },
-    vulkan::{Window},
+    vulkan::Window,
 };
-use hecs::Entity;
-use std::{
-    f32::consts::PI,
-    mem,
-    time::Duration,
-};
+use std::{f32::consts::PI, mem, time::Duration};
 use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 
 pub struct TransformInput {
@@ -40,8 +34,8 @@ pub struct LightingInput {
 
     pub ambient_strength: f32,
 
-    pub light_position: [f32;3],
-    pub light_color: [f32;3],
+    pub light_position: [f32; 3],
+    pub light_color: [f32; 3],
 }
 
 pub struct ImguiLayer {
@@ -92,8 +86,8 @@ impl ImguiLayer {
                 shininess: 32.0,
                 specular_strength: 0.5,
                 ambient_strength: 0.1,
-                light_position: [0.0,0.0,0.0],
-                light_color: [1.0,1.0,1.0],
+                light_position: [0.0, 0.0, 0.0],
+                light_color: [1.0, 1.0, 1.0],
             },
             selected_entity: None,
         }
@@ -235,24 +229,28 @@ impl Layer for ImguiLayer {
         unsafe {
             ui.text(im_str!("Light Properties"));
 
-            ui.input_float3(im_str!("Light Color"), &mut self.lighting_input.light_color).build();
-            ui.input_float3(im_str!("Light Position"), &mut self.lighting_input.light_position).build();
+            ui.input_float3(im_str!("Light Color"), &mut self.lighting_input.light_color)
+                .build();
+            ui.input_float3(
+                im_str!("Light Position"),
+                &mut self.lighting_input.light_position,
+            )
+            .build();
 
             Slider::new(im_str!("Ambient Strength"))
-                .range(0.001..= 1.0)
+                .range(0.001..=1.0)
                 .build(&ui, &mut self.lighting_input.ambient_strength);
 
             Slider::new(im_str!("Specular Strength"))
-                .range(0.001..= 1.0)
+                .range(0.001..=1.0)
                 .build(&ui, &mut self.lighting_input.specular_strength);
 
             Slider::new(im_str!("Shininess"))
-                .range(16.0..= 252.0)
+                .range(16.0..=252.0)
                 .build(&ui, &mut self.lighting_input.shininess);
 
             ui.separator();
         }
-
 
         if let Some(entity_id) = self.selected_entity {
             unsafe {
