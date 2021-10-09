@@ -7,7 +7,10 @@ use ash::{
     vk,
     vk::{PipelineLayout, PipelineVertexInputStateCreateInfo, PushConstantRange, ShaderStageFlags},
 };
-use std::{collections::HashMap, ops::Deref, ptr};
+use std::{collections::HashMap, ops::Deref, ptr, slice, mem};
+use crate::engine::gltf::GltfPBRShaderConstants;
+use crate::vulkan::ShaderBuilder;
+use std::mem::size_of;
 
 /// Think of a single descriptor as a handle or pointer into a resource.
 /// That resource being a Buffer or a Image, and also holds other information, such as the size of the buffer, or the type of sampler if it’s for an image.
@@ -183,6 +186,9 @@ pub struct ShaderIOBuilder {
     input_buffer_layout: Option<BufferLayout>,
     push_constant_ranges: Vec<vk::PushConstantRange>,
 
+    specialization_constants: Vec<vk::SpecializationMapEntry>,
+    specialization_constant_data: GltfPBRShaderConstants,
+
     descriptor_image_info: Vec<vk::DescriptorImageInfo>,
     dynamic_descriptor_image_info: Vec<vk::DescriptorImageInfo>,
     sampler: Vec<vk::DescriptorImageInfo>,
@@ -198,6 +204,9 @@ impl ShaderIOBuilder {
             push_constant_ranges: vec![],
 
             // used to keep pointer alive.
+            specialization_constants: vec![],
+            specialization_constant_data: Default::default(),
+
             descriptor_image_info: vec![],
             dynamic_descriptor_image_info: vec![],
             sampler: vec![],
@@ -287,6 +296,13 @@ impl ShaderIOBuilder {
         );
 
         self.descriptor_types.push(descriptor_type);
+
+        self
+    }
+
+    pub fn add_specialization_constants(mut self, constant_data: GltfPBRShaderConstants, entries: Vec<vk::SpecializationMapEntry>) -> ShaderIOBuilder {
+        self.specialization_constants = entries;
+        self.specialization_constant_data = constant_data;
 
         self
     }
@@ -404,6 +420,8 @@ impl ShaderIOBuilder {
             descriptor_set_layout,
             input_buffer_layout: self.input_buffer_layout.unwrap(),
             push_constant_ranges: self.push_constant_ranges,
+            specialization_constants: self.specialization_constants,
+            specialization_constant_data: self.specialization_constant_data
         }
     }
 }
@@ -416,6 +434,8 @@ pub struct ShaderIo {
     pub input_buffer_layout: BufferLayout,
     pub push_constant_ranges: Vec<vk::PushConstantRange>,
     pub uniform_buffer_objects: Vec<Box<dyn UniformObjectTemplate>>,
+    pub specialization_constants: Vec<vk::SpecializationMapEntry>,
+    pub specialization_constant_data: GltfPBRShaderConstants
 }
 
 impl ShaderIo {
@@ -425,6 +445,14 @@ impl ShaderIo {
             buffer.destroy(device);
         }
         device.destroy_descriptor_set_layout(self.descriptor_set_layout, None);
+    }
+
+    pub fn specialization_data_ref(&self) -> Vec<u8> {
+        let a = bincode::serialize(&self.specialization_constant_data).unwrap();
+
+        println!("{:?},{}:{}", a, a.len(), size_of::<GltfPBRShaderConstants>());
+
+        return a;
     }
 
     pub fn create_pipeline_layout(&self, device: &LogicalDevice) -> PipelineLayout {

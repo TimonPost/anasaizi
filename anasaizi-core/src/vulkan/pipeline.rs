@@ -1,6 +1,7 @@
 use crate::vulkan::{LogicalDevice, RenderPass, ShaderSet, SwapChain};
 use ash::{version::DeviceV1_0, vk, vk::PipelineLayout};
 use std::{ffi::CString, ops::Deref, ptr};
+use ash::vk::SpecializationInfo;
 
 /// A Vulkan Pipeline.
 ///
@@ -40,18 +41,37 @@ impl Pipeline {
     ) -> (ash::vk::Pipeline, PipelineLayout) {
         let main_function_name = CString::new("main").unwrap(); // the beginning function name in shader code.
 
-        let shader_stages = [
+        let data = shader_set.io.specialization_data_ref();
+        let entries = &shader_set.io.specialization_constants;
+
+        let specialisation_info = if shader_set.io.specialization_constants.len() != 0
+        {
+            vk::SpecializationInfo::builder()
+                .map_entries(entries)
+                .data(&data)
+                .build()
+        } else {
+            unsafe { std::mem::zeroed() }
+        };
+
+
+        let mut shader_stages = [
             vk::PipelineShaderStageCreateInfo::builder()
                 .module(shader_set.vertex_shader())
                 .name(&main_function_name)
                 .stage(vk::ShaderStageFlags::VERTEX)
+                .specialization_info(&specialisation_info)
                 .build(),
             vk::PipelineShaderStageCreateInfo::builder()
                 .module(shader_set.fragment_shader())
                 .name(&main_function_name)
                 .stage(vk::ShaderStageFlags::FRAGMENT)
-                .build(),
+                .specialization_info(&specialisation_info)
+                .build()
         ];
+
+        println!("data: {:?}, info: {:?}", data, shader_stages[0].p_specialization_info);
+
 
         let pipeline_layout = shader_set.io.create_pipeline_layout(device);
         let vertex_input_info = shader_set.io.vertex_input_info();
@@ -78,6 +98,11 @@ impl Pipeline {
         let viewport_state_create_info = vk::PipelineViewportStateCreateInfo::builder()
             .scissors(&scissors)
             .viewports(&viewports)
+            .build();
+
+        let rasterization_statue_create_info = vk::PipelineRasterizationStateCreateInfo::builder()
+            .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
+            .line_width(1.0)
             .build();
 
         let rasterization_statue_create_info = vk::PipelineRasterizationStateCreateInfo {

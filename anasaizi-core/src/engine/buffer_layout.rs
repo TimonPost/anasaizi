@@ -39,6 +39,29 @@ impl BufferLayout {
         }
     }
 
+    /// Adds a bool component to the layout.
+    pub fn add_bool(mut self, layout_id: u8) -> Self {
+        let stride = size_of::<i32>();
+        self.layouts.push(BufferLayoutElement::new(
+            layout_id,
+            stride,
+            vk::Format::R32_SINT,
+        ));
+        self
+    }
+
+    /// Adds a bool component to the layout.
+    pub fn add_int(mut self, layout_id: u8) -> Self {
+        let stride = size_of::<i32>();
+        self.layouts.push(BufferLayoutElement::new(
+            layout_id,
+            stride,
+            vk::Format::R32_SINT,
+        ));
+        self
+    }
+
+
     /// Adds a 2 component float vector to the layout.
     pub fn add_float_vec2(mut self, layout_id: u8) -> Self {
         let stride = size_of::<Vector2<f32>>();
@@ -80,6 +103,24 @@ impl BufferLayout {
             }
         }
         None
+    }
+
+    pub fn build_specialisation_constants(&mut self) -> Vec<vk::SpecializationMapEntry> {
+        let mut specialisation_constants = vec![];
+
+        let mut offset: usize = 0;
+
+        for layout in self.layouts.iter() {
+            specialisation_constants.push(vk::SpecializationMapEntry {
+                constant_id: layout.layout_id as u32,
+                offset: offset as u32,
+                size: layout.stride
+            });
+
+            offset += layout.stride;
+        }
+
+        specialisation_constants
     }
 
     /// Returns the binding descriptions that describe how a single buffer element is laid out in the buffer.

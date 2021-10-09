@@ -14,7 +14,7 @@ pub use object_picker::ObjectPicker;
 pub use pipeline::Pipeline;
 pub use queue::{Queue, QueueFamilyProperties};
 pub use render_pass::{RenderPass, RenderPassBuilder, SubpassDescriptor};
-pub use shader::{ShaderBuilder, ShaderSet};
+pub use shader::{ShaderBuilder, ShaderSet, ShaderFlags};
 
 pub use surface::SurfaceData;
 pub use swapchain::{SwapChain, SwapChainSupportDetails};

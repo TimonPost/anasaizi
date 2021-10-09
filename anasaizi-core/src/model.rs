@@ -1,10 +1,11 @@
-mod mesh;
-mod object;
-
-use crate::math::PosOnlyVertex;
 use nalgebra::Vector3;
 
 pub use object::Object;
+
+use crate::math::PosOnlyVertex;
+
+mod mesh;
+mod object;
 
 pub fn square_vertices() -> [PosOnlyVertex; 6] {
     return [

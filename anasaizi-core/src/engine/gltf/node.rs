@@ -1,45 +1,51 @@
-use nalgebra::Quaternion;
-use gltf::json::Path;
+use crate::math::{Matrix4, Vector3, Quaternion};
+use crate::engine::gltf::root::Root;
+use crate::engine::gltf::mappers::{ImportData, camara_from_gltf};
+use crate::engine::{GpuMeshMemory, Camera, Transform, RenderContext};
+use std::rc::Rc;
+use std::path::Path;
+use crate::engine::gltf::mesh::Mesh;
 
 pub struct Node {
     pub index: usize, // glTF index
     pub children: Vec<usize>,
+
     pub mesh: Option<Rc<Mesh>>,
-    pub rotation: Quaternion,
-    pub scale: Vector3,
-    pub translation: Vector3,
-    // TODO: weights
-    // weights_id: usize,
-    pub camera: Option<Camera>,
+    pub transform: Transform,
+
     pub name: Option<String>,
 
-    pub final_transform: Matrix4, // including parent transforms
-    pub bounds: Aabb3,
+    pub parent_transform: Matrix4
 }
-
 
 impl Node {
     pub fn from_gltf(
+        render_context: &mut RenderContext,
         g_node: &gltf::Node<'_>,
         root: &mut Root,
         imp: &ImportData,
         base_path: &Path
     ) -> Node {
         let (trans, rot, scale) = g_node.transform().decomposed();
-        let r = rot;
-        let rotation = Quaternion::new(r[3], r[0], r[1], r[2]); // NOTE: different element order!
 
-        let mut mesh = None;
+        let transform = Transform::new(1.0)
+            .with_rotation(Vector3::new(rot[0], rot[1], rot[2]))
+            .with_translate(Vector3::new(trans[0], trans[1], trans[2]))
+            .with_scale(Vector3::new(scale[0], scale[1], scale[2]));
+
+        let mut mesh: Option<Rc<Mesh>> = None;
+
         if let Some(g_mesh) = g_node.mesh() {
-            if let Some(existing_mesh) = root.meshes.iter().find(|mesh| (***mesh).index == g_mesh.index()) {
-                mesh = Some(Rc::clone(existing_mesh));
+            if let Some(existing_mesh) = root.meshes.iter().find(|mesh| (**mesh).index == g_mesh.index()) {
+                mesh = Some(existing_mesh.clone());
             }
 
             if mesh.is_none() { // not using else due to borrow-checking madness
-                mesh = Some(Rc::new(Mesh::from_gltf(&g_mesh, root, imp, base_path)));
-                root.meshes.push(mesh.clone().unwrap());
+                mesh = Some(Rc::new(Mesh::from_gltf(render_context, &g_mesh, root, imp, base_path, transform)));
+                root.meshes.push(mesh.as_ref().unwrap().clone());
             }
         }
+
         let children: Vec<_> = g_node.children()
             .map(|g_node| g_node.index())
             .collect();
@@ -48,45 +54,22 @@ impl Node {
             index: g_node.index(),
             children,
             mesh,
-            rotation,
-            scale: scale.into(),
-            translation: trans.into(),
-            camera: g_node.camera().as_ref().map(Camera::from_gltf),
+
+            transform,
+
             name: g_node.name().map(|s| s.into()),
 
-            final_transform: Matrix4::identity(),
-
-            bounds: Aabb3::zero(),
+            parent_transform: Matrix4::identity()
         }
     }
 
     pub fn update_transform(&mut self, root: &mut Root, parent_transform: &Matrix4) {
-        self.final_transform = *parent_transform;
+        self.parent_transform = *parent_transform;
 
-        // TODO: cache local tranform when adding animations?
-        self.final_transform = self.final_transform *
-            Matrix4::from_translation(self.translation) *
-            Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z) *
-            Matrix4::from(self.rotation);
-
+        let transform = self.parent_transform * self.transform.model_transform();
         for node_id in &self.children {
             let node = root.unsafe_get_node_mut(*node_id);
-            node.update_transform(root, &self.final_transform);
-        }
-    }
-
-    /// Should be called after update_transforms
-    pub fn update_bounds(&mut self, root: &mut Root) {
-        self.bounds = Aabb3::zero();
-        if let Some(ref mesh) = self.mesh {
-            self.bounds = mesh.bounds
-                .transform(&self.final_transform);
-        }
-
-        for node_id in &self.children {
-            let node = root.unsafe_get_node_mut(*node_id);
-            node.update_bounds(root);
-            self.bounds = self.bounds.union(&node.bounds);
+            node.update_transform(root, &transform);
         }
     }
 }

@@ -7,6 +7,7 @@ use core::ops::Deref;
 use std::{mem, mem::size_of};
 
 /// An allocated vulkan buffer containing indices.
+#[derive(Clone)]
 pub struct IndexBuffer {
     buffer: vk::Buffer,
     memory: vk::DeviceMemory,

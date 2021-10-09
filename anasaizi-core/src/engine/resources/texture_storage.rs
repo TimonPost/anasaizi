@@ -1,12 +1,13 @@
 use crate::engine::{image::Texture, RenderContext};
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct StoredTexture {
-    data: Vec<u8>,
-    width: u32,
-    height: u32,
-    path: &'static str,
-    id: String,
+    pub data: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub path: String,
+    pub id: String,
     texture: Option<Texture>,
 }
 
@@ -15,7 +16,7 @@ impl StoredTexture {
         data: Vec<u8>,
         width: u32,
         height: u32,
-        path: &'static str,
+        path: String,
         id: String,
         texture: Option<Texture>,
     ) -> StoredTexture {
@@ -138,7 +139,7 @@ impl TextureStorage {
 pub struct TextureId(String, String);
 
 impl TextureId {
-    pub fn new(id: &'static str) -> TextureId {
+    pub fn new(id: &str) -> TextureId {
         let split = id.split(".").collect::<Vec<&str>>();
         TextureId(split[0].to_string(), split[1].to_string())
     }

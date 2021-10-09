@@ -29,9 +29,12 @@ use ash::{version::DeviceV1_0, vk};
 
 use std::{mem, mem::size_of, ptr};
 use winit::event::{ElementState, MouseButton, VirtualKeyCode};
+use crate::engine::GlTFPBRMeshPushConstants;
+use std::ops::Deref;
+use ash::util::Align;
 
-pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\frag.spv";
-pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vert.spv";
+pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\fragment.frag.spv";
+pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vertex.vert.spv";
 const MAX_FRAMES_IN_FLIGHT: usize = 3;
 
 pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
@@ -479,7 +482,7 @@ impl RenderLayer {
             self.swapchain.extent.height as f32,
         );
 
-        for pipeline in self.pipelines.iter() {
+        for pipeline in self.pipelines.iter_mut() {
             render_pipeline.bind_pipeline(pipeline, &self.command_buffers);
 
             for (id, (mesh, transform, pipeline_id)) in self
@@ -499,9 +502,30 @@ impl RenderLayer {
                             metallic_map: maps.metalness,
                             roughness_map: maps.roughness,
                             ao_map: maps.ao,
+                            displacement_map: maps.displacement
                         };
 
                         render_pipeline.push_mesh_constants(push_constants);
+                    } else if let Ok(maps) = self.world.get::<GlTFPBRMeshPushConstants>(id) {
+                        // Push the model matrix using push constants.
+                        let mut push = maps.deref().clone();
+                        push.model_matrix = transform.model_transform();
+
+                        unsafe {
+                            // pipeline.shader.update_uniform::<GlTFPBRMeshPushConstants>(
+                            //     &*render_pipeline.device,
+                            //     self.current_frame,
+                            //     2,
+                            //     &move |obj| {
+                            //         *obj = ;
+                            //         println!("n: {} o: {} e: {} m: {}", maps.normal_texture==obj.normal_texture, maps.occlusion_texture==obj.occlusion_texture, maps.emissive_texture==obj.emissive_texture, maps.metallic_roughness_texture == obj.metallic_roughness_texture);
+                            //     },
+                            // );
+
+                            // Push the model matrix using push constants.
+                            let transform = push.clone();
+                            render_pipeline.push_mesh_constants(transform);
+                        }
                     } else {
                         // Push the model matrix using push constants.
                         let transform = MeshPushConstants {
@@ -579,6 +603,7 @@ impl RenderLayer {
         application: &VulkanApplication,
         render_context: &RenderContext,
     ) {
+
         unsafe {
             application
                 .device
@@ -614,6 +639,8 @@ impl RenderLayer {
                 pipeline.refresh(&application.device, &self.swapchain, &self.render_pass);
             }
         }
+
+        self.camera.update_screen_resize(16.0 / 9.0,(self.swapchain.extent.width / self.swapchain.extent.height) as f32);
 
         self.current_frame = 0;
     }
@@ -719,8 +746,8 @@ impl RenderLayer {
 
         let builder = ShaderBuilder::builder(
             application,
-            "assets\\shaders\\build\\grid_vert.spv",
-            "assets\\shaders\\build\\grid_frag.spv",
+            "assets\\shaders\\build\\grid_vert.vert.spv",
+            "assets\\shaders\\build\\grid_frag.frag.spv",
             self.swapchain.images.len(),
         )
         .with_descriptors(descriptors);

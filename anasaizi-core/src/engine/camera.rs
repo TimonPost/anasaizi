@@ -70,6 +70,12 @@ impl Camera {
         }
     }
 
+    pub fn update_screen_resize(&mut self, aspect_ratio: f32, fov: f32) {
+        self.aspect_ratio = aspect_ratio;
+        self.field_of_view = fov;
+        self.mark_dirty();
+    }
+
     pub fn position(&self) -> Vector3<f32> {
         Vector3::new(self.position.x, self.position.y, self.position.z)
     }

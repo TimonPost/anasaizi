@@ -1,28 +1,17 @@
-use gltf::Gltf;
+mod mappers;
+mod primitive;
+mod root;
+mod node;
+mod scene;
+mod loader;
+mod mesh;
+mod material;
+mod shader_constants;
 
-pub struct GltfObject {
-
-}
-
-impl GltfObject {
-    pub fn new(path: &str) -> GltfObject {
-        let gltf = Gltf::open(path)?;
-        for scene in gltf.scenes() {
-            for node in scene.nodes() {
-                println!(
-                    "Node #{} has {} children",
-                    node.index(),
-                    node.children().count(),
-                );
-            }
-        }
-
-        let (document, buffers, images) = gltf::import("examples/Box.gltf")?;
-        document.meshes()[0]
-
-
-        GltfObject {
-
-        }
-    }
-}
+pub use loader::load_gltf_scene;
+pub use scene::Scene;
+pub use node::Node;
+pub use root::Root;
+pub use mesh::Mesh;
+pub use primitive::Primitive;
+pub use shader_constants::GltfPBRShaderConstants;

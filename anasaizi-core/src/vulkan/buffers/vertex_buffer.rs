@@ -7,6 +7,7 @@ use core::ops::Deref;
 use std::{mem, mem::size_of};
 
 /// An allocated vulkan buffer containing vertices.
+#[derive(Clone)]
 pub struct VertexBuffer {
     buffer: vk::Buffer,
     buffer_memory: vk::DeviceMemory,

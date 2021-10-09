@@ -36,6 +36,43 @@ pub struct LightUniformObject {
     pub light_color: Vector4<f32>,
 }
 
+#[derive(Clone, Copy)]
+pub struct LightUniformObjectGltf {
+    pub position: Vector4<f32>,
+    pub view_pos: Vector4<f32>,
+    pub light_color: Vector4<f32>,
+    pub ambient_color: Vector4<f32>,
+    pub light_direction: Vector4<f32>,
+    pub ambient_light_intensity: f32,
+}
+
+impl Default for LightUniformObjectGltf {
+    fn default() -> Self {
+        LightUniformObjectGltf {
+            position: Vector4::default(),
+            light_color: Vector4::new(1.0, 1.0, 1.0, 1.0),
+            ambient_color: Default::default(),
+            ambient_light_intensity: Default::default(),
+            view_pos: Vector4::default(),
+            light_direction: Default::default()
+        }
+    }
+}
+
+impl UniformObjectTemplate for LightUniformObjectGltf {
+    fn size(&self) -> usize {
+        size_of::<LightUniformObjectGltf>()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
 impl Default for LightUniformObject {
     fn default() -> Self {
         LightUniformObject {

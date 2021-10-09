@@ -13,7 +13,7 @@ use std::ptr;
 
 pub struct RenderPipeline {
     active_command_buffer: *const CommandBuffer,
-    device: *const LogicalDevice,
+    pub device: *const LogicalDevice,
     pub active_mesh: *const GpuMeshMemory,
     active_pipeline: *const Pipeline,
 

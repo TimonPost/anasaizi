@@ -1,5 +1,5 @@
 use crate::engine::{
-    resources::{load_image, TextureStorage},
+    resources::{load_image_path, TextureStorage},
     RenderContext,
 };
 use std::sync::{Arc, Mutex};
@@ -13,17 +13,17 @@ pub struct TextureLoader {
 }
 
 impl TextureLoader {
-    pub fn new(render_context: RenderContext) -> TextureLoader {
+    pub fn new(render_context: Arc<RenderContext>) -> TextureLoader {
         TextureLoader {
             storage: Arc::new(Mutex::new(TextureStorage::new())),
             load_tasks: Vec::new(),
-            render_context: Arc::new(render_context),
+            render_context,
             debug: false,
         }
     }
 
-    pub fn load(&mut self, path: &'static str, id: &'static str, debug: bool) {
-        let task = tokio::spawn(load_image(
+    pub fn load_path(&mut self, path: &'static str, id: &'static str, debug: bool) {
+        let task = tokio::spawn(load_image_path(
             path,
             id,
             self.storage.clone(),

@@ -19,6 +19,7 @@ pub struct Transform {
 
     pub unit_scale: f32,
     rotation_factor: Vector3<f32>,
+    pub parent: Matrix4<f32>
 }
 
 impl Transform {
@@ -32,14 +33,26 @@ impl Transform {
             translate_transform: identity,
             rotation_factor: Vector3::default(),
             unit_scale,
+            parent: identity
         }
     }
+
 
     pub fn unit_scale(&self) -> RangeInclusive<f32> {
         0.0..=self.unit_scale
     }
 
-    pub fn with_scale(mut self, factor: f32) -> Transform {
+    pub fn with_parent_transform(mut self, transform: Matrix4<f32>) -> Transform {
+        self.parent = transform;
+        self
+    }
+
+    pub fn with_const_scale(mut self, factor: f32) -> Transform {
+        self.with_scale(Vector3::new(factor,factor, factor));
+        self
+    }
+
+    pub fn with_scale(mut self, factor: Vector3<f32>) -> Transform {
         self.scale(factor);
         self
     }
@@ -81,9 +94,9 @@ impl Transform {
         self.translate_transform = translate_matrix;
     }
 
-    pub fn scale(&mut self, factor: f32) {
+    pub fn scale(&mut self, factor: Vector3<f32>) {
         let scale_matrix = Matrix4::new(
-            factor, 0.0, 0.0, 0.0, 0.0, factor, 0.0, 0.0, 0.0, 0.0, factor, 0.0, 0.0, 0.0, 0.0, 1.0,
+            factor[0], 0.0, 0.0, 0.0, 0.0, factor[1], 0.0, 0.0, 0.0, 0.0, factor[2], 0.0, 0.0, 0.0, 0.0, 1.0,
         );
 
         self.scale_transform = scale_matrix;
@@ -106,19 +119,21 @@ impl Transform {
     }
 
     pub fn model_transform(&self) -> nalgebra::Matrix4<f32> {
-        return self.rotate_transform * self.scale_transform * self.translate_transform;
+        return self.parent * self.rotate_transform * self.scale_transform * self.translate_transform;
     }
 }
 
 pub struct PBRMaps {
-    pub albedo: u32,
-    pub ao: u32,
-    pub metalness: u32,
-    pub normal: u32,
-    pub roughness: u32,
+    pub albedo: i32,
+    pub ao: i32,
+    pub metalness: i32,
+    pub normal: i32,
+    pub roughness: i32,
+    pub displacement: i32,
 }
 
 /// Mesh that holds the allocated vertex, index buffer and the model transformation.
+#[derive(Clone)]
 pub struct GpuMeshMemory {
     vertex_buffer: VertexBuffer,
     index_buffer: IndexBuffer,
@@ -140,9 +155,9 @@ impl GpuMeshMemory {
         }
     }
 
-    pub fn from_raw(
+    pub fn from_raw<U>(
         render_context: &RenderContext,
-        vertices: Vec<Vertex>,
+        vertices: Vec<U>,
         indices: Vec<u32>,
         texture_id: i32,
     ) -> GpuMeshMemory {
@@ -235,7 +250,7 @@ impl GpuMeshMemory {
             device.cmd_push_constants(
                 *command_buffer,
                 pipeline.layout(),
-                vk::ShaderStageFlags::VERTEX,
+                pipeline.shader.io.push_constant_ranges[0].stage_flags,
                 0,
                 &push_constants,
             );
@@ -264,6 +279,8 @@ impl GpuMeshMemory {
                         ),
                         tex_coord: nalgebra::Vector2::new(vertex.uv[0], vertex.uv[1]),
                         normal: Vector3::default(),
+                        tangent: Vector3::default(),
+                        bitangent: Vector3::default()
                     }
                 })
                 .collect::<Vec<Vertex>>();
