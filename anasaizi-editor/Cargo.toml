@@ -3,6 +3,7 @@ name = "Anasazi"
 version = "0.1.0"
 authors = ["Timon <timonpost@hotmail.nl>"]
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 anasaizi-core ={path = "../anasaizi-core"}

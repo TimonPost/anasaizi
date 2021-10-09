@@ -268,7 +268,7 @@ impl Layer for ImguiLayer {
                     self.transform_input.object_rotate_y,
                     self.transform_input.object_rotate_z,
                 ));
-                transform.scale(self.transform_input.object_scale as f32);
+                transform.with_const_scale(self.transform_input.object_scale as f32);
 
                 unsafe {
                     ui.columns(3, im_str!("Translate"), true);
