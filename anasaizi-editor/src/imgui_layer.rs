@@ -94,12 +94,6 @@ impl ImguiLayer {
     }
 }
 
-impl ImguiLayer {
-    pub fn window(&mut self) -> &mut winit::window::Window {
-        unsafe { &mut (*self.window).window }
-    }
-}
-
 impl Layer for ImguiLayer {
     fn initialize(&mut self, window: &Window, render_context: &RenderContext) {
         self.imgui_context.set_ini_filename(None);
@@ -226,7 +220,6 @@ impl Layer for ImguiLayer {
 
         let ui = self.imgui_context.frame();
 
-        unsafe {
             ui.text(im_str!("Light Properties"));
 
             ui.input_float3(im_str!("Light Color"), &mut self.lighting_input.light_color)
@@ -250,10 +243,8 @@ impl Layer for ImguiLayer {
                 .build(&ui, &mut self.lighting_input.shininess);
 
             ui.separator();
-        }
 
         if let Some(entity_id) = self.selected_entity {
-            unsafe {
                 ui.spacing();
                 ui.text(im_str!("Selected Entity"));
                 let mut transform = (*self.world).get_mut::<Transform>(entity_id).unwrap();
@@ -270,7 +261,6 @@ impl Layer for ImguiLayer {
                 ));
                 transform.with_const_scale(self.transform_input.object_scale as f32);
 
-                unsafe {
                     ui.columns(3, im_str!("Translate"), true);
 
                     Slider::new(im_str!("X##10"))
@@ -305,8 +295,6 @@ impl Layer for ImguiLayer {
                     Slider::new(im_str!("Scale"))
                         .range(transform.unit_scale())
                         .build(&ui, &mut self.transform_input.object_scale);
-                }
-            }
         }
 
         self.platform

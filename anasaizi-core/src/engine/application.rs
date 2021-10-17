@@ -1,24 +1,26 @@
 use crate::{
     engine::Extensions,
     libs::imgui::__core::fmt::Formatter,
-    vulkan::{structures::ValidationInfo, Application, Instance, LogicalDevice, Version, Window},
+    vulkan::{
+        structures::VkValidationInfo, Version, VkApplication, VkInstance, VkLogicalDevice, Window,
+    },
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::extensions::{ext::DebugUtils, khr};
 use std::{fmt, fmt::Debug};
 use winit::event_loop::EventLoop;
 
-pub const VALIDATION: ValidationInfo = ValidationInfo {
+pub const VALIDATION: VkValidationInfo = VkValidationInfo {
     is_enable: true,
     required_validation_layers: ["VK_LAYER_KHRONOS_validation"],
 };
 
 /// Vulkan application with winit window, vulkan data such as instance, device and application.
 pub struct VulkanApplication {
-    pub application: Application,
-    pub instance: Instance,
+    pub application: VkApplication,
+    pub instance: VkInstance,
     pub window: Window,
-    pub device: LogicalDevice,
+    pub device: VkLogicalDevice,
 }
 
 impl VulkanApplication {
@@ -39,7 +41,7 @@ impl VulkanApplication {
         let device_extensions =
             Extensions::new(vec![khr::Swapchain::name().to_str().unwrap().to_string()]);
 
-        let application = Application::new(
+        let application = VkApplication::new(
             name,
             name,
             Version::new(0, 0, 1),
@@ -49,11 +51,11 @@ impl VulkanApplication {
             WINDOW_HEIGHT,
         );
 
-        let instance = Instance::new(VALIDATION, instance_extensions, &application);
+        let instance = VkInstance::new(VALIDATION, instance_extensions, &application);
 
         let window = Window::new("Engine", WINDOW_WIDTH, WINDOW_HEIGHT, &instance, event_loop);
 
-        let device = LogicalDevice::new(&instance, device_extensions, window.surface_data());
+        let device = VkLogicalDevice::new(&instance, device_extensions, window.surface_data());
 
         VulkanApplication {
             application,

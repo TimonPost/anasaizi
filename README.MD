@@ -14,6 +14,6 @@ Todo Features:
 - Make pipeline more generic.
 
 TODO:
-- Maak uniform buffer update werkend.
+- haal `update-push constants`, `get_vertices_and_indices` weg uit GpuMeshMemory 
 
  

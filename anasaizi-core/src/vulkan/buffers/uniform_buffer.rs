@@ -1,6 +1,6 @@
 use crate::{
     engine::RenderContext,
-    vulkan::{buffers::buffer::create_allocate_vk_buffer, LogicalDevice},
+    vulkan::{buffers::buffer::create_allocate_vk_buffer, VkLogicalDevice},
 };
 use ash::{version::DeviceV1_0, vk};
 
@@ -42,7 +42,7 @@ impl UniformBuffer {
         }
     }
 
-    pub fn destroy(&self, device: &LogicalDevice) {
+    pub fn destroy(&self, device: &VkLogicalDevice) {
         for i in 0..self.frames_count {
             unsafe {
                 device.destroy_buffer(self.buffer[i], None);

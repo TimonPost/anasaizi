@@ -36,6 +36,10 @@ impl Object {
 
             let total_vertices_count = mesh.positions.len() / 3;
             for i in 0..total_vertices_count {
+                assert!(mesh.positions.get(i * 3 + 2).is_some());
+                assert!(mesh.texcoords.get(i * 2 + 1).is_some());
+                assert!(mesh.normals.get(i * 3 + 2).is_some());
+
                 let vertex = Vertex {
                     pos: Vector3::new(
                         mesh.positions[i * 3],
@@ -50,17 +54,17 @@ impl Object {
                         mesh.normals[i * 3 + 2],
                     ),
                     tangent: Vector3::zeros(),
-                    bitangent: Vector3::zeros()
+                    bitangent: Vector3::zeros(),
                 };
                 vertices.push(vertex);
             }
 
             let mut i = 0;
             while i < indices.len() {
-                assert!(i+3 <= indices.len());
-                let mut a = vertices[mesh.indices[i*3] as usize];
-                let mut b = vertices[mesh.indices[i*3+1]as usize];
-                let mut c = vertices[mesh.indices[i*3+2]as usize];
+                assert!(i + 3 <= indices.len());
+                let a = vertices[mesh.indices[i * 3] as usize];
+                let b = vertices[mesh.indices[i * 3 + 1] as usize];
+                let c = vertices[mesh.indices[i * 3 + 2] as usize];
 
                 let edge1 = b.pos - a.pos;
                 let edge2 = c.pos - a.pos;
@@ -74,21 +78,21 @@ impl Object {
                 tangent1.x = f * (delta_uv2.y * edge1.x - delta_uv1.y * edge2.x);
                 tangent1.y = f * (delta_uv2.y * edge1.y - delta_uv1.y * edge2.y);
                 tangent1.z = f * (delta_uv2.y * edge1.z - delta_uv1.y * edge2.z);
-                tangent1.normalize();
+                tangent1 = tangent1.normalize();
 
                 let mut bitangent1 = Vector3::zeros();
                 bitangent1.x = f * (-delta_uv2.x * edge1.x + delta_uv1.x * edge2.x);
                 bitangent1.y = f * (-delta_uv2.x * edge1.y + delta_uv1.x * edge2.y);
                 bitangent1.z = f * (-delta_uv2.x * edge1.z + delta_uv1.x * edge2.z);
-                bitangent1.normalize();
+                bitangent1 = bitangent1.normalize();
 
-                vertices[mesh.indices[i*3]as usize].tangent = tangent1;
-                vertices[mesh.indices[i*3+1]as usize].tangent = tangent1;
-                vertices[mesh.indices[i*3+2]as usize].tangent = tangent1;
+                vertices[mesh.indices[i * 3] as usize].tangent = tangent1;
+                vertices[mesh.indices[i * 3 + 1] as usize].tangent = tangent1;
+                vertices[mesh.indices[i * 3 + 2] as usize].tangent = tangent1;
 
-                vertices[mesh.indices[i*3]as usize].bitangent = bitangent1;
-                vertices[mesh.indices[i*3+1]as usize].bitangent = bitangent1;
-                vertices[mesh.indices[i*3+2]as usize].bitangent = bitangent1;
+                vertices[mesh.indices[i * 3] as usize].bitangent = bitangent1;
+                vertices[mesh.indices[i * 3 + 1] as usize].bitangent = bitangent1;
+                vertices[mesh.indices[i * 3 + 2] as usize].bitangent = bitangent1;
 
                 i += 3;
             }

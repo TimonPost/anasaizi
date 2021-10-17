@@ -1,31 +1,31 @@
-use crate::vulkan::LogicalDevice;
+use crate::vulkan::VkLogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::ops::Deref;
 
-pub struct SubpassDescriptor {
+pub struct VkSubpassDescriptor {
     color: (bool, usize),
     depth: (bool, usize),
 }
 
-impl SubpassDescriptor {
-    pub fn new() -> SubpassDescriptor {
-        SubpassDescriptor {
+impl VkSubpassDescriptor {
+    pub fn new() -> VkSubpassDescriptor {
+        VkSubpassDescriptor {
             color: (false, usize::MAX),
             depth: (false, usize::MAX),
         }
     }
-    pub fn with_color(mut self, attachment_index: usize) -> SubpassDescriptor {
+    pub fn with_color(mut self, attachment_index: usize) -> VkSubpassDescriptor {
         self.color = (true, attachment_index);
         self
     }
 
-    pub fn with_depth(mut self, attachment_index: usize) -> SubpassDescriptor {
+    pub fn with_depth(mut self, attachment_index: usize) -> VkSubpassDescriptor {
         self.depth = (true, attachment_index);
         self
     }
 }
 
-pub struct RenderPassBuilder {
+pub struct VkRenderPassBuilder {
     attachments: Vec<vk::AttachmentDescription>,
     color_attachment_refs: Vec<vk::AttachmentReference>,
     depth_attachment_refs: vk::AttachmentReference,
@@ -33,9 +33,9 @@ pub struct RenderPassBuilder {
     dependencies: Vec<vk::SubpassDependency>,
 }
 
-impl RenderPassBuilder {
-    pub fn builder() -> RenderPassBuilder {
-        RenderPassBuilder {
+impl VkRenderPassBuilder {
+    pub fn builder() -> VkRenderPassBuilder {
+        VkRenderPassBuilder {
             attachments: Vec::new(),
             subpasses: Vec::new(),
             color_attachment_refs: Vec::new(),
@@ -50,7 +50,7 @@ impl RenderPassBuilder {
         format: vk::Format,
         final_layout: vk::ImageLayout,
         layout: vk::ImageLayout,
-    ) -> RenderPassBuilder {
+    ) -> VkRenderPassBuilder {
         let color_attachment = vk::AttachmentDescription::builder()
             .format(format)
             .samples(vk::SampleCountFlags::TYPE_1)
@@ -76,7 +76,7 @@ impl RenderPassBuilder {
         mut self,
         attachment_number: u32,
         format: vk::Format,
-    ) -> RenderPassBuilder {
+    ) -> VkRenderPassBuilder {
         let depth_color_attachment = vk::AttachmentDescription::builder()
             .format(format)
             .samples(vk::SampleCountFlags::TYPE_1)
@@ -101,9 +101,9 @@ impl RenderPassBuilder {
 
     pub fn add_subpasses(
         mut self,
-        subpasses: Vec<SubpassDescriptor>,
+        subpasses: Vec<VkSubpassDescriptor>,
         deps: &[vk::SubpassDependency],
-    ) -> RenderPassBuilder {
+    ) -> VkRenderPassBuilder {
         self.dependencies.extend_from_slice(deps);
 
         for subpass in subpasses {
@@ -126,7 +126,7 @@ impl RenderPassBuilder {
         self
     }
 
-    pub fn build(self, device: &LogicalDevice) -> RenderPass {
+    pub fn build(self, device: &VkLogicalDevice) -> VkRenderPass {
         let renderpass_create_info = vk::RenderPassCreateInfo::builder()
             .attachments(&self.attachments)
             .subpasses(&self.subpasses)
@@ -139,7 +139,7 @@ impl RenderPassBuilder {
                 .expect("Failed to create render pass!")
         };
 
-        RenderPass { render_pass }
+        VkRenderPass { render_pass }
     }
 }
 
@@ -150,18 +150,19 @@ impl RenderPassBuilder {
 /// A render pass consists of at least one subpass.
 /// The communication of this information to the driver allows the driver to know what to
 /// expect when rendering begins and to set up the hardware optimally for the rendering operation.
-pub struct RenderPass {
+#[derive(Clone)]
+pub struct VkRenderPass {
     render_pass: vk::RenderPass,
 }
 
-impl RenderPass {
+impl VkRenderPass {
     /// Destroys the render pass.
-    pub unsafe fn destroy(&self, device: &LogicalDevice) {
+    pub unsafe fn destroy(&self, device: &VkLogicalDevice) {
         device.destroy_render_pass(self.render_pass, None);
     }
 }
 
-impl Deref for RenderPass {
+impl Deref for VkRenderPass {
     type Target = vk::RenderPass;
 
     fn deref(&self) -> &Self::Target {

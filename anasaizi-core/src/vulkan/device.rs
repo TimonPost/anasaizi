@@ -4,31 +4,31 @@ use std::fmt::Formatter;
 
 use crate::{
     utils::vk_to_string,
-    vulkan::{Instance, QueueFamilyProperties, SurfaceData, Version},
+    vulkan::{Version, VkInstance, VkQueueFamilyProperties, VkSurfaceData},
 };
 
-use crate::{engine::Extensions, vulkan::structures::QueueFamilyIndices};
+use crate::{engine::Extensions, vulkan::VkQueueFamilyIndices};
 use std::{fmt, ops::Deref};
 
 /// A Vulkan logical device.
 ///
 /// A logical device acts upont a physical device by proving helper functions.
 #[derive(Clone)]
-pub struct LogicalDevice {
+pub struct VkLogicalDevice {
     physical_device: vk::PhysicalDevice,
     device_features: vk::PhysicalDeviceFeatures,
     device_properties: DeviceProperties,
-    queue_family_indices: QueueFamilyIndices,
+    queue_family_indices: VkQueueFamilyIndices,
     logical_device: ash::Device,
     device_mem_properties: vk::PhysicalDeviceMemoryProperties,
 }
 
-impl LogicalDevice {
+impl VkLogicalDevice {
     pub fn new(
-        instance: &Instance,
+        instance: &VkInstance,
         required_extensions: Extensions,
-        surface_data: &SurfaceData,
-    ) -> LogicalDevice {
+        surface_data: &VkSurfaceData,
+    ) -> VkLogicalDevice {
         let (queue_family_indices, physical_device) =
             Self::pick_physical_device(instance, surface_data);
 
@@ -63,7 +63,7 @@ impl LogicalDevice {
         let device_mem_properties =
             unsafe { instance.get_physical_device_memory_properties(physical_device) };
 
-        LogicalDevice {
+        VkLogicalDevice {
             physical_device,
             device_properties,
             device_features,
@@ -143,14 +143,14 @@ impl LogicalDevice {
         &self.logical_device
     }
 
-    pub fn queue_family_indices(&self) -> &QueueFamilyIndices {
+    pub fn queue_family_indices(&self) -> &VkQueueFamilyIndices {
         &self.queue_family_indices
     }
 
-    pub fn create_logical_device(
-        instance: &Instance,
+    fn create_logical_device(
+        instance: &VkInstance,
         physical_device: vk::PhysicalDevice,
-        surface_data: &SurfaceData,
+        surface_data: &VkSurfaceData,
         extensions: &Extensions,
         features: vk::PhysicalDeviceFeatures,
     ) -> ash::Device {
@@ -189,7 +189,7 @@ impl LogicalDevice {
 
     /// Validates if the physical device supports the required extensions.
     fn check_device_extension_support(
-        instance: &Instance,
+        instance: &VkInstance,
         physical_device: vk::PhysicalDevice,
         required_extensions: &Extensions,
     ) -> bool {
@@ -213,19 +213,14 @@ impl LogicalDevice {
 
     /// Pick a physical device that is capable of using the graphics queue.
     fn pick_physical_device(
-        instance: &Instance,
-        surface_data: &SurfaceData,
-    ) -> (QueueFamilyIndices, vk::PhysicalDevice) {
+        instance: &VkInstance,
+        surface_data: &VkSurfaceData,
+    ) -> (VkQueueFamilyIndices, vk::PhysicalDevice) {
         let physical_devices = unsafe {
             instance
                 .enumerate_physical_devices()
                 .expect("Failed to enumerate Physical Devices!")
         };
-
-        println!(
-            "{} devices (GPU) found with vulkan support.",
-            physical_devices.len()
-        );
 
         let mut result = None;
         for &physical_device in physical_devices.iter() {
@@ -247,10 +242,10 @@ impl LogicalDevice {
 
     /// Validate if the physical device is able to use the graphics queue.
     fn is_physical_device_suitable(
-        instance: &Instance,
+        instance: &VkInstance,
         physical_device: vk::PhysicalDevice,
-        surface_data: &SurfaceData,
-    ) -> (QueueFamilyIndices, bool) {
+        surface_data: &VkSurfaceData,
+    ) -> (VkQueueFamilyIndices, bool) {
         let indices = Self::find_queue_family(instance, physical_device, surface_data);
         let is_complete = indices.is_complete();
 
@@ -259,26 +254,22 @@ impl LogicalDevice {
 
     /// Find supported queues for the given device.
     fn find_queue_family(
-        instance: &Instance,
+        instance: &VkInstance,
         physical_device: vk::PhysicalDevice,
-        surface_data: &SurfaceData,
-    ) -> QueueFamilyIndices {
+        surface_data: &VkSurfaceData,
+    ) -> VkQueueFamilyIndices {
         let queue_families =
             unsafe { instance.get_physical_device_queue_family_properties(physical_device) };
 
-        let mut queue_family_indices = QueueFamilyIndices {
+        let mut queue_family_indices = VkQueueFamilyIndices {
             graphics_family: None,
             present_family: None,
         };
 
         let mut index = 0;
 
-        println!("\n\tSupport Queue Family: {}", queue_families.len());
-
         for queue_family in queue_families.iter() {
-            let family = QueueFamilyProperties::from(*queue_family);
-
-            println!("{:?}", family);
+            let family = VkQueueFamilyProperties::from(*queue_family);
 
             if family.is_graphics() {
                 queue_family_indices.graphics_family = Some(index);
@@ -310,7 +301,7 @@ impl LogicalDevice {
     }
 }
 
-impl fmt::Debug for LogicalDevice {
+impl fmt::Debug for VkLogicalDevice {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "\nDevice Features: {:?}\n", self.device_features)?;
         write!(f, "\n{:?}\n", self.device_properties)
@@ -365,7 +356,7 @@ impl fmt::Debug for DeviceProperties {
     }
 }
 
-impl Deref for LogicalDevice {
+impl Deref for VkLogicalDevice {
     type Target = ash::Device;
 
     fn deref(&self) -> &Self::Target {

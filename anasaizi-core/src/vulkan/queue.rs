@@ -1,4 +1,4 @@
-use crate::vulkan::LogicalDevice;
+use crate::vulkan::VkLogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::{fmt, ops::Deref};
 
@@ -6,20 +6,20 @@ use std::{fmt, ops::Deref};
 ///
 /// A queue is the abstracted mechanism used to submit commands to the hardware.
 /// Vulkan arranges queues according to their type into queue families.
-pub struct Queue {
+pub struct VkQueue {
     queue: vk::Queue,
 }
 
-impl Queue {
+impl VkQueue {
     /// Creates a a queue.
-    pub fn create(device: &LogicalDevice, queue_index: u32) -> Queue {
+    pub fn create(device: &VkLogicalDevice, queue_index: u32) -> VkQueue {
         let queue = unsafe { device.get_device_queue(queue_index, 0) };
 
-        Queue { queue }
+        VkQueue { queue }
     }
 }
 
-impl Deref for Queue {
+impl Deref for VkQueue {
     type Target = vk::Queue;
 
     fn deref(&self) -> &Self::Target {
@@ -27,22 +27,22 @@ impl Deref for Queue {
     }
 }
 
-pub struct QueueFamilyProperties {
+pub struct VkQueueFamilyProperties {
     pub queue_flags: vk::QueueFlags,
     pub queue_count: u32,
     pub timestamp_valid_bits: u32,
     pub min_image_transfer_granularity: vk::Extent3D,
 }
 
-impl QueueFamilyProperties {
+impl VkQueueFamilyProperties {
     pub(crate) fn is_graphics(&self) -> bool {
         self.queue_flags.contains(vk::QueueFlags::GRAPHICS)
     }
 }
 
-impl From<vk::QueueFamilyProperties> for QueueFamilyProperties {
+impl From<vk::QueueFamilyProperties> for VkQueueFamilyProperties {
     fn from(queue: vk::QueueFamilyProperties) -> Self {
-        QueueFamilyProperties {
+        VkQueueFamilyProperties {
             queue_count: queue.queue_count,
             queue_flags: queue.queue_flags,
             timestamp_valid_bits: queue.timestamp_valid_bits,
@@ -51,7 +51,7 @@ impl From<vk::QueueFamilyProperties> for QueueFamilyProperties {
     }
 }
 
-impl fmt::Debug for QueueFamilyProperties {
+impl fmt::Debug for VkQueueFamilyProperties {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         println!("\t\tQueue Count | Graphics, Compute, Transfer, Sparse Binding");
 
@@ -87,5 +87,17 @@ impl fmt::Debug for QueueFamilyProperties {
         )?;
 
         Ok(())
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct VkQueueFamilyIndices {
+    pub graphics_family: Option<u32>,
+    pub present_family: Option<u32>,
+}
+
+impl VkQueueFamilyIndices {
+    pub fn is_complete(&self) -> bool {
+        self.graphics_family.is_some()
     }
 }

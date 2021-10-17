@@ -61,7 +61,6 @@ impl BufferLayout {
         self
     }
 
-
     /// Adds a 2 component float vector to the layout.
     pub fn add_float_vec2(mut self, layout_id: u8) -> Self {
         let stride = size_of::<Vector2<f32>>();
@@ -114,7 +113,7 @@ impl BufferLayout {
             specialisation_constants.push(vk::SpecializationMapEntry {
                 constant_id: layout.layout_id as u32,
                 offset: offset as u32,
-                size: layout.stride
+                size: layout.stride,
             });
 
             offset += layout.stride;

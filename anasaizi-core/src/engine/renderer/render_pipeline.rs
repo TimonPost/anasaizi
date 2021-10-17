@@ -1,21 +1,19 @@
 use crate::{
     engine::GpuMeshMemory,
     libs::imgui::DrawData,
-    utils::any_as_u8_slice,
-    vulkan::{
-        structures::QueueFamilyIndices, CommandBuffers, CommandPool, Instance, LogicalDevice,
-        Pipeline, Queue,
-    },
+    vulkan::{CommandBuffers, VkCommandPool, VkInstance, VkLogicalDevice, VkPipeline, VkQueue},
 };
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 
+use crate::vulkan::VkQueueFamilyIndices;
+use serde::Serialize;
 use std::ptr;
 
 pub struct RenderPipeline {
     active_command_buffer: *const CommandBuffer,
-    pub device: *const LogicalDevice,
+    pub device: *const VkLogicalDevice,
     pub active_mesh: *const GpuMeshMemory,
-    active_pipeline: *const Pipeline,
+    active_pipeline: *const VkPipeline,
 
     pub index_count: u32,
     pub index_offset: u32,
@@ -26,7 +24,7 @@ pub struct RenderPipeline {
 
 impl RenderPipeline {
     pub fn new(
-        device: &LogicalDevice,
+        device: &VkLogicalDevice,
         command_buffer: &CommandBuffer,
         active_image: usize,
     ) -> RenderPipeline {
@@ -44,7 +42,7 @@ impl RenderPipeline {
         }
     }
 
-    pub fn bind_pipeline(&mut self, pipeline: &Pipeline, command_buffer: &CommandBuffers) {
+    pub fn bind_pipeline(&mut self, pipeline: &VkPipeline, command_buffer: &CommandBuffers) {
         command_buffer.bind_pipeline(self.device(), pipeline);
         self.active_pipeline = pipeline;
     }
@@ -90,16 +88,14 @@ impl RenderPipeline {
         self.draw_indexed();
     }
 
-    pub fn push_mesh_constants<T: Sized>(&self, data: T) {
+    pub fn push_mesh_constant<T: Serialize + Sized + Copy>(&self, data: &T) {
         // Push the model matrix using push constants.
-        unsafe {
-            self.active_mesh().push_constants::<T>(
-                self.device(),
-                self.active_command_buffer(),
-                self.active_pipeline(),
-                data,
-            );
-        };
+        self.active_pipeline().push_constants(
+            self.device(),
+            self.active_command_buffer(),
+            self.active_pipeline(),
+            *data,
+        );
     }
 
     pub fn push_ui_constants(&self, draw_data: &DrawData) {
@@ -115,16 +111,7 @@ impl RenderPipeline {
         let mut matrix = orthographic.to_homogeneous();
         matrix[(1, 1)] = matrix[(1, 1)] * -1.0;
 
-        unsafe {
-            let push = any_as_u8_slice(&matrix);
-            self.device().cmd_push_constants(
-                *self.active_command_buffer,
-                self.active_pipeline().layout(),
-                vk::ShaderStageFlags::VERTEX,
-                0,
-                &push,
-            )
-        };
+        self.push_mesh_constant(&matrix);
     }
 
     pub fn bind_buffers(&self) {
@@ -145,7 +132,7 @@ impl RenderPipeline {
         };
     }
 
-    fn active_pipeline(&self) -> &Pipeline {
+    fn active_pipeline(&self) -> &VkPipeline {
         unsafe { &*self.active_pipeline }
     }
 
@@ -157,7 +144,7 @@ impl RenderPipeline {
         unsafe { &*self.active_mesh }
     }
 
-    fn device(&self) -> &LogicalDevice {
+    fn device(&self) -> &VkLogicalDevice {
         unsafe { &*self.device }
     }
 
@@ -197,15 +184,15 @@ pub struct RenderContext {
     graphics_queue: vk::Queue,
     command_pool: vk::CommandPool,
     instance: ash::Instance,
-    device: LogicalDevice,
+    device: VkLogicalDevice,
 }
 
 impl RenderContext {
     pub fn new(
-        instance: &Instance,
-        command_pool: &CommandPool,
-        device: &LogicalDevice,
-        graphics_queue: &Queue,
+        instance: &VkInstance,
+        command_pool: &VkCommandPool,
+        device: &VkLogicalDevice,
+        graphics_queue: &VkQueue,
     ) -> RenderContext {
         RenderContext {
             graphics_queue: **graphics_queue,
@@ -214,7 +201,7 @@ impl RenderContext {
             device: device.clone(),
         }
     }
-    pub fn queue_family_indices(&self) -> &QueueFamilyIndices {
+    pub fn queue_family_indices(&self) -> &VkQueueFamilyIndices {
         &self.device.queue_family_indices()
     }
     pub fn find_memory_type(
@@ -230,7 +217,7 @@ impl RenderContext {
         &self.device
     }
 
-    pub fn logical_device(&self) -> &LogicalDevice {
+    pub fn logical_device(&self) -> &VkLogicalDevice {
         &self.device
     }
 

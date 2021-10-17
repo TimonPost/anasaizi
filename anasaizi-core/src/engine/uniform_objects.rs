@@ -36,43 +36,6 @@ pub struct LightUniformObject {
     pub light_color: Vector4<f32>,
 }
 
-#[derive(Clone, Copy)]
-pub struct LightUniformObjectGltf {
-    pub position: Vector4<f32>,
-    pub view_pos: Vector4<f32>,
-    pub light_color: Vector4<f32>,
-    pub ambient_color: Vector4<f32>,
-    pub light_direction: Vector4<f32>,
-    pub ambient_light_intensity: f32,
-}
-
-impl Default for LightUniformObjectGltf {
-    fn default() -> Self {
-        LightUniformObjectGltf {
-            position: Vector4::default(),
-            light_color: Vector4::new(1.0, 1.0, 1.0, 1.0),
-            ambient_color: Default::default(),
-            ambient_light_intensity: Default::default(),
-            view_pos: Vector4::default(),
-            light_direction: Default::default()
-        }
-    }
-}
-
-impl UniformObjectTemplate for LightUniformObjectGltf {
-    fn size(&self) -> usize {
-        size_of::<LightUniformObjectGltf>()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
 impl Default for LightUniformObject {
     fn default() -> Self {
         LightUniformObject {
@@ -97,16 +60,53 @@ impl UniformObjectTemplate for LightUniformObject {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct GLTFLightUniformObject {
+    pub position: Vector4<f32>,
+    pub view_pos: Vector4<f32>,
+    pub light_color: Vector4<f32>,
+    pub ambient_color: Vector4<f32>,
+    pub light_direction: Vector4<f32>,
+    pub ambient_light_intensity: f32,
+}
+
+impl Default for GLTFLightUniformObject {
+    fn default() -> Self {
+        GLTFLightUniformObject {
+            position: Vector4::default(),
+            light_color: Vector4::new(1.0, 1.0, 1.0, 1.0),
+            ambient_color: Default::default(),
+            ambient_light_intensity: Default::default(),
+            view_pos: Vector4::default(),
+            light_direction: Default::default(),
+        }
+    }
+}
+
+impl UniformObjectTemplate for GLTFLightUniformObject {
+    fn size(&self) -> usize {
+        size_of::<GLTFLightUniformObject>()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
 /// Uniform buffer object.
 #[derive(Clone, Copy)]
-pub struct MatrixUniformObject {
+pub struct ViewProjectionMatrixUniformObject {
     pub view_matrix: nalgebra::Matrix4<f32>,
     pub projection_matrix: nalgebra::Matrix4<f32>,
 }
 
-impl UniformObjectTemplate for MatrixUniformObject {
+impl UniformObjectTemplate for ViewProjectionMatrixUniformObject {
     fn size(&self) -> usize {
-        size_of::<MatrixUniformObject>()
+        size_of::<ViewProjectionMatrixUniformObject>()
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -118,56 +118,14 @@ impl UniformObjectTemplate for MatrixUniformObject {
     }
 }
 
-impl Default for MatrixUniformObject {
+impl Default for ViewProjectionMatrixUniformObject {
     fn default() -> Self {
         let mut identity = nalgebra::Matrix4::default();
         identity.fill_with_identity();
 
-        MatrixUniformObject {
+        ViewProjectionMatrixUniformObject {
             view_matrix: identity,
             projection_matrix: identity,
         }
-    }
-}
-
-/// Uniform buffer object.
-#[derive(Clone, Copy)]
-pub struct MaterialUniformObject {
-    pub shininess: f32,
-    pub diffuse_texture_id: u32,
-    pub specular_texture_id: u32,
-}
-
-impl MaterialUniformObject {
-    pub fn new(
-        shininess: f32,
-        diffuse_texture_id: u32,
-        specular_texture_id: u32,
-    ) -> MaterialUniformObject {
-        MaterialUniformObject {
-            shininess,
-            diffuse_texture_id,
-            specular_texture_id,
-        }
-    }
-}
-
-impl UniformObjectTemplate for MaterialUniformObject {
-    fn size(&self) -> usize {
-        size_of::<MaterialUniformObject>()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
-impl Default for MaterialUniformObject {
-    fn default() -> Self {
-        MaterialUniformObject::new(32.0, 2, 3)
     }
 }

@@ -19,7 +19,7 @@ anasaizi-profile ={path = "../anasaizi-profile" }
 lazy_static="1.4.0"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-nalgebra = "0.27.1"
+nalgebra = {version="0.27.1", features=["serde-serialize-no-std"]}
 tobj = "3.0.1"
 hecs="0.6.0"
 tokio = { version = "1", features = ["full"] }

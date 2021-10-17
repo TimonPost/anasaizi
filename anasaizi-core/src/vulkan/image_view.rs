@@ -1,4 +1,4 @@
-use crate::vulkan::LogicalDevice;
+use crate::vulkan::VkLogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 use std::ops::Deref;
 
@@ -7,17 +7,17 @@ use std::ops::Deref;
 /// An image view is a view into an image.
 /// It describes how to access the image and which part of the image to access.
 #[derive(Clone)]
-pub struct ImageView {
+pub struct VkImageView {
     image_view: vk::ImageView,
 }
 
-impl ImageView {
+impl VkImageView {
     pub fn create(
         device: &ash::Device,
         image: vk::Image,
         format: vk::Format,
         aspect: vk::ImageAspectFlags,
-    ) -> ImageView {
+    ) -> VkImageView {
         let imageview_create_info = vk::ImageViewCreateInfo::builder()
             .view_type(vk::ImageViewType::TYPE_2D)
             .format(format)
@@ -43,15 +43,15 @@ impl ImageView {
                 .expect("Failed to create Image View!")
         };
 
-        ImageView { image_view }
+        VkImageView { image_view }
     }
 
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+    pub(crate) unsafe fn destroy(&self, device: &VkLogicalDevice) {
         device.destroy_image_view(self.image_view, None);
     }
 }
 
-impl Deref for ImageView {
+impl Deref for VkImageView {
     type Target = vk::ImageView;
 
     fn deref(&self) -> &Self::Target {

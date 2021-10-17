@@ -4,22 +4,22 @@ use crate::{
 };
 use ash::{version::DeviceV1_0, vk};
 use core::ops::Deref;
-use std::{mem, mem::size_of};
+use std::{any::TypeId, mem, mem::size_of};
 
 /// An allocated vulkan buffer containing vertices.
 #[derive(Clone)]
-pub struct VertexBuffer {
+pub struct GPUBuffer {
     buffer: vk::Buffer,
     buffer_memory: vk::DeviceMemory,
     count: usize,
 }
 
-impl VertexBuffer {
-    /// Creates a new vertex buffer from the given vertices.
-    pub fn create<U>(render_context: &RenderContext, vertices: &Vec<U>) -> VertexBuffer {
+impl GPUBuffer {
+    /// Creates a new GPU buffer from the given data.
+    pub fn create<U: 'static>(render_context: &RenderContext, data: &Vec<U>) -> GPUBuffer {
         let device = render_context.device();
         // Allocate the staging buffer.
-        let buffer_size = (size_of::<U>() * vertices.len()) as u64;
+        let buffer_size = (size_of::<U>() * data.len()) as u64;
 
         let (staging_buffer, staging_buffer_memory) = create_allocate_vk_buffer(
             render_context,
@@ -39,21 +39,29 @@ impl VertexBuffer {
                 )
                 .expect("Failed to Map Memory") as *mut U;
 
-            data_ptr.copy_from_nonoverlapping(vertices.as_ptr(), vertices.len());
+            data_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len());
 
             device.unmap_memory(staging_buffer_memory);
         }
 
+        let buffer_flags = if TypeId::of::<U>() == TypeId::of::<u16>()
+            || TypeId::of::<U>() == TypeId::of::<u32>()
+        {
+            vk::BufferUsageFlags::INDEX_BUFFER
+        } else {
+            vk::BufferUsageFlags::VERTEX_BUFFER
+        };
+
         // Create new buffer on the GPU.
-        let (vertex_buffer, vertex_buffer_memory) = create_allocate_vk_buffer(
+        let (buffer, buffer_memory) = create_allocate_vk_buffer(
             render_context,
             buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST | vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::BufferUsageFlags::TRANSFER_DST | buffer_flags,
             vk::MemoryPropertyFlags::DEVICE_LOCAL | vk::MemoryPropertyFlags::HOST_VISIBLE,
         );
 
         // Copy data from CPU staging buffer to GPU
-        copy_buffer(render_context, staging_buffer, vertex_buffer, buffer_size);
+        copy_buffer(render_context, staging_buffer, buffer, buffer_size);
 
         // Clean up the staging buffer.
         unsafe {
@@ -61,10 +69,10 @@ impl VertexBuffer {
             device.free_memory(staging_buffer_memory, None)
         }
 
-        VertexBuffer {
-            buffer: vertex_buffer,
-            buffer_memory: vertex_buffer_memory,
-            count: vertices.len() as usize,
+        GPUBuffer {
+            buffer,
+            buffer_memory,
+            count: data.len() as usize,
         }
     }
 
@@ -77,7 +85,7 @@ impl VertexBuffer {
     }
 
     /// Returns the number of indices.
-    pub fn vertices_count(&self) -> usize {
+    pub fn element_count(&self) -> usize {
         self.count
     }
 
@@ -98,7 +106,7 @@ impl VertexBuffer {
     }
 }
 
-impl Deref for VertexBuffer {
+impl Deref for GPUBuffer {
     type Target = vk::Buffer;
 
     fn deref(&self) -> &Self::Target {

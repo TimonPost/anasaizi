@@ -70,7 +70,7 @@ impl Application {
                     }
                     WindowEvent::MouseWheel { delta, .. } => {
                         if let MouseScrollDelta::LineDelta(x, y) = delta {
-                            self.input_sender.send(engine::Event::MouseScroll(x, y));
+                            self.input_sender.send(engine::Event::MouseScroll(x, y)).unwrap();
                         }
                     }
                     WindowEvent::KeyboardInput { input, .. } => {

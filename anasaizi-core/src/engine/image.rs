@@ -1,8 +1,8 @@
 use crate::{
     engine::RenderContext,
     vulkan::{
-        begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, ImageView,
-        LogicalDevice,
+        begin_single_time_command, create_allocate_vk_buffer, end_single_time_command, VkImageView,
+        VkLogicalDevice,
     },
 };
 use ash::{version::DeviceV1_0, vk};
@@ -14,7 +14,7 @@ use std::{path::Path, ptr};
 pub struct Texture {
     pub image: vk::Image,
     pub device_memory: vk::DeviceMemory,
-    pub image_view: ImageView,
+    pub image_view: VkImageView,
 }
 
 impl Texture {
@@ -126,7 +126,7 @@ impl Texture {
         }
 
         // Crate an imageview for this image.
-        let image_view = ImageView::create(
+        let image_view = VkImageView::create(
             render_context.device(),
             texture_image,
             vk::Format::R8G8B8A8_UNORM,
@@ -334,7 +334,7 @@ impl Texture {
     }
 
     /// Creates a texture sampler that can be used to sample texel data from.
-    pub fn create_texture_sampler(device: &LogicalDevice) -> vk::Sampler {
+    pub fn create_texture_sampler(device: &VkLogicalDevice) -> vk::Sampler {
         let sampler_create_info = vk::SamplerCreateInfo {
             s_type: vk::StructureType::SAMPLER_CREATE_INFO,
             p_next: ptr::null(),
@@ -363,7 +363,7 @@ impl Texture {
         }
     }
 
-    pub unsafe fn destroy(&self, device: &LogicalDevice) {
+    pub unsafe fn destroy(&self, device: &VkLogicalDevice) {
         self.image_view.destroy(device);
         device.destroy_image(self.image, None);
         device.free_memory(self.device_memory, None);

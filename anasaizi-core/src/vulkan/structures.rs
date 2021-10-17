@@ -1,28 +1,16 @@
-use crate::vulkan::LogicalDevice;
+use crate::vulkan::VkLogicalDevice;
 use ash::{version::DeviceV1_0, vk};
 
 use std::ffi::CString;
 
-#[derive(Copy, Clone)]
-pub struct QueueFamilyIndices {
-    pub graphics_family: Option<u32>,
-    pub present_family: Option<u32>,
-}
-
-impl QueueFamilyIndices {
-    pub fn is_complete(&self) -> bool {
-        self.graphics_family.is_some()
-    }
-}
-
-pub struct SyncObjects {
+pub struct VkSyncObjects {
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
     pub inflight_fences: Vec<vk::Fence>,
 }
 
-impl SyncObjects {
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+impl VkSyncObjects {
+    pub(crate) unsafe fn destroy(&self, device: &VkLogicalDevice) {
         for i in 0..self.image_available_semaphores.len() {
             device.destroy_semaphore(self.image_available_semaphores[i], None);
             device.destroy_semaphore(self.render_finished_semaphores[i], None);
@@ -31,12 +19,12 @@ impl SyncObjects {
     }
 }
 
-pub struct ValidationInfo {
+pub struct VkValidationInfo {
     pub is_enable: bool,
     pub required_validation_layers: [&'static str; 1],
 }
 
-impl ValidationInfo {
+impl VkValidationInfo {
     pub fn to_vec_owned(&self) -> Vec<String> {
         return self
             .required_validation_layers

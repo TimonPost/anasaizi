@@ -4,7 +4,6 @@ pub use object::Object;
 
 use crate::math::PosOnlyVertex;
 
-mod mesh;
 mod object;
 
 pub fn square_vertices() -> [PosOnlyVertex; 6] {

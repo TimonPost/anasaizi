@@ -1,4 +1,4 @@
-use crate::vulkan::{CommandPool, FrameBuffers, LogicalDevice, Pipeline, RenderPass};
+use crate::vulkan::{FrameBuffers, VkCommandPool, VkLogicalDevice, VkPipeline, VkRenderPass};
 use ash::{version::DeviceV1_0, vk, vk::CommandBuffer};
 
 /// A Vulkan command buffer.
@@ -19,8 +19,8 @@ impl CommandBuffers {
     /// 2. Begins the commandbuffer recording.
     pub fn begin_session(
         &mut self,
-        device: &LogicalDevice,
-        render_pass: &RenderPass,
+        device: &VkLogicalDevice,
+        render_pass: &VkRenderPass,
         surface_extent: vk::Extent2D,
         framebuffers: &FrameBuffers,
         index: usize,
@@ -71,7 +71,7 @@ impl CommandBuffers {
     }
 
     /// Binds a pipeline to the current render session.
-    pub fn bind_pipeline(&self, device: &LogicalDevice, pipeline: &Pipeline) {
+    pub fn bind_pipeline(&self, device: &VkLogicalDevice, pipeline: &VkPipeline) {
         let command_buffer = self.current();
 
         unsafe {
@@ -83,7 +83,7 @@ impl CommandBuffers {
     ///
     /// 1. Ends the renderpass.
     /// 2. Ends the commandbuffer recording.
-    pub fn end_session(&self, device: &LogicalDevice) {
+    pub fn end_session(&self, device: &VkLogicalDevice) {
         let command_buffer = self.current();
 
         unsafe {
@@ -99,8 +99,8 @@ impl CommandBuffers {
     }
 
     pub fn create(
-        device: &LogicalDevice,
-        command_pool: &CommandPool,
+        device: &VkLogicalDevice,
+        command_pool: &VkCommandPool,
         framebuffers_count: usize,
     ) -> CommandBuffers {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
@@ -127,7 +127,7 @@ impl CommandBuffers {
     }
 
     /// Frees the command buffer memory.
-    pub unsafe fn free(&self, device: &LogicalDevice, command_pool: &CommandPool) {
+    pub unsafe fn free(&self, device: &VkLogicalDevice, command_pool: &VkCommandPool) {
         device.free_command_buffers(**command_pool, &self.command_buffers)
     }
 }

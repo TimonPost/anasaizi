@@ -1,4 +1,5 @@
-use nalgebra::{Vector3, Vector4};
+use crate::math::{Matrix4, Point3, Vector3, Vector4};
+use nalgebra::Perspective3;
 
 /// Defines in which direction a camera should move.
 pub enum CameraMovement {
@@ -10,12 +11,12 @@ pub enum CameraMovement {
 
 /// Perspective camera.
 pub struct Camera {
-    camera_up: nalgebra::Vector3<f32>,
-    camera_front: nalgebra::Vector3<f32>,
-    position: nalgebra::Point3<f32>,
+    camera_up: Vector3,
+    camera_front: Vector3,
+    position: Point3,
 
-    projection_matrix: nalgebra::Matrix4<f32>,
-    view_matrix: nalgebra::Matrix4<f32>,
+    projection_matrix: Matrix4,
+    view_matrix: Matrix4,
 
     speed: f32,
     rotation_speed: f32,
@@ -34,16 +35,17 @@ pub struct Camera {
 impl Camera {
     /// Creates a new camera with the given aspect ratio, field of view, and near/far planes.
     pub fn new(aspect_ratio: f32, field_of_view: f32, znear: f32, zfar: f32) -> Self {
-        let position: nalgebra::Point3<f32> = nalgebra::Point3::<f32>::new(0.0, 1.0, 3.0);
-        let camera_front: nalgebra::Vector3<f32> = nalgebra::Vector3::<f32>::new(0.0, 0.0, -1.0);
-        let camera_up: nalgebra::Vector3<f32> = nalgebra::Vector3::<f32>::new(0.0, 1.0, 0.0);
+        let position = Point3::new(0.0, 1.0, 3.0);
+        let camera_front = Vector3::new(0.0, 0.0, -1.0);
+        let camera_up = Vector3::new(0.0, 1.0, 0.0);
 
-        let camera_target: nalgebra::Point3<f32> = Self::add_vector(&position, &camera_front);
+        let camera_target = Self::add_vector(&position, &camera_front);
 
-        let view_matrix = nalgebra::Matrix4::look_at_lh(&position, &camera_target, &camera_up);
+        let view_matrix = Matrix4::look_at_lh(&position, &camera_target, &camera_up);
 
-        let mut projection_matrix: nalgebra::Matrix4<f32> =
+        let mut projection_matrix =
             nalgebra::Perspective3::new(aspect_ratio, field_of_view, znear, zfar).to_homogeneous();
+
         projection_matrix[(1, 1)] = projection_matrix[(1, 1)] * -1.0;
 
         Camera {
@@ -76,17 +78,17 @@ impl Camera {
         self.mark_dirty();
     }
 
-    pub fn position(&self) -> Vector3<f32> {
+    pub fn position(&self) -> Vector3 {
         Vector3::new(self.position.x, self.position.y, self.position.z)
     }
 
     /// Returns the projection matrix.
-    pub fn projection(&self) -> nalgebra::Matrix4<f32> {
+    pub fn projection(&self) -> Matrix4 {
         self.projection_matrix
     }
 
     /// Returns the view matrix.
-    pub fn view(&self) -> nalgebra::Matrix4<f32> {
+    pub fn view(&self) -> Matrix4 {
         self.view_matrix
     }
 
@@ -124,7 +126,7 @@ impl Camera {
         self.is_dirty = false;
     }
 
-    pub fn screen_to_world(&self, position: Vector4<f32>) -> Vector4<f32> {
+    pub fn screen_to_world(&self, position: Vector4) -> Vector4 {
         let inverse_projection = self.projection().try_inverse().unwrap();
         let inverse_view = self.view().try_inverse().unwrap();
 
@@ -159,7 +161,7 @@ impl Camera {
         self.add_yaw(xoffset);
         self.add_pitch(yoffset);
 
-        let mut direction = nalgebra::Vector3::<f32>::default();
+        let mut direction = Vector3::default();
         direction[0] =
             Self::get_radians(self.yaw as f32).cos() * Self::get_radians(self.pitch as f32).cos();
         direction[1] = Self::get_radians(self.pitch as f32).sin();
@@ -195,33 +197,24 @@ impl Camera {
     }
 
     fn reload_matrix(&mut self) {
-        let camera_target: nalgebra::Point3<f32> =
-            Self::add_vector(&mut self.position, &self.camera_front);
+        let camera_target: Point3 = Self::add_vector(&mut self.position, &self.camera_front);
 
-        let view_matrix =
-            nalgebra::Matrix4::look_at_rh(&self.position, &camera_target, &self.camera_up);
+        let view_matrix = Matrix4::look_at_rh(&self.position, &camera_target, &self.camera_up);
 
         self.view_matrix = view_matrix;
     }
 
     fn reload_perspective(&mut self) {
-        let mut projection_matrix: nalgebra::Matrix4<f32> = nalgebra::Perspective3::new(
-            self.aspect_ratio,
-            self.field_of_view,
-            self.znear,
-            self.zfar,
-        )
-        .to_homogeneous();
+        let mut projection_matrix: Matrix4 =
+            Perspective3::new(self.aspect_ratio, self.field_of_view, self.znear, self.zfar)
+                .to_homogeneous();
         projection_matrix[(1, 1)] = projection_matrix[(1, 1)] * -1.0;
 
         self.projection_matrix = projection_matrix;
     }
 
-    fn add_vector(
-        position: &nalgebra::Point3<f32>,
-        direction: &nalgebra::Vector3<f32>,
-    ) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::<f32>::new(
+    fn add_vector(position: &Point3, direction: &Vector3) -> Point3 {
+        Point3::new(
             position[0] + direction[0],
             position[1] + direction[1],
             position[2] + direction[2],

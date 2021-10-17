@@ -2,7 +2,7 @@ use crate::vulkan::Version;
 use std::fmt;
 
 /// A Vulkan application instance.
-pub struct Application {
+pub struct VkApplication {
     pub app_name: &'static str,
     pub engine_name: &'static str,
     pub app_version: Version,
@@ -12,7 +12,7 @@ pub struct Application {
     pub window_height: u32,
 }
 
-impl Application {
+impl VkApplication {
     /// Creates a new vulkan application instance.
     pub fn new(
         app_name: &'static str,
@@ -22,8 +22,8 @@ impl Application {
         api_version: Version,
         window_width: u32,
         window_height: u32,
-    ) -> Application {
-        Application {
+    ) -> VkApplication {
+        VkApplication {
             app_version,
             engine_version,
             api_version,
@@ -35,7 +35,7 @@ impl Application {
     }
 }
 
-impl fmt::Debug for Application {
+impl fmt::Debug for VkApplication {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "\n Application Info:\n")?;
         write!(f, "\t - App: {:?} {:?}\n", self.app_name, self.app_version)?;

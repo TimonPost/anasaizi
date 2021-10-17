@@ -1,10 +1,10 @@
-use crate::vulkan::{Instance, SurfaceData};
+use crate::vulkan::{VkInstance, VkSurfaceData};
 use std::ops::Deref;
 use winit::event_loop::EventLoop;
 
 /// A Vulkan winit window.
 pub struct Window {
-    surface: SurfaceData,
+    surface: VkSurfaceData,
     pub window: winit::window::Window,
 }
 
@@ -13,7 +13,7 @@ impl Window {
         window_title: &str,
         window_width: u32,
         window_height: u32,
-        instance: &Instance,
+        instance: &VkInstance,
         event_loop: &EventLoop<()>,
     ) -> Window {
         let window = winit::window::WindowBuilder::new()
@@ -22,12 +22,12 @@ impl Window {
             .build(event_loop)
             .expect("Failed to create window.");
 
-        let surface = SurfaceData::new(&instance, &window);
+        let surface = VkSurfaceData::new(&instance, &window);
 
         Window { window, surface }
     }
 
-    pub fn surface_data(&self) -> &SurfaceData {
+    pub fn surface_data(&self) -> &VkSurfaceData {
         &self.surface
     }
 }

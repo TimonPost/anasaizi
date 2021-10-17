@@ -1,6 +1,6 @@
 use ash::extensions::khr::Win32Surface;
 
-use crate::vulkan::Instance;
+use crate::vulkan::VkInstance;
 use ash::vk;
 use std::ops::Deref;
 
@@ -9,20 +9,20 @@ use std::ops::Deref;
 /// Vulkan uses the VkSurfaceKHR object to abstract the native platform surface or window.
 /// This symbol is defined as part of the VK_KHR_surface extension.
 /// The various functions in the WSI extensions are used to create, manipulate, and destroy these surface objects.
-pub struct SurfaceData {
+pub struct VkSurfaceData {
     pub surface_loader: ash::extensions::khr::Surface,
     pub surface: vk::SurfaceKHR,
 }
 
-impl SurfaceData {
-    pub fn new(instance: &Instance, window: &winit::window::Window) -> SurfaceData {
+impl VkSurfaceData {
+    pub fn new(instance: &VkInstance, window: &winit::window::Window) -> VkSurfaceData {
         let surface = unsafe {
             Self::create_surface_windows(instance, window).expect("Failed to create surface.")
         };
 
         let surface_loader = ash::extensions::khr::Surface::new(instance.entry(), instance.deref());
 
-        SurfaceData {
+        VkSurfaceData {
             surface_loader,
             surface,
         }
@@ -30,7 +30,7 @@ impl SurfaceData {
 
     #[cfg(target_os = "windows")]
     pub unsafe fn create_surface_windows(
-        instance: &Instance,
+        instance: &VkInstance,
         window: &winit::window::Window,
     ) -> Result<vk::SurfaceKHR, vk::Result> {
         use std::{os::raw::c_void, ptr};

@@ -1,28 +1,37 @@
-use crate::vulkan::{ShaderSet, ShaderFlags};
-use std::rc::Rc;
-use std::collections::{HashMap, HashSet};
-use crate::engine::{PBRMeshPushConstants, RenderContext, GpuMeshMemory, Transform, GlTFPBRMeshPushConstants};
-use crate::engine::gltf::mappers::ImportData;
-use crate::engine::gltf::node::Node;
-use std::path::Path;
-use crate::engine::gltf::mesh::Mesh;
-use crate::engine::image::Texture;
+use crate::{
+    engine::{
+        gltf::{mappers::ImportData, mesh::GLTFMesh, node::GLTFNode},
+        GLTFMaterial, GpuMeshMemory, RenderContext, Transform,
+    },
+    vulkan::{ShaderFlags, ShaderSet},
+};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+    rc::Rc,
+};
 
 #[derive(Default)]
-pub struct Root {
-    pub nodes: Vec<Node>,
-    pub meshes: Vec<Rc<Mesh>>,
+pub struct GLTFRoot {
+    pub nodes: Vec<GLTFNode>,
+    pub meshes: Vec<Rc<GLTFMesh>>,
 
-    pub materials: Vec<(usize, GlTFPBRMeshPushConstants)>,
+    pub materials: Vec<(usize, GLTFMaterial)>,
 
     pub textures: Vec<crate::engine::image::Texture>,
     pub texture_paths: HashSet<String>,
     pub shaders: HashMap<ShaderFlags, ShaderSet>,
-    pub entities: HashMap<ShaderFlags, Vec<(GpuMeshMemory, Transform, GlTFPBRMeshPushConstants)>>
+    pub entities: HashMap<ShaderFlags, Vec<(GpuMeshMemory, Transform, GLTFMaterial)>>,
 }
 
-impl Root {
-    pub(crate) fn add_entity(&mut self, flags: ShaderFlags, memory: GpuMeshMemory, transform: Transform, material: GlTFPBRMeshPushConstants) {
+impl GLTFRoot {
+    pub(crate) fn add_entity(
+        &mut self,
+        flags: ShaderFlags,
+        memory: GpuMeshMemory,
+        transform: Transform,
+        material: GLTFMaterial,
+    ) {
         let entry = self.entities.entry(flags).or_insert(Vec::new());
         entry.push((memory, transform, material))
     }
@@ -34,11 +43,17 @@ impl Root {
     }
 }
 
-impl Root {
-    pub fn from_gltf(render_context: &mut RenderContext, imp: &ImportData, base_path: &Path) -> Self {
-        let mut root = Root::default();
-        let nodes = imp.doc.nodes()
-            .map(|g_node| Node::from_gltf(render_context,&g_node, &mut root, imp, base_path))
+impl GLTFRoot {
+    pub fn from_gltf(
+        render_context: &mut RenderContext,
+        imp: &ImportData,
+        base_path: &Path,
+    ) -> Self {
+        let mut root = GLTFRoot::default();
+        let nodes = imp
+            .doc
+            .nodes()
+            .map(|g_node| GLTFNode::from_gltf(render_context, &g_node, &mut root, imp, base_path))
             .collect();
 
         root.nodes = nodes;
@@ -48,9 +63,7 @@ impl Root {
     /// Get a mutable reference to a node without borrowing `Self` or `Self::nodes`.
     /// Safe for tree traversal (visiting each node ONCE and NOT keeping a reference)
     /// as long as the gltf is valid, i.e. the scene actually is a tree.
-    pub fn unsafe_get_node_mut(&mut self, index: usize) ->&'static mut Node {
-        unsafe {
-            &mut *(&mut self.nodes[index] as *mut Node)
-        }
+    pub fn unsafe_get_node_mut(&mut self, index: usize) -> &'static mut GLTFNode {
+        unsafe { &mut *(&mut self.nodes[index] as *mut GLTFNode) }
     }
 }

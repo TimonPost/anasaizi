@@ -1,4 +1,4 @@
-use anasaizi_core::vulkan::{Pipeline, ShaderBuilder, ShaderFlags, ShaderIOBuilder, ShaderSet};
+use anasaizi_core::vulkan::{ShaderBuilder, ShaderIOBuilder, ShaderSet, VkPipeline};
 use winit::event_loop::EventLoop;
 
 use anasaizi_profile::profile;
@@ -7,8 +7,9 @@ use anasaizi_core::{
     debug::start_profiler,
     engine::{
         image::Texture, resources::TextureLoader, BufferLayout, GpuMeshMemory, Layer,
-        LightUniformObject, MatrixUniformObject, MeshPushConstants, PBRMaps, PBRMeshPushConstants,
-        RenderLayer, Transform, UIPushConstants, VulkanApplication, FRAGMENT_SHADER, VERTEX_SHADER,
+        LightUniformObject, MeshPushConstants, PBRMeshPushConstants, RenderLayer,
+        Transform, UIPushConstants, ViewProjectionMatrixUniformObject, VulkanApplication,
+        FRAGMENT_SHADER, VERTEX_SHADER,
     },
     libs::{
         ash::{self, vk},
@@ -22,18 +23,16 @@ use anasaizi_core::{
 use crate::{game_layer::Application, imgui_layer::ImguiLayer};
 
 use anasaizi_core::engine::{
-    gltf::{load_gltf_scene, GltfPBRShaderConstants, Root, Scene},
-    GlTFPBRMeshPushConstants, LightUniformObjectGltf,
+    gltf::{load_gltf_scene},
+    GLTFLightUniformObject, GLTFMaterial, GltfPBRShaderConstants,
 };
 use std::{
-    collections::HashMap,
     ffi::{c_void, CStr},
     mem,
     mem::size_of,
     path::Path,
     ptr,
     sync::Arc,
-    time::{Duration, Instant},
 };
 
 pub const MAIN_MESH_PIPELINE_ID: u32 = 0;
@@ -52,7 +51,6 @@ pub struct VulkanApp {
 
     pub textures: Vec<Texture>,
 
-    count: f32,
     pub light_entity: Entity,
 
     debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
@@ -65,16 +63,15 @@ impl VulkanApp {
         application: &VulkanApplication,
         texture: &[Texture],
     ) {
+        //let a = load_gltf_scene(vulkan_renderer.render_context(application), "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\gltf\\basic\\BoxMultiScene.gltf", 0).await;
         let a = load_gltf_scene(
             vulkan_renderer.render_context(application),
             "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\gltf\\sponza\\Sponza.gltf",
             0,
         )
         .await;
-        //let a = load_gltf_scene(vulkan_renderer.render_context(application), "E:\\programming\\Anasazi\\anasaizi-editor\\assets\\gltf\\basic\\BoxMultiScene.gltf", 0).await;
-
         let root = a.0;
-        let scene = a.1;
+        let _scene = a.1;
 
         let mut pipeline_id = START_GLFT_PIPELINE_ID;
 
@@ -88,7 +85,7 @@ impl VulkanApp {
             let mut constants = GltfPBRShaderConstants::from(flag);
             constants.texture_array_lenght = tx.len() as u32;
 
-            let mut shader =
+            let shader =
                 Self::setup_gltf_pbr_shader(application, &vulkan_renderer, tx, constants);
 
             for (memory, transform, material) in entities {
@@ -115,19 +112,19 @@ impl VulkanApp {
             TextureLoader::new(Arc::from(vulkan_renderer.render_context(&application)));
         texture_loader.load_path("assets/textures/white.png", "colors.white", false);
         //
-        texture_loader.load_path("assets/textures/marble/albedo.jpg", "marble.albedo", false);
-        texture_loader.load_path(
-            "assets/textures/marble/roughness.jpg",
-            "marble.roughness",
-            false,
-        );
-        texture_loader.load_path("assets/textures/marble/ao.jpg", "marble.ao", false);
-        texture_loader.load_path(
-            "assets/textures/marble/metallness.jpg",
-            "marble.metallness",
-            false,
-        );
-        texture_loader.load_path("assets/textures/marble/normal.jpg", "marble.normal", false);
+        // texture_loader.load_path("assets/textures/marble/albedo.jpg", "marble.albedo", false);
+        // texture_loader.load_path(
+        //     "assets/textures/marble/roughness.jpg",
+        //     "marble.roughness",
+        //     false,
+        // );
+        // texture_loader.load_path("assets/textures/marble/ao.jpg", "marble.ao", false);
+        // texture_loader.load_path(
+        //     "assets/textures/marble/metallness.jpg",
+        //     "marble.metallness",
+        //     false,
+        // );
+        // texture_loader.load_path("assets/textures/marble/normal.jpg", "marble.normal", false);
 
         // texture_loader.load_path("assets/textures/cabin/albedo.jpg", "cabin.albedo", false);
         // texture_loader.load_path("assets/textures/cabin/roughness.jpg", "cabin.roughness", false);
@@ -138,16 +135,16 @@ impl VulkanApp {
         //
         let main_shader_textures = [
             textures.query("colors.white").owned_texture(), // 0
-            textures.query("marble.albedo").owned_texture(), // 1
-            textures.query("marble.roughness").owned_texture(),
-            textures.query("marble.ao").owned_texture(),
-            textures.query("marble.metallness").owned_texture(),
-            textures.query("marble.normal").owned_texture(),
-            //
-            // textures.query("cabin.albedo").owned_texture(),     // 6
-            // textures.query("cabin.roughness").owned_texture(),
-            // textures.query("cabin.displacement").owned_texture(),
-            // textures.query("cabin.normal").owned_texture(),
+                                                            // textures.query("marble.albedo").owned_texture(), // 1
+                                                            // textures.query("marble.roughness").owned_texture(),
+                                                            // textures.query("marble.ao").owned_texture(),
+                                                            // textures.query("marble.metallness").owned_texture(),
+                                                            // textures.query("marble.normal").owned_texture(),
+                                                            //
+                                                            // textures.query("cabin.albedo").owned_texture(),     // 6
+                                                            // textures.query("cabin.roughness").owned_texture(),
+                                                            // textures.query("cabin.displacement").owned_texture(),
+                                                            // textures.query("cabin.normal").owned_texture(),
         ];
 
         Self::load_scene(&mut vulkan_renderer, &application, &main_shader_textures).await;
@@ -176,7 +173,7 @@ impl VulkanApp {
 
         vulkan_renderer.create_pipeline(&application, main_shader_set, MAIN_MESH_PIPELINE_ID);
         vulkan_renderer.create_pipeline(&application, lighting_shader_set, PBR_MESH_PIPELINE_ID);
-        //vulkan_renderer.create_pipeline(&application, grid_shader, GRID_PIPELINE_ID);
+        vulkan_renderer.create_pipeline(&application, grid_shader, GRID_PIPELINE_ID);
 
         Self::initialize_uniform_objects(&mut vulkan_renderer);
 
@@ -249,7 +246,6 @@ impl VulkanApp {
             vulkan_renderer,
             application,
             textures: Vec::from(main_shader_textures),
-            count: 0.0,
 
             debug_merssager: Some(debug_merssager),
             debug_utils_loader: Some(debug_utils_loader),
@@ -282,7 +278,7 @@ impl VulkanApp {
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
-                unsafe { size_of::<MatrixUniformObject>() },
+                unsafe { size_of::<ViewProjectionMatrixUniformObject>() },
             )
             .add_uniform_buffer(
                 3,
@@ -313,7 +309,6 @@ impl VulkanApp {
             application,
             "assets\\shaders\\build\\pbr.vert.spv",
             "assets\\shaders\\build\\pbr.frag.spv",
-            3,
         )
         .with_descriptors(descriptors)
         .build()
@@ -323,21 +318,15 @@ impl VulkanApp {
         application: &VulkanApplication,
         vulkan_renderer: &RenderLayer,
         textures: &[Texture],
-        mut specialisation_constant_data: GltfPBRShaderConstants,
+        specialisation_constant_data: GltfPBRShaderConstants,
     ) -> ShaderSet {
-        let mut input_buffer_layout = BufferLayout::new()
+        let input_buffer_layout = BufferLayout::new()
             .add_float_vec4(0) // position
             .add_float_vec4(2) // normal
             .add_float_vec4(4) // tangent
             .add_float_vec2(6) // tex coord 0
             .add_float_vec2(7) // tex coord 1
             .add_float_vec4(8); // color
-
-        println!(
-            "size pusH: {}\n{:?}",
-            size_of::<GltfPBRShaderConstants>(),
-            specialisation_constant_data
-        );
 
         let mut constant_layout = BufferLayout::new();
 
@@ -350,23 +339,23 @@ impl VulkanApp {
         let push_const_ranges = [vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
             offset: 0,
-            size: mem::size_of::<GlTFPBRMeshPushConstants>() as u32,
+            size: mem::size_of::<GLTFMaterial>() as u32,
         }];
 
-        let mut descriptors = ShaderIOBuilder::builder()
+        let descriptors = ShaderIOBuilder::builder()
             .add_uniform_buffer(
                 0,
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
-                unsafe { size_of::<MatrixUniformObject>() },
+                unsafe { size_of::<ViewProjectionMatrixUniformObject>() },
             )
             .add_uniform_buffer(
                 3,
                 vk::ShaderStageFlags::FRAGMENT | vk::ShaderStageFlags::VERTEX,
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
-                unsafe { size_of::<LightUniformObjectGltf>() },
+                unsafe { size_of::<GLTFLightUniformObject>() },
             )
             .add_push_constant_ranges(&push_const_ranges)
             .add_input_buffer_layout(input_buffer_layout)
@@ -392,7 +381,6 @@ impl VulkanApp {
             application,
             "assets\\shaders\\build\\pbr_gltf.vert.spv",
             "assets\\shaders\\build\\pbr_gltf.frag.spv",
-            3,
         )
         .with_descriptors(shaderio)
         .build()
@@ -423,7 +411,7 @@ impl VulkanApp {
                 vk::ShaderStageFlags::VERTEX,
                 &vulkan_renderer.render_context(application),
                 vulkan_renderer.swapchain.images.len(),
-                unsafe { size_of::<MatrixUniformObject>() },
+                unsafe { size_of::<ViewProjectionMatrixUniformObject>() },
             )
             .sampler(
                 1,
@@ -443,7 +431,7 @@ impl VulkanApp {
                 vulkan_renderer.swapchain.images.len(),
             );
 
-        ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER, 3)
+        ShaderBuilder::builder(application, VERTEX_SHADER, FRAGMENT_SHADER)
             .with_descriptors(descriptors)
             .build()
     }
@@ -485,7 +473,6 @@ impl VulkanApp {
             application,
             "assets\\shaders\\build\\ui_vert.vert.spv",
             "assets\\shaders\\build\\ui_frag.frag.spv",
-            3,
         )
         .with_descriptors(descriptors)
         .build()
@@ -500,10 +487,12 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            pipeline.shader.add_uniform_object(MatrixUniformObject {
-                projection_matrix: perspective,
-                view_matrix: view,
-            });
+            pipeline
+                .shader
+                .add_uniform_object(ViewProjectionMatrixUniformObject {
+                    projection_matrix: perspective,
+                    view_matrix: view,
+                });
 
             if pipeline.pipeline_id() == PBR_MESH_PIPELINE_ID {
                 pipeline
@@ -514,16 +503,13 @@ impl VulkanApp {
             if pipeline.pipeline_id() >= START_GLFT_PIPELINE_ID
                 && pipeline.pipeline_id() <= START_GLFT_PIPELINE_ID + 100
             {
-                let mut light = LightUniformObjectGltf::default();
+                let mut light = GLTFLightUniformObject::default();
                 light.ambient_color = Vector4::new(1.0, 1.0, 1.0, 1.0);
                 light.ambient_light_intensity = 0.2;
                 light.light_direction = Vector4::new(0.0, 0.5, 0.5, 1.0);
                 light.light_color = Vector4::new(5.0, 5.0, 5.0, 1.0);
 
-                let mut gltf = GlTFPBRMeshPushConstants::default();
-
                 pipeline.shader.add_uniform_object(light);
-                pipeline.shader.add_uniform_object(gltf);
             }
         }
     }
@@ -542,15 +528,17 @@ impl VulkanApp {
         };
 
         for pipeline in vulkan_renderer.pipelines.iter_mut() {
-            pipeline.shader.update_uniform::<MatrixUniformObject>(
-                &application.device,
-                vulkan_renderer.current_frame,
-                0,
-                &move |obj| {
-                    obj.view_matrix = view.clone();
-                    obj.projection_matrix = perspective.clone();
-                },
-            );
+            pipeline
+                .shader
+                .update_uniform::<ViewProjectionMatrixUniformObject>(
+                    &application.device,
+                    vulkan_renderer.current_frame,
+                    0,
+                    &move |obj| {
+                        obj.view_matrix = view.clone();
+                        obj.projection_matrix = perspective.clone();
+                    },
+                );
 
             if pipeline.pipeline_id() >= START_GLFT_PIPELINE_ID
                 && pipeline.pipeline_id() <= START_GLFT_PIPELINE_ID + 5
@@ -562,7 +550,7 @@ impl VulkanApp {
                 let light_pos = light_entity.translate_factor();
                 let camera_pos = vulkan_renderer.camera.position();
 
-                pipeline.shader.update_uniform::<LightUniformObjectGltf>(
+                pipeline.shader.update_uniform::<GLTFLightUniformObject>(
                     &application.device,
                     vulkan_renderer.current_frame,
                     1,
@@ -610,7 +598,7 @@ impl VulkanApp {
         ui_layer.initialize(&application.window, &render_context);
         let ui_shader =
             Self::setup_ui_shader(&application, &vulkan_renderer, &ui_layer.ui_font_texture);
-        let pipeline = Pipeline::ui_pipeline(
+        let pipeline = VkPipeline::ui_pipeline(
             &application.device,
             &vulkan_renderer.render_pass,
             ui_shader,

@@ -6,39 +6,38 @@ use crate::{
     },
     profile_fn,
     vulkan::{
-        structures::SyncObjects, CommandBuffers, CommandPool, FrameBuffers, Queue, RenderPass,
-        ShaderSet, SwapChain,
+        structures::VkSyncObjects, CommandBuffers, FrameBuffers, ShaderSet, VkCommandPool, VkQueue,
+        VkRenderPass, VkSwapChain,
     },
 };
 
 use crate::{
     engine::{
         renderer::render_pipeline::RenderPipeline, BufferLayout, GpuMeshMemory, Layer,
-        MatrixUniformObject, MeshPushConstants, PBRMaps, PBRMeshPushConstants, RenderContext,
-        Transform, World,
+        MeshPushConstants, PBRMaps, PBRMeshPushConstants, RenderContext, Transform,
+        ViewProjectionMatrixUniformObject, World,
     },
     libs::imgui::{DrawCmd, DrawCmdParams, DrawData},
     math::PosOnlyVertex,
     model::{square_indices, square_vertices},
     vulkan::{
-        IndexBuffer, LogicalDevice, ObjectPicker, Pipeline, RenderPassBuilder, ShaderBuilder,
-        ShaderIOBuilder, SubpassDescriptor, VertexBuffer, Window,
+        GPUBuffer, ShaderBuilder, ShaderIOBuilder, VkLogicalDevice, VkPipeline,
+        VkRenderPassBuilder, VkSubpassDescriptor, Window,
     },
 };
 use ash::{version::DeviceV1_0, vk};
 
-use std::{mem, mem::size_of, ptr};
+use crate::engine::GLTFMaterial;
+
+use std::{mem, mem::size_of, ops::Deref, ptr};
 use winit::event::{ElementState, MouseButton, VirtualKeyCode};
-use crate::engine::GlTFPBRMeshPushConstants;
-use std::ops::Deref;
-use ash::util::Align;
 
 pub static FRAGMENT_SHADER: &str = "assets\\shaders\\build\\fragment.frag.spv";
 pub static VERTEX_SHADER: &str = "assets\\shaders\\build\\vertex.vert.spv";
 const MAX_FRAMES_IN_FLIGHT: usize = 3;
 
-pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
-    let mut sync_objects = SyncObjects {
+pub fn create_sync_objects(device: &ash::Device) -> VkSyncObjects {
+    let mut sync_objects = VkSyncObjects {
         image_available_semaphores: vec![],
         render_finished_semaphores: vec![],
         inflight_fences: vec![],
@@ -82,24 +81,24 @@ pub fn create_sync_objects(device: &ash::Device) -> SyncObjects {
 }
 
 pub struct RenderLayer {
-    pub swapchain: SwapChain,
-    pub render_pass: RenderPass,
-    pub graphics_queue: Queue,
-    present_queue: Queue,
-    pub command_pool: CommandPool,
+    pub swapchain: VkSwapChain,
+    pub render_pass: VkRenderPass,
+    pub graphics_queue: VkQueue,
+    present_queue: VkQueue,
+    pub command_pool: VkCommandPool,
 
     frame_buffers: FrameBuffers,
     command_buffers: CommandBuffers,
 
-    pub pipelines: Vec<Pipeline>,
+    pub pipelines: Vec<VkPipeline>,
 
-    pub ui_pipeline: Option<Pipeline>,
+    pub ui_pipeline: Option<VkPipeline>,
     pub ui_mesh: *const GpuMeshMemory,
     pub ui_data: *const DrawData,
 
     pub texture_sampler: Option<vk::Sampler>,
 
-    sync_object: SyncObjects,
+    sync_object: VkSyncObjects,
 
     pub camera: Camera,
     pub start_move_y: f64,
@@ -114,7 +113,6 @@ pub struct RenderLayer {
 
     pub world: World,
     mouse_down: bool,
-    pub object_picker: ObjectPicker,
 }
 
 impl Layer for RenderLayer {
@@ -342,16 +340,16 @@ impl RenderLayer {
         let device = &application.device;
         let _instance = &application.instance;
 
-        let graphics_queue = Queue::create(
+        let graphics_queue = VkQueue::create(
             &device,
             device.queue_family_indices().graphics_family.unwrap(),
         );
-        let present_queue = Queue::create(
+        let present_queue = VkQueue::create(
             &device,
             device.queue_family_indices().present_family.unwrap(),
         );
 
-        let command_pool = CommandPool::create(&device);
+        let command_pool = VkCommandPool::create(&device);
 
         let render_context = RenderContext::new(
             &application.instance,
@@ -360,7 +358,7 @@ impl RenderLayer {
             &graphics_queue,
         );
 
-        let swapchain = SwapChain::new(&render_context, application.window.surface_data());
+        let swapchain = VkSwapChain::new(&render_context, application.window.surface_data());
 
         let render_pass = Self::setup_renderpass(swapchain.image_format, &application);
 
@@ -386,15 +384,7 @@ impl RenderLayer {
         let command_buffers =
             CommandBuffers::create(&application.device, &command_pool, frame_buffers.len());
 
-        let object_picker = ObjectPicker::new(
-            application,
-            &render_context,
-            swapchain.extent.width as usize,
-            swapchain.extent.height as usize,
-        );
-
         RenderLayer {
-            object_picker,
             swapchain,
             render_pass,
 
@@ -453,7 +443,7 @@ impl RenderLayer {
         shader: ShaderSet,
         pipeline_id: u32,
     ) {
-        let pipeline = Pipeline::create(
+        let pipeline = VkPipeline::create(
             &application.device,
             self.swapchain.extent,
             &self.render_pass,
@@ -502,38 +492,20 @@ impl RenderLayer {
                             metallic_map: maps.metalness,
                             roughness_map: maps.roughness,
                             ao_map: maps.ao,
-                            displacement_map: maps.displacement
+                            displacement_map: maps.displacement,
                         };
 
-                        render_pipeline.push_mesh_constants(push_constants);
-                    } else if let Ok(maps) = self.world.get::<GlTFPBRMeshPushConstants>(id) {
+                        render_pipeline.push_mesh_constant(&push_constants);
+                    } else if let Ok(maps) = self.world.get::<GLTFMaterial>(id) {
                         // Push the model matrix using push constants.
                         let mut push = maps.deref().clone();
                         push.model_matrix = transform.model_transform();
-
-                        unsafe {
-                            // pipeline.shader.update_uniform::<GlTFPBRMeshPushConstants>(
-                            //     &*render_pipeline.device,
-                            //     self.current_frame,
-                            //     2,
-                            //     &move |obj| {
-                            //         *obj = ;
-                            //         println!("n: {} o: {} e: {} m: {}", maps.normal_texture==obj.normal_texture, maps.occlusion_texture==obj.occlusion_texture, maps.emissive_texture==obj.emissive_texture, maps.metallic_roughness_texture == obj.metallic_roughness_texture);
-                            //     },
-                            // );
-
-                            // Push the model matrix using push constants.
-                            let transform = push.clone();
-                            render_pipeline.push_mesh_constants(transform);
-                        }
+                        render_pipeline.push_mesh_constant(&push);
                     } else {
-                        // Push the model matrix using push constants.
-                        let transform = MeshPushConstants {
+                        render_pipeline.push_mesh_constant(&MeshPushConstants {
                             model_matrix: transform.model_transform(),
                             texture_id: mesh.texture_id,
-                        };
-
-                        render_pipeline.push_mesh_constants(transform);
+                        });
                     }
 
                     render_pipeline.render_mesh();
@@ -579,19 +551,17 @@ impl RenderLayer {
                             },
                     } = command
                     {
-                        unsafe {
-                            let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
-                            let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
-                            let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
-                            let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
+                        let clip_x = (clip_rect[0] - clip_offset[0]) * clip_scale[0];
+                        let clip_y = (clip_rect[1] - clip_offset[1]) * clip_scale[1];
+                        let clip_w = (clip_rect[2] - clip_offset[0]) * clip_scale[0] - clip_x;
+                        let clip_h = (clip_rect[3] - clip_offset[1]) * clip_scale[1] - clip_y;
 
-                            render_pipeline.set_scissors(clip_x, clip_y, clip_w, clip_h);
+                        render_pipeline.set_scissors(clip_x, clip_y, clip_w, clip_h);
 
-                            render_pipeline.index_offset = index_offset + idx_offset as u32;
-                            render_pipeline.vertex_offset = (vertex_offset + vtx_offset) as u32;
-                            render_pipeline.index_count = count as u32;
-                            render_pipeline.render_mesh();
-                        }
+                        render_pipeline.index_offset = index_offset + idx_offset as u32;
+                        render_pipeline.vertex_offset = (vertex_offset + vtx_offset) as u32;
+                        render_pipeline.index_count = count as u32;
+                        render_pipeline.render_mesh();
                     }
                 }
             }
@@ -603,7 +573,6 @@ impl RenderLayer {
         application: &VulkanApplication,
         render_context: &RenderContext,
     ) {
-
         unsafe {
             application
                 .device
@@ -615,7 +584,7 @@ impl RenderLayer {
 
         let surface_data = application.window.surface_data();
 
-        self.swapchain = SwapChain::new(render_context, surface_data);
+        self.swapchain = VkSwapChain::new(render_context, surface_data);
 
         self.render_pass = Self::setup_renderpass(self.swapchain.image_format, application);
 
@@ -640,12 +609,15 @@ impl RenderLayer {
             }
         }
 
-        self.camera.update_screen_resize(16.0 / 9.0,(self.swapchain.extent.width / self.swapchain.extent.height) as f32);
+        self.camera.update_screen_resize(
+            16.0 / 9.0,
+            (self.swapchain.extent.width / self.swapchain.extent.height) as f32,
+        );
 
         self.current_frame = 0;
     }
 
-    fn setup_renderpass(format: vk::Format, application: &VulkanApplication) -> RenderPass {
+    fn setup_renderpass(format: vk::Format, application: &VulkanApplication) -> VkRenderPass {
         let dependecy = [vk::SubpassDependency::builder()
             .src_stage_mask(
                 vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
@@ -665,7 +637,7 @@ impl RenderLayer {
             .dst_subpass(1)
             .build()];
 
-        let render_pass = RenderPassBuilder::builder()
+        let render_pass = VkRenderPassBuilder::builder()
             .add_color_attachment(
                 0,
                 format,
@@ -678,8 +650,8 @@ impl RenderLayer {
             )
             .add_subpasses(
                 vec![
-                    SubpassDescriptor::new().with_color(0).with_depth(1),
-                    SubpassDescriptor::new().with_color(0),
+                    VkSubpassDescriptor::new().with_color(0).with_depth(1),
+                    VkSubpassDescriptor::new().with_color(0),
                 ],
                 &dependecy,
             )
@@ -688,14 +660,14 @@ impl RenderLayer {
         render_pass
     }
 
-    unsafe fn destroy_swapchain(&self, device: &LogicalDevice) {
+    unsafe fn destroy_swapchain(&self, device: &VkLogicalDevice) {
         self.command_buffers.free(device, &self.command_pool);
         self.frame_buffers.destroy(&device);
         self.render_pass.destroy(&device);
         self.swapchain.destroy(&device);
     }
 
-    pub fn destroy(&self, device: &LogicalDevice) {
+    pub fn destroy(&self, device: &VkLogicalDevice) {
         unsafe {
             self.destroy_swapchain(device);
             //self.ui_pipeline.as_ref().unwrap().destroy(&device);
@@ -720,9 +692,9 @@ impl RenderLayer {
             (square_vertices().to_vec(), square_indices().to_vec());
 
         let grid_vertex_buffer =
-            VertexBuffer::create::<PosOnlyVertex>(render_context, &square_vertices);
+            GPUBuffer::create::<PosOnlyVertex>(render_context, &square_vertices);
 
-        let grid_index_buffer = IndexBuffer::create(render_context, &square_indices);
+        let grid_index_buffer = GPUBuffer::create(render_context, &square_indices);
 
         let input_buffer_layout = BufferLayout::new().add_float_vec3(0);
 
@@ -738,7 +710,7 @@ impl RenderLayer {
                 vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
                 render_context,
                 self.swapchain.images.len(),
-                unsafe { size_of::<MatrixUniformObject>() },
+                size_of::<ViewProjectionMatrixUniformObject>(),
             )
             .add_input_buffer_layout(input_buffer_layout)
             .add_push_constant_ranges(&push_const_ranges)
@@ -748,7 +720,6 @@ impl RenderLayer {
             application,
             "assets\\shaders\\build\\grid_vert.vert.spv",
             "assets\\shaders\\build\\grid_frag.frag.spv",
-            self.swapchain.images.len(),
         )
         .with_descriptors(descriptors);
 
@@ -759,34 +730,4 @@ impl RenderLayer {
             GpuMeshMemory::new(grid_vertex_buffer, grid_index_buffer, -1),
         )
     }
-}
-
-enum DrawCommand<'a> {
-    ImGui(UiDrawElement<'a>),
-    Mesh(),
-}
-
-struct UiDrawElement<'a> {
-    mesh: &'a GpuMeshMemory,
-    commands: Vec<DrawCommands>,
-    /// Upper-left position of the viewport to render.
-    ///
-    /// (= upper-left corner of the orthogonal projection matrix to use)
-    pub display_pos: [f32; 2],
-    /// Size of the viewport to render.
-    ///
-    /// (= display_pos + display_size == lower-right corner of the orthogonal matrix to use)
-    pub display_size: [f32; 2],
-    /// Amount of pixels for each unit of display_size.
-    ///
-    /// Based on io.display_frame_buffer_scale. Typically [1.0, 1.0] on normal displays, and
-    /// [2.0, 2.0] on Retina displays, but fractional values are also possible.
-    pub framebuffer_scale: [f32; 2],
-}
-
-struct DrawCommands {
-    pub count: usize,
-    pub clip_rect: [f32; 4],
-    pub vtx_offset: usize,
-    pub idx_offset: usize,
 }

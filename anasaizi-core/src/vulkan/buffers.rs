@@ -1,15 +1,14 @@
 mod buffer;
 mod command_buffer;
 mod framebuffer;
-mod index_buffer;
+mod push_constants;
 mod uniform_buffer;
 mod vertex_buffer;
 
 pub use command_buffer::CommandBuffers;
 pub use framebuffer::{FrameBuffer, FrameBuffers};
-pub use index_buffer::IndexBuffer;
 pub use uniform_buffer::UniformBuffer;
-pub use vertex_buffer::VertexBuffer;
+pub use vertex_buffer::GPUBuffer;
 
 use crate::engine::RenderContext;
 use ash::{version::DeviceV1_0, vk};

@@ -1,6 +1,6 @@
 use crate::{
     engine::Extensions,
-    vulkan::{structures::ValidationInfo, Application, ValidationLayers},
+    vulkan::{structures::VkValidationInfo, VkApplication, VkValidationLayers},
 };
 use ash::{version::EntryV1_0, vk};
 use std::{ffi::CString, fmt, ops::Deref};
@@ -8,20 +8,20 @@ use std::{ffi::CString, fmt, ops::Deref};
 /// Vulkan Instance.
 ///
 /// The instance is the connection between the application and the Vulkan library.
-pub struct Instance {
+pub struct VkInstance {
     entry: ash::Entry,
     instance: ash::Instance,
 
-    validation_layers: Option<ValidationLayers>,
+    validation_layers: Option<VkValidationLayers>,
 }
 
-impl Instance {
+impl VkInstance {
     /// Creates a new vulkan instance with the given extensions.
     pub fn new(
-        validation: ValidationInfo,
+        validation: VkValidationInfo,
         extensions: Extensions,
-        application: &Application,
-    ) -> Instance {
+        application: &VkApplication,
+    ) -> VkInstance {
         // Create entry
         let entry = unsafe { ash::Entry::new().unwrap() };
 
@@ -29,7 +29,7 @@ impl Instance {
         let mut validation_layers = None;
 
         if validation.is_enable {
-            let layers = ValidationLayers::new(&entry, validation.to_vec_owned());
+            let layers = VkValidationLayers::new(&entry, validation.to_vec_owned());
 
             if !layers.has_required_layers() {
                 panic!("Validation layers requested, but not available!");
@@ -77,7 +77,7 @@ impl Instance {
                 .expect("Failed to create instance!")
         };
 
-        Instance {
+        VkInstance {
             entry,
             validation_layers,
             instance,
@@ -89,7 +89,7 @@ impl Instance {
     }
 }
 
-impl Deref for Instance {
+impl Deref for VkInstance {
     type Target = ash::Instance;
 
     fn deref(&self) -> &Self::Target {
@@ -97,7 +97,7 @@ impl Deref for Instance {
     }
 }
 
-impl fmt::Debug for Instance {
+impl fmt::Debug for VkInstance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         if let Some(validation_layer) = &self.validation_layers {
             write!(f, "{:?}", validation_layer)?;

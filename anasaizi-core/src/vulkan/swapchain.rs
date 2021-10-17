@@ -2,7 +2,7 @@ use ash::vk;
 
 use crate::{
     engine::{image::Texture, RenderContext},
-    vulkan::{ImageView, LogicalDevice, SurfaceData},
+    vulkan::{VkImageView, VkLogicalDevice, VkSurfaceData},
     WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use ash::vk::Image;
@@ -12,19 +12,19 @@ use std::ops::Deref;
 ///
 /// The swap chain is essentially a queue of images that are waiting to be presented to the screen.
 /// The general purpose of the swap chain is to synchronize the presentation of images with the refresh rate of the screen.
-pub struct SwapChain {
+pub struct VkSwapChain {
     pub loader: ash::extensions::khr::Swapchain,
     pub swapchain: vk::SwapchainKHR,
     pub images: Vec<vk::Image>,
     pub image_format: vk::Format,
     pub extent: vk::Extent2D,
-    pub image_views: Vec<ImageView>,
+    pub image_views: Vec<VkImageView>,
     pub depth_image: vk::Image,
-    pub depth_image_view: ImageView,
+    pub depth_image_view: VkImageView,
 }
 
-impl SwapChain {
-    pub(crate) unsafe fn destroy(&self, device: &LogicalDevice) {
+impl VkSwapChain {
+    pub(crate) unsafe fn destroy(&self, device: &VkLogicalDevice) {
         self.depth_image_view.destroy(device);
         for image_view in self.image_views.iter() {
             image_view.destroy(device);
@@ -34,8 +34,8 @@ impl SwapChain {
     }
 }
 
-impl SwapChain {
-    pub fn new(render_context: &RenderContext, surface_data: &SurfaceData) -> SwapChain {
+impl VkSwapChain {
+    pub fn new(render_context: &RenderContext, surface_data: &VkSurfaceData) -> VkSwapChain {
         let swap_chain_support =
             Self::query_swapchain_support(render_context.physical_device(), surface_data);
 
@@ -48,7 +48,7 @@ impl SwapChain {
 
     fn query_swapchain_support(
         physical_device: &vk::PhysicalDevice,
-        surface_data: &SurfaceData,
+        surface_data: &VkSurfaceData,
     ) -> SwapChainSupportDetails {
         unsafe {
             let capabilities = surface_data
@@ -72,7 +72,10 @@ impl SwapChain {
         }
     }
 
-    fn create_swapchain(render_context: &RenderContext, surface_stuff: &SurfaceData) -> SwapChain {
+    fn create_swapchain(
+        render_context: &RenderContext,
+        surface_stuff: &VkSurfaceData,
+    ) -> VkSwapChain {
         let swapchain_support =
             Self::query_swapchain_support(render_context.physical_device(), surface_stuff);
 
@@ -144,7 +147,7 @@ impl SwapChain {
             &surface_format.format,
         );
 
-        SwapChain {
+        VkSwapChain {
             loader: swapchain_loader,
             swapchain,
             image_format: surface_format.format,
@@ -161,12 +164,12 @@ impl SwapChain {
         device: &ash::Device,
         images: &Vec<vk::Image>,
         format: &vk::Format,
-    ) -> Vec<ImageView> {
+    ) -> Vec<VkImageView> {
         let mut swapchain_imageviews = vec![];
 
         for &image in images.iter() {
             let image_view =
-                ImageView::create(&device, image, *format, vk::ImageAspectFlags::COLOR);
+                VkImageView::create(&device, image, *format, vk::ImageAspectFlags::COLOR);
 
             swapchain_imageviews.push(image_view);
         }
@@ -177,7 +180,7 @@ impl SwapChain {
     pub fn create_depth_resources(
         render_context: &RenderContext,
         swapchain_extent: vk::Extent2D,
-    ) -> (Image, ImageView, vk::DeviceMemory) {
+    ) -> (Image, VkImageView, vk::DeviceMemory) {
         let depth_format = render_context
             .logical_device()
             .find_depth_format(render_context.raw_instance());
@@ -192,7 +195,7 @@ impl SwapChain {
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
         );
 
-        let depth_image_view = ImageView::create(
+        let depth_image_view = VkImageView::create(
             render_context.device(),
             depth_image,
             depth_format,
@@ -255,7 +258,7 @@ impl SwapChain {
     }
 }
 
-impl Deref for SwapChain {
+impl Deref for VkSwapChain {
     type Target = vk::SwapchainKHR;
 
     fn deref(&self) -> &Self::Target {
